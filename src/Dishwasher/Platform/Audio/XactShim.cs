@@ -257,6 +257,7 @@ namespace Dishwasher.Audio
         private bool _loggedPlay;   // one-line proof-of-playback log per cue name
         private bool _loggedMissing; // one-shot "no audio" log per cue name
         private string _boundPath;   // PORT (music-switch-freeze): pinned SoundLoader path
+        private string _preparedPath;
 
         internal Cue(string name, AudioCategory category, CueDatabase.Def def)
         {
@@ -269,7 +270,7 @@ namespace Dishwasher.Audio
 
         public string Name { get; }
 
-        public bool IsPreparing => false;
+        public bool IsPreparing => _preparedPath != null && SoundLoader.IsPending(_preparedPath);
         public bool IsStopped => _instance == null || _instance.State == MgSoundState.Stopped;
         public bool IsPaused => _instance != null && _instance.State == MgSoundState.Paused;
         public bool IsPlaying =>
@@ -277,6 +278,28 @@ namespace Dishwasher.Audio
                                   _instance.State == MgSoundState.Paused);
         public bool IsCreated => _instance != null;
         public bool IsDisposed { get; private set; }
+
+        // Warm an upcoming cue without starting it or blocking on OGG decoding.
+        // Pin its buffer so preparing another stem cannot evict the first one.
+        public bool Prepare()
+        {
+            if (IsDisposed || _def == null || _def.Files.Length == 0) return true;
+            var file = _def.Files[(_variation + 1) % _def.Files.Length];
+            string path = _def.BaseDir + file.Path;
+            if (_preparedPath != path)
+            {
+                ReleasePrepared();
+                SoundLoader.Pin(path);
+                _preparedPath = path;
+            }
+            return SoundLoader.Get(_def.BaseDir, file.Path) != null || !SoundLoader.IsPending(path);
+        }
+
+        private void ReleasePrepared()
+        {
+            SoundLoader.Unpin(_preparedPath);
+            _preparedPath = null;
+        }
 
         public void Play()
         {
@@ -319,6 +342,7 @@ namespace Dishwasher.Audio
             SoundLoader.Unpin(_boundPath);
             _boundPath = path;
             SoundLoader.Pin(path);
+            ReleasePrepared();
 
             _instance = effect.CreateInstance();
             _instance.IsLooped = file.Loop;
@@ -338,6 +362,7 @@ namespace Dishwasher.Audio
 
         public void Stop(AudioStopOptions options)
         {
+            ReleasePrepared();
             if (_instance == null) return;
             _instance.Stop();
             _instance.Dispose();
@@ -411,6 +436,7 @@ namespace Dishwasher.Audio
         {
             if (IsDisposed) return;
             IsDisposed = true;
+            ReleasePrepared();
             if (_instance != null)
             {
                 _instance.Stop();

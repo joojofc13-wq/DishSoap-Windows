@@ -74,6 +74,15 @@ def port(text):
 
 
 def integrate(relative, text):
+    if relative.as_posix() == 'projectDish/GuitarSolo.cs':
+        marker = 'if (needsStart)\n\t\t{'
+        if text.count(marker) != 1:
+            raise ValueError('Review guitar audio readiness hook')
+        text = text.replace(marker, marker + '\n' +
+            '\t\t\t// PORT: prepare both stems before starting the rhythm clock.\n' +
+            '\t\t\tbool portForegroundReady = fgCue.Prepare();\n' +
+            '\t\t\tbool portBackgroundReady = bgCue.Prepare();\n' +
+            '\t\t\tif (!portForegroundReady || !portBackgroundReady) return;')
     if relative.as_posix() == 'projectDish/Globals.cs':
         text = text.replace('random.NextDouble()', 'Dishwasher.DesktopRenderContext.RandomFor(random).NextDouble()')
         text = text.replace('random.Next(', 'Dishwasher.DesktopRenderContext.RandomFor(random).Next(')
