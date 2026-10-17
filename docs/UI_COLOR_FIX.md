@@ -27,6 +27,25 @@ Sucesso exige resultado positivo e executável existente: habilita os botões,
 abre a pasta efetiva do executável e exibe um aviso. Falha exibe aviso e detalhes;
 não abre a pasta como se o jogo estivesse pronto. Nunca inicia o jogo sozinho.
 
+### Correção do progresso com compilação em andamento
+
+`Start-Process` mantém os arquivos de stdout/stderr abertos para escrita.
+`File.ReadAllText` tentava abrir esses arquivos com compartilhamento apenas de
+leitura, gerando erro de arquivo em uso. Como a interface ignorava esse erro,
+o log e a barra ficavam sem atualizações durante a compilação real.
+
+A leitura agora usa `FileShare.ReadWrite | FileShare.Delete`. As etapas também
+são gravadas diretamente num JSON atômico, sem depender do buffer de stdout.
+A preparação inicial mostra uma barra animada; downloads informam MB recebidos
+quando o arquivo está disponível. Depois, a barra acompanha etapas e texturas,
+chegando a 100% somente após a confirmação de sucesso.
+
+A regressão executa um processo filho real com redirecionamento de stdout e
+stderr, verifica atualizações antes de ele terminar e testa o aviso de conclusão.
+`-UiCheck -Source <game.exe> -Dotnet <dotnet.exe> -Python <python.exe>` também
+executa a compilação real com a cópia fornecida, sem importar recursos nem
+iniciar o jogo. O teste não tenta atualizar uma janela antiga que já estava aberta.
+
 ## Manchas roxas/azuis
 
 O shader bloom original do port testa `B > R` e usa o canal azul como máscara

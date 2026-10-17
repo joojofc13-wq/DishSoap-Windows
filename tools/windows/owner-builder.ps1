@@ -11,6 +11,7 @@
     [string]$DataRoot,
     [switch]$UiCheck,
     [string]$ResultFile,
+    [string]$ProgressFile,
     [string]$PreviewPath,
     [string]$UiCulture
 )
@@ -19,6 +20,7 @@ $ProgressPreference = 'SilentlyContinue'
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $localTools = Join-Path $repoRoot '.local-tools'
 $builderScript = $PSCommandPath
+$script:buildStage = 1
 $regionName = (Get-ItemProperty -LiteralPath 'HKCU:\Control Panel\International\Geo' -ErrorAction SilentlyContinue).Name
 $uiLanguage = switch ($regionName) {
     { $_ -in @('BR','PT','AO','MZ','CV','GW','ST','TL') } { 'pt'; break }
@@ -34,12 +36,36 @@ function T([string]$Pt, [string]$En, [string]$Es) {
         default { return $En }
     }
 }
+function Read-BuildLog([string]$Path) {
+    # Start-Process keeps its redirected logs open for writing. ReadAllText
+    # uses FileShare.Read, which conflicts with that writer on Windows.
+    $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read,
+        ([IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete))
+    try {
+        $reader = New-Object IO.StreamReader($stream)
+        try { return $reader.ReadToEnd() } finally { $reader.Dispose() }
+    }
+    finally { $stream.Dispose() }
+}
+function Report-BuildStage([int]$Stage, [string]$Message, [string]$TransferFile) {
+    $script:buildStage = $Stage
+    # Direct, atomic status writes bypass buffering in redirected console output.
+    if ($ProgressFile) {
+        $path = [IO.Path]::GetFullPath($ProgressFile)
+        New-Item -ItemType Directory -Force ([IO.Path]::GetDirectoryName($path)) | Out-Null
+        $json = @{ Stage = $Stage; Message = $Message; TransferFile = $TransferFile } | ConvertTo-Json
+        [IO.File]::WriteAllText($path + '.tmp', $json)
+        if ([IO.File]::Exists($path)) { [IO.File]::Replace($path + '.tmp', $path, $path + '.bak') }
+        else { [IO.File]::Move($path + '.tmp', $path) }
+    }
+    Write-Host $Message
+}
 
 function Get-VerifiedDownload([string]$Uri, [string]$Path, [string]$Hash, [string]$Algorithm = 'SHA256') {
     if ($NoDownloads) { throw (T 'Download desabilitado. Forneca os caminhos de .NET, Python e FFmpeg.' 'Downloads disabled. Provide paths to .NET, Python and FFmpeg.' 'Descargas desactivadas. Indica las rutas de .NET, Python y FFmpeg.') }
     New-Item -ItemType Directory -Force ([IO.Path]::GetDirectoryName($Path)) | Out-Null
     if (!(Test-Path -LiteralPath $Path)) {
-        Write-Host (T "Baixando ferramenta oficial: $Uri" "Downloading official tool: $Uri" "Descargando herramienta oficial: $Uri")
+        Report-BuildStage $script:buildStage (T "Baixando ferramenta oficial: $Uri" "Downloading official tool: $Uri" "Descargando herramienta oficial: $Uri") ($Path + '.download')
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         Invoke-WebRequest -UseBasicParsing -Uri $Uri -OutFile ($Path + '.download')
         if ((Get-FileHash -LiteralPath ($Path + '.download') -Algorithm $Algorithm).Hash -ne $Hash) {
@@ -57,7 +83,7 @@ function Find-Dotnet {
     if ($installed -and ((& $installed.Source --list-sdks) -match '^8\.0\.')) { return $installed.Source }
     $archive = Join-Path $localTools 'dotnet-sdk-8.0.426-win-x64.zip'
     Get-VerifiedDownload 'https://builds.dotnet.microsoft.com/dotnet/Sdk/8.0.426/dotnet-sdk-8.0.426-win-x64.zip' $archive '10261657109f1c62126f106a9ac966739b025b5f6b4a9f88ab7c6e73cacce9aec771895daa3267b8da933a83c32ee91bf458dc6704e1ddcd9bcf0d5edd036abb' 'SHA512'
-    Write-Host (T 'Preparando SDK .NET 8 local (sem administrador)...' 'Preparing local .NET 8 SDK (no administrator required)...' 'Preparando SDK .NET 8 local (sin administrador)...')
+    Report-BuildStage 1 (T 'Preparando SDK .NET 8 local (sem administrador)...' 'Preparing local .NET 8 SDK (no administrator required)...' 'Preparando SDK .NET 8 local (sin administrador)...')
     Expand-Archive -LiteralPath $archive -DestinationPath (Join-Path $localTools 'dotnet') -Force
     return $private
 }
@@ -106,19 +132,19 @@ if ($Worker) {
         $run = Join-Path $repoRoot ('work/owner-build-' + [guid]::NewGuid().ToString('N'))
         $generatedSource = Join-Path $run 'GameSource'
         New-Item -ItemType Directory -Force $run,$localTools | Out-Null
-        Write-Host (T '1/6 Preparando ferramentas locais...' '1/6 Preparing local tools...' '1/6 Preparando herramientas locales...')
+        Report-BuildStage 1 (T '1/6 Preparando ferramentas locais...' '1/6 Preparing local tools...' '1/6 Preparando herramientas locales...')
         $sdk = Find-Dotnet
         $pythonExe = Find-Python
         # Local tools (ILSpy/MGCB apphosts) also resolve the private SDK's runtime.
         $env:DOTNET_ROOT = [IO.Path]::GetDirectoryName($sdk)
-        Write-Host (T '2/6 Extraindo sua copia, descompilando e adaptando para Windows...' '2/6 Extracting your copy, decompiling and adapting for Windows...' '2/6 Extrayendo tu copia, descompilando y adaptando para Windows...')
+        Report-BuildStage 2 (T '2/6 Extraindo sua copia, descompilando e adaptando para Windows...' '2/6 Extracting your copy, decompiling and adapting for Windows...' '2/6 Extrayendo tu copia, descompilando y adaptando para Windows...')
         & (Join-Path $PSScriptRoot 'prepare-game.ps1') -Source $Source -Dotnet $sdk -Python $pythonExe -WorkDirectory $run -GameSourceRoot $generatedSource
         if ($LASTEXITCODE) { throw (T 'Falha na preparacao do GameSource.' 'GameSource preparation failed.' 'Error al preparar GameSource.') }
         $metadataFile = Get-ChildItem -LiteralPath $run -Recurse -File -Filter prepared.json | Select-Object -First 1
         if (!$metadataFile) { throw (T 'Preparacao nao produziu prepared.json.' 'Preparation did not produce prepared.json.' 'La preparacion no produjo prepared.json.') }
         $prepared = Get-Content -LiteralPath $metadataFile.FullName -Raw | ConvertFrom-Json
         $stageName = 'owner-' + [guid]::NewGuid().ToString('N')
-        Write-Host (T '3/6 Compilando o jogo real para Windows x64...' '3/6 Building the game for Windows x64...' '3/6 Compilando el juego para Windows x64...')
+        Report-BuildStage 3 (T '3/6 Compilando o jogo real para Windows x64...' '3/6 Building the game for Windows x64...' '3/6 Compilando el juego para Windows x64...')
         & $sdk publish src/Dishwasher.Desktop/Dishwasher.Desktop.csproj -c Release -r win-x64 --self-contained true "-p:GameSourceRoot=$generatedSource" "-p:PublishDir=../../dist/$stageName/"
         if ($LASTEXITCODE) { throw (T 'Compilacao falhou. Veja os erros no log; nenhuma funcionalidade foi removida para ocultar erros.' 'Build failed. Check the log for errors.' 'Error de compilacion. Consulta los errores en el registro.') }
         & $sdk publish src/DishSoap.Configurator/DishSoap.Configurator.csproj -c Release -r win-x64 --self-contained true "-p:PublishDir=../../dist/$stageName/"
@@ -135,13 +161,14 @@ if ($Worker) {
         $gameExe = Join-Path $Destination 'Dishwasher.exe'
         if (!$SkipImport) {
             if (!$prepared.ContentSource) { throw (T 'O jogo foi compilado, mas este game.exe isolado nao contem recursos. Importe-os pelo executavel.' 'Game built, but this standalone game.exe has no assets. Import them with the executable.' 'Juego compilado, pero este game.exe no contiene recursos. Importalos con el ejecutable.') }
-            Write-Host (T '4/6 Importando sua copia e convertendo audio...' '4/6 Importing your copy and converting audio...' '4/6 Importando tu copia y convirtiendo audio...')
+            Report-BuildStage 4 (T '4/6 Importando sua copia e convertendo audio...' '4/6 Importing your copy and converting audio...' '4/6 Importando tu copia y convirtiendo audio...')
             $decoder = Find-Ffmpeg
+            Report-BuildStage 4 (T '4/6 Importando sua copia e convertendo audio...' '4/6 Importing your copy and converting audio...' '4/6 Importando tu copia y convirtiendo audio...')
             $importArgs = @('--import', $prepared.ContentSource, '--ffmpeg', $decoder)
             if ($DataRoot) { $importArgs += @('--data-root', [IO.Path]::GetFullPath($DataRoot)) }
             & $gameExe @importArgs
             if ($LASTEXITCODE) { throw (T 'Build concluida, mas a importacao falhou. Veja o log antes de jogar.' 'Build complete, but import failed. Check the log before playing.' 'Compilacion terminada, pero la importacion fallo. Revisa el registro antes de jugar.') }
-            Write-Host (T '5/6 Ampliando todas as texturas em 2x para composicao 1080p...' '5/6 Preparing upscaled textures...' '5/6 Preparando texturas ampliadas...')
+            Report-BuildStage 5 (T '5/6 Ampliando todas as texturas em 2x para composicao 1080p...' '5/6 Preparing upscaled textures...' '5/6 Preparando texturas ampliadas...')
             $importRoot = if ($DataRoot) { [IO.Path]::GetFullPath($DataRoot) } else { Join-Path $env:LOCALAPPDATA 'DishSoapWindows' }
             $activeId = (Get-Content -LiteralPath (Join-Path $importRoot 'Config/active-content.txt') -Raw).Trim()
             if ($activeId -notmatch '^[a-fA-F0-9]{32}$') { throw (T 'Identificador da importacao ativa invalido.' 'Invalid active import identifier.' 'Identificador de importacion activa no valido.') }
@@ -149,7 +176,7 @@ if ($Worker) {
             & (Join-Path $PSScriptRoot 'upscale-game.ps1') -ContentRoot $activeContent -Dotnet $sdk -Python $pythonExe -EngineDirectory $UpscaleEngine -NoDownloads:$NoDownloads
             if ($LASTEXITCODE) { throw (T 'Jogo compilado, mas preparacao HD falhou. Veja o log.' 'Game built, but upscaled texture preparation failed. Check the log.' 'Juego compilado, pero fallo la preparacion de texturas ampliadas. Consulta el registro.') }
         }
-        Write-Host (T '6/6 Concluido. O jogo nao sera iniciado automaticamente.' '6/6 Complete. The game will not start automatically.' '6/6 Completado. El juego no se iniciara automaticamente.')
+        Report-BuildStage 6 (T '6/6 Concluido. O jogo nao sera iniciado automaticamente.' '6/6 Complete. The game will not start automatically.' '6/6 Completado. El juego no se iniciara automaticamente.')
         Write-Host (T "Executavel: $gameExe" "Executable: $gameExe" "Ejecutable: $gameExe")
         @{ Executable = $gameExe; GameSource = $generatedSource; Source = [IO.Path]::GetFullPath($Source); Imported = !$SkipImport } |
             ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Destination 'local-build.json') -Encoding UTF8
@@ -229,11 +256,12 @@ $outButton.Add_Click({
     $picker.Dispose()
 })
 $script:workerProcess = $null
-$script:stdoutLog = $null; $script:stderrLog = $null; $script:resultLog = $null
+$script:stdoutLog = $null; $script:stderrLog = $null; $script:resultLog = $null; $script:progressLog = $null
 $script:buildDestination = $null; $script:buildSucceeded = $false
 $timer = New-Object Windows.Forms.Timer; $timer.Interval = 700
 function Complete-Build([bool]$Success, [string]$Details) {
     $timer.Stop()
+    $progressBar.Style = 'Continuous'
     $buildButton.Enabled = $sourceBox.Enabled = $outBox.Enabled = $true
     $fileButton.Enabled = $folderButton.Enabled = $outButton.Enabled = $true
     $script:buildSucceeded = $Success; $openButton.Enabled = $Success
@@ -260,17 +288,25 @@ function Update-BuildProgress {
     $logText = ''
     foreach ($file in @($script:stdoutLog,$script:stderrLog)) {
         if (Test-Path -LiteralPath $file) {
-            try { $logText += [IO.File]::ReadAllText($file) + "`r`n" } catch { }
+            try { $logText += (Read-BuildLog $file) + "`r`n" } catch [IO.IOException] { }
         }
     }
     if ($logText -ne $logBox.Text) { $logBox.Text = $logText }
     $logBox.SelectionStart = $logBox.TextLength; $logBox.ScrollToCaret()
+    $stageState = $null
+    if ($script:progressLog -and (Test-Path -LiteralPath $script:progressLog)) {
+        try { $stageState = (Read-BuildLog $script:progressLog) | ConvertFrom-Json } catch [IO.IOException] { } catch [ArgumentException] { }
+    }
     $phases = [regex]::Matches($logText, '(?m)^\s*([1-6])/6 ([^\r\n]+)')
-    if ($phases.Count) {
-        $latest = $phases[$phases.Count - 1]; $phase = [int]$latest.Groups[1].Value
+    if ($phases.Count -or $stageState) {
+        $latest = if ($phases.Count) { $phases[$phases.Count - 1] } else { $null }
+        $phase = if ($stageState) { [int]$stageState.Stage } else { [int]$latest.Groups[1].Value }
+        $stageMessage = if ($stageState) { $stageState.Message } else { $latest.Value.Trim() }
+        if ($phase -lt 1 -or $phase -gt 6) { throw 'Invalid build stage.' }
         $percent = @(0,0,12,35,55,70,98)[$phase]
+        $progressBar.Style = if ($phase -eq 1) { 'Marquee' } else { 'Continuous' }
         if ($phase -eq 5) {
-            $phaseLog = $logText.Substring($latest.Index)
+            $phaseLog = if ($latest) { $logText.Substring($latest.Index) } else { $logText }
             $textures = [regex]::Matches($phaseLog, '\[(\d+)/(\d+)\]')
             if ($textures.Count) {
                 $last = $textures[$textures.Count - 1]
@@ -280,7 +316,12 @@ function Update-BuildProgress {
         }
         # This is stage progress, not a time estimate; never show 100 before success.
         $progressBar.Value = [Math]::Max($progressBar.Value, [Math]::Min(98,$percent))
-        $note.Text = $latest.Value.Trim() + "`r`n" + (T 'Progresso por etapas; detalhes no log abaixo.' 'Stage progress; details in the log below.' 'Progreso por etapas; detalles en el registro inferior.')
+        $detail = T 'Progresso por etapas; detalhes no log abaixo.' 'Stage progress; details in the log below.' 'Progreso por etapas; detalles en el registro inferior.'
+        if ($stageState.TransferFile -and (Test-Path -LiteralPath $stageState.TransferFile)) {
+            $downloadSize = (Get-Item -LiteralPath $stageState.TransferFile).Length / 1MB
+            $detail = (T 'Baixado: {0:N1} MB' 'Downloaded: {0:N1} MB' 'Descargado: {0:N1} MB') -f $downloadSize
+        }
+        $note.Text = $stageMessage + "`r`n" + $detail
     }
     # A worker-written result avoids relying on Start-Process.ExitCode, which
     # can be null for a redirected process. The marker is atomic and per run.
@@ -304,15 +345,17 @@ $buildButton.Add_Click({
     $id = [guid]::NewGuid().ToString('N')
     $script:stdoutLog = Join-Path $logs ($id + '.stdout.log'); $script:stderrLog = Join-Path $logs ($id + '.stderr.log')
     $script:resultLog = Join-Path $logs ($id + '.result.json')
+    $script:progressLog = Join-Path $logs ($id + '.progress.json')
     $script:buildDestination = [IO.Path]::GetFullPath($outBox.Text)
     $openButton.Enabled = $false; $script:buildSucceeded = $false; $logBox.Clear(); $progressBar.Value = 0
     $shellExe = Join-Path $PSHOME 'powershell.exe'
     if (!(Test-Path -LiteralPath $shellExe)) { $shellExe = (Get-Command powershell.exe).Source }
-    $arguments = @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"' + $builderScript + '"'),'-Worker','-Source',('"' + $sourceBox.Text + '"'),'-Destination',('"' + $script:buildDestination + '"'),'-ResultFile',('"' + $script:resultLog + '"'))
+    $arguments = @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"' + $builderScript + '"'),'-Worker','-Source',('"' + $sourceBox.Text + '"'),'-Destination',('"' + $script:buildDestination + '"'),'-ResultFile',('"' + $script:resultLog + '"'),'-ProgressFile',('"' + $script:progressLog + '"'))
     try { $script:workerProcess = Start-Process -FilePath $shellExe -ArgumentList $arguments -WindowStyle Hidden -PassThru -RedirectStandardOutput $script:stdoutLog -RedirectStandardError $script:stderrLog }
     catch { Complete-Build $false $_.Exception.Message; return }
     $buildButton.Enabled = $sourceBox.Enabled = $outBox.Enabled = $fileButton.Enabled = $folderButton.Enabled = $outButton.Enabled = $false
     $note.Text = (T 'Compilando... A primeira execucao pode baixar cerca de 450 MB. O progresso aparece abaixo.' 'Building... The first run may download around 450 MB. Progress appears below.' 'Compilando... La primera ejecucion puede descargar unos 450 MB. El progreso aparece abajo.')
+    $progressBar.Style = 'Marquee'; $progressBar.MarqueeAnimationSpeed = 35
     $timer.Start()
 })
 $openButton.Add_Click({ Start-Process -FilePath explorer.exe -ArgumentList ('"' + $script:buildDestination + '"') })
@@ -341,6 +384,56 @@ if ($UiCheck) {
     Update-BuildProgress
     if ($openButton.Enabled -or $script:buildSucceeded -or !$buildButton.Enabled) { throw 'Failure state failed' }
     Write-Host 'Builder failure notification/button state PASS'
+    # Regression: exercise a genuinely running redirected child, not closed
+    # test logs. It reproduces the sharing mode used by the actual builder.
+    $streamingTest = Join-Path $testFolder 'streaming-worker.ps1'
+    @'
+param($StatusPath,$ResultPath,$ProbeFile)
+foreach ($phase in @(1,2,3,5)) {
+    @{ Stage=$phase; Message=($phase.ToString() + '/6 streaming test'); TransferFile=$null } |
+        ConvertTo-Json | Set-Content -LiteralPath ($StatusPath + '.tmp') -Encoding UTF8
+    Move-Item -LiteralPath ($StatusPath + '.tmp') -Destination $StatusPath -Force
+    [Console]::Out.WriteLine($phase.ToString() + '/6 streaming test')
+    if ($phase -eq 5) { [Console]::Out.WriteLine('[64/128] streaming texture') }
+    Start-Sleep -Milliseconds 500
+}
+@{ Success=$true; Executable=$ProbeFile; Error=$null } | ConvertTo-Json |
+    Set-Content -LiteralPath $ResultPath -Encoding UTF8
+'@ | Set-Content -LiteralPath $streamingTest -Encoding UTF8
+    $script:stdoutLog = Join-Path $testFolder 'stream.stdout.log'
+    $script:stderrLog = Join-Path $testFolder 'stream.stderr.log'
+    $script:progressLog = Join-Path $testFolder 'stream.progress.json'
+    $script:resultLog = Join-Path $testFolder 'stream.result.json'
+    $testShell = (Get-Command powershell.exe).Source
+    $testArgs = @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"' + $streamingTest + '"'),'-StatusPath',('"' + $script:progressLog + '"'),'-ResultPath',('"' + $script:resultLog + '"'),'-ProbeFile',('"' + $builderScript + '"'))
+    if ($Source) {
+        # Optional integration run builds the supplied owner's managed assembly,
+        # skips import/upscale and never launches or controls the game.
+        $testArgs = @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"' + $builderScript + '"'),'-Worker','-Source',('"' + [IO.Path]::GetFullPath($Source) + '"'),'-Destination',('"' + (Join-Path $testFolder 'build') + '"'),'-SkipImport','-NoDownloads','-ProgressFile',('"' + $script:progressLog + '"'),'-ResultFile',('"' + $script:resultLog + '"'))
+        if ($Dotnet) { $testArgs += @('-Dotnet',('"' + $Dotnet + '"')) }
+        if ($Python) { $testArgs += @('-Python',('"' + $Python + '"')) }
+    }
+    $script:workerProcess = Start-Process -FilePath $testShell -ArgumentList $testArgs -WindowStyle Hidden -PassThru -RedirectStandardOutput $script:stdoutLog -RedirectStandardError $script:stderrLog
+    $streamProcess = $script:workerProcess; $progressBar.Value = 0
+    $sawLiveLog = $false; $sawLiveStage = $false; $sawSpinner = $false
+    $timeout = [Diagnostics.Stopwatch]::StartNew()
+    $testTimeout = if ($Source) { 180 } else { 15 }
+    while ($script:workerProcess -and $timeout.Elapsed.TotalSeconds -lt $testTimeout) {
+        Update-BuildProgress
+        if (!$streamProcess.HasExited) {
+            if (($Source -and $logBox.TextLength -gt 0) -or $logBox.Text.Contains('streaming test')) { $sawLiveLog = $true }
+            if ($progressBar.Value -ge 12 -and $progressBar.Value -lt 100) { $sawLiveStage = $true }
+            if ($progressBar.Style -eq 'Marquee') { $sawSpinner = $true }
+        }
+        [Windows.Forms.Application]::DoEvents()
+        Start-Sleep -Milliseconds 40
+    }
+    if (!$sawLiveLog -or !$sawLiveStage -or (!$sawSpinner -and !$Source) -or !$script:buildSucceeded -or $progressBar.Value -ne 100) {
+        throw "Redirected live worker regression failed: log=$sawLiveLog stage=$sawLiveStage spinner=$sawSpinner success=$script:buildSucceeded"
+    }
+    $streamProcess.WaitForExit()
+    Write-Host 'Builder running redirected process/log/stage/completion PASS'
+    if ($Source) { Write-Host 'Builder actual game compilation/live UI progress/100% completion PASS' }
     if ($PreviewPath) {
         $note.Text = T 'Concluido! Seu jogo esta pronto.' 'Complete! Your game is ready.' 'Completado. Tu juego esta listo.'
         $openButton.Enabled = $true
