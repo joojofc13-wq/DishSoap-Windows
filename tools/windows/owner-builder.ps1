@@ -133,7 +133,7 @@ if ($Worker) {
             $installed=Get-Content -LiteralPath (Join-Path $UpdateExisting 'local-build.json') -Raw | ConvertFrom-Json
             $gameExe=Join-Path $UpdateExisting 'Dishwasher.exe'
             if (!(Test-Path -LiteralPath $gameExe)) { throw 'Dishwasher.exe was not found.' }
-            $latest = Get-LatestBuilder (Join-Path $repoRoot 'work/updates') $installed.Version
+            $latest = Get-LatestBuilder (Join-Path $repoRoot 'work/updates') $installed.Version $installed.BuilderDigest
             if (!$latest) { $workerExit=0; exit 0 }
             $forward = @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+$latest+'"'),'-Worker','-UpdateExisting',('"'+$UpdateExisting+'"'),'-ResultFile',('"'+$ResultFile+'"'),'-ProgressFile',('"'+$ProgressFile+'"'))
             if ($Source) { $forward += @('-Source',('"'+$Source+'"')) }
@@ -142,6 +142,11 @@ if ($Worker) {
             $forward += @('-Dotnet',('"'+(Find-Dotnet)+'"'),'-Python',('"'+(Find-Python)+'"'))
             & powershell.exe @forward
             if ($LASTEXITCODE) { throw 'The downloaded update failed. See the log below.' }
+            $updatedMetadata=Join-Path $UpdateExisting 'local-build.json'
+            $updated=Get-Content -LiteralPath $updatedMetadata -Raw | ConvertFrom-Json
+            $updated | Add-Member -NotePropertyName BuilderDigest -NotePropertyValue $script:latestBuilderDigest -Force
+            $updated | ConvertTo-Json | Set-Content -LiteralPath ($updatedMetadata+'.tmp') -Encoding UTF8
+            Move-Item -LiteralPath ($updatedMetadata+'.tmp') -Destination $updatedMetadata -Force
             $gameExe=Join-Path $UpdateExisting 'Dishwasher.exe'
             $workerExit=0
             exit 0
@@ -196,6 +201,12 @@ if ($Worker) {
             if ($DataRoot) { $checkArgs += @('--data-root',[IO.Path]::GetFullPath($DataRoot)) }
             & $checkExe @checkArgs
             if ($LASTEXITCODE) { throw 'Installed content is missing or damaged. Rebuild from your original copy to repair assets; the installed game has not been replaced.' }
+            $contentData=if ($DataRoot) { [IO.Path]::GetFullPath($DataRoot) } else { Join-Path $env:LOCALAPPDATA 'DishSoapWindows' }
+            $activeId=(Get-Content -LiteralPath (Join-Path $contentData 'Config/active-content.txt') -Raw).Trim()
+            if ($activeId -notmatch '^[a-fA-F0-9]{32}$') { throw 'Invalid active import identifier.' }
+            & (Join-Path $PSScriptRoot 'restore-lettering.ps1') -ContentRoot (Join-Path $contentData ('Imports/'+$activeId)) -Dotnet $sdk
+            & $checkExe @checkArgs
+            if ($LASTEXITCODE) { throw 'Restored lettering did not pass content verification.' }
             Report-BuildStage 5 '5/6 Installing update and preserving the previous files...'
             Install-GameUpdate $stage $Destination
         } else {
@@ -227,7 +238,7 @@ if ($Worker) {
         }
         Report-BuildStage 6 ('6/6 Complete. The game will not start automatically.')
         Write-Host ("Executable: $gameExe")
-        @{ Executable = $gameExe; GameSource = $generatedSource; Source = [IO.Path]::GetFullPath($Source); Imported = (!$SkipImport -or [bool]$UpdateExisting); Version = '0.3.0'; DataRoot = $DataRoot } |
+        @{ Executable = $gameExe; GameSource = $generatedSource; Source = [IO.Path]::GetFullPath($Source); Imported = (!$SkipImport -or [bool]$UpdateExisting); Version = '0.3.0'; DataRoot = $DataRoot; LetteringRevision = 1 } |
             ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Destination 'local-build.json') -Encoding UTF8
         $workerExit = 0
     }

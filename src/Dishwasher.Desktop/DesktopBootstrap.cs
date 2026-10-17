@@ -14,6 +14,7 @@ namespace Dishwasher
             PublicBuild.ContentRoot = root;
             System.IO.Directory.SetCurrentDirectory(root);
             var settings = DesktopSettings.Load();
+            DesktopGameLanguage.Apply(settings.GameLanguage);
             DesktopHdTextures.Initialize(root, settings.TextureQuality);
             DesktopInput.Settings = settings;
             // Every physical pad may select its own local slot without LIVE.
@@ -45,7 +46,7 @@ namespace Dishwasher
             PortExit.Game = game;
             game.Deactivated += (_, _) => { DesktopInput.Focused = false; SaveAutosave.Save("focus lost"); };
             game.Activated += (_, _) => DesktopInput.Focused = true;
-            game.Exiting += (_, _) => { SaveAutosave.Save("exit"); settings.Save(); };
+            game.Exiting += (_, _) => { SaveAutosave.Save("exit"); };
             try { game.Run(); return 0; }
             finally { PortExit.Game = null; DesktopPresentation.Dispose(); DesktopSceneFilter.Dispose(); DesktopFpsOverlay.Dispose(); }
         }
@@ -65,7 +66,7 @@ namespace Dishwasher
             {
                 _manager.ToggleFullScreen();
                 _settings.Fullscreen = _manager.IsFullScreen;
-                _settings.Save();
+                DesktopSettings.SaveFullscreen(_settings.Fullscreen);
             }
             _altEnter = chord;
             base.Update(gameTime);

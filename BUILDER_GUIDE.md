@@ -27,13 +27,13 @@ On success, the bar reaches 100%, a message appears and the game output folder o
 
 ## Update an existing installation
 
-Open the builder and click **Download game update**. Select the folder containing `Dishwasher.exe` and `local-build.json`. The builder checks the latest stable GitHub release, downloads its kit and verifies the ZIP against the SHA-256 digest reported by GitHub before running it. If the recorded game version is already current, no download or rebuild is performed.
+Open the builder and click **Download game update**. Select the folder containing `Dishwasher.exe` and `local-build.json`. The builder checks the latest stable GitHub release, downloads its kit and verifies the ZIP against the SHA-256 digest reported by GitHub before running it. The builder compares the installed version and the release ZIP digest. An updated ZIP under the same release tag can be applied once; the same installed digest is not downloaded again.
 
 The downloaded kit recompiles your copy and replaces the game and configurator in the same folder. It reuses the active imported content and upscaled textures instead of extracting audio or running AI processing again. Your original local game copy is still needed to regenerate the adapted source. If it has moved, select its new location in the source field before updating.
 
 Close the game and configurator before updating. The builder does not close them for you. Replaced files are preserved under `UpdateBackups` in the game folder. A failed replacement restores the earlier files; if Windows prevents restoration, the error identifies the backup folder for manual recovery. Saves and settings under `%LOCALAPPDATA%\DishSoapWindows` are preserved. Future updates can be downloaded from this builder without manually replacing its kit.
 
-Version 0.1.0 and 0.2.0 installations can be updated using this builder. Their old builders do not gain the new update button automatically. The original game copy and a working content import must still be available on this PC.
+Download the revised 0.3.0 builder once to receive the lettering overlays and same-version ZIP detection. Earlier 0.3.0 builders only compare version numbers. Version 0.1.0 and 0.2.0 installations can also be updated using this builder. Their old builders do not gain the new update button automatically. The original game copy and a working content import must still be available on this PC.
 
 ## Verify installed files
 
@@ -45,7 +45,7 @@ New builds and successful update preparation record a SHA-256 baseline of the de
 
 Open `DishSoap.Configurator.exe`, choose your preferences and save. It does not start the game. Open `Dishwasher.exe` to play with the saved configuration.
 
-Output is fixed at 1280 x 720. Settings include Original or Upscaled textures, fullscreen, FPS limit, VSync, Show FPS and Smooth Motion. The interfaces use English on every Windows region.
+Output is fixed at 1280 x 720. Settings include Original or Upscaled textures, fullscreen, FPS limit, VSync, Show FPS and Smooth Motion. The interfaces use English on every Windows region. **Game language** selects the bundled in-game translation; Automatic follows the Windows UI language. Portuguese is the original European Portuguese translation. This setting takes effect on the next game launch and does not translate lettering painted into scenes.
 
 ## Tools and storage
 

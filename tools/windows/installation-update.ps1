@@ -66,22 +66,23 @@ function Write-InstallationManifest([string]$Root) {
     }
     $hashes | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Root 'installation-files.json') -Encoding UTF8
 }
-function Get-LatestBuilder([string]$Cache, [string]$InstalledVersion) {
+function Get-LatestBuilder([string]$Cache, [string]$InstalledVersion, [string]$InstalledDigest) {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $headers = @{ 'User-Agent'='DishSoap-Builder'; Accept='application/vnd.github+json' }
     $release = Invoke-RestMethod -Headers $headers -Uri 'https://api.github.com/repos/joojofc13-wq/DishSoap-Windows/releases/latest'
     $tag = [string]$release.tag_name
     if ($tag -notmatch '^v\d+\.\d+\.\d+$') { throw 'The latest release has an unsupported version.' }
-    if ($InstalledVersion -and [version]$InstalledVersion -ge [version]$tag.Substring(1)) {
-        Write-Host "Your game is already up to date ($InstalledVersion)."
-        return $null
-    }
     $name = "DishSoap-Builder-$tag-win-x64.zip"
     $asset = @($release.assets | Where-Object name -eq $name)
     if ($asset.Count -ne 1 -or $asset[0].browser_download_url -ne "https://github.com/joojofc13-wq/DishSoap-Windows/releases/download/$tag/$name") { throw 'The release has no matching builder ZIP.' }
     $digest = [string]$asset[0].digest
     if ($digest -notmatch '^sha256:([a-fA-F0-9]{64})$') { throw 'GitHub did not provide a SHA-256 digest for this release.' }
     $hash = $Matches[1]
+    $script:latestBuilderDigest=$hash
+    if ($InstalledVersion -and ([version]$InstalledVersion -gt [version]$tag.Substring(1) -or ([version]$InstalledVersion -eq [version]$tag.Substring(1) -and $InstalledDigest -eq $hash))) {
+        Write-Host "Your game is already up to date ($InstalledVersion)."
+        return $null
+    }
     $folder = Join-Path $Cache ([guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Force $folder | Out-Null
     $zipPath = Join-Path $folder $name

@@ -26,6 +26,8 @@ The builder can download the latest stable update and rebuild an existing game f
 
 ## Features
 
+- Select the game language in the configurator. Automatic follows Windows; the bundled Portuguese translation is European Portuguese.
+
 - Fixed 1280 x 720 output, downsampled from a 1920 x 1080 internal canvas.
 - Original or Upscaled textures, including a separate pass for backgrounds.
 - Windowed or fullscreen display, VSync and an optional FPS counter.
@@ -52,6 +54,12 @@ The current pipeline prepares 128 texture sheets at 2x size: 121 art sheets use 
 AI can change small details. Choose Original in the configurator if you prefer the original texture treatment. Upscaled textures do not turn the fixed 720p output into native 1080p output.
 
 [Rendering details](docs/HD_LAUNCHER.md) | [Color and progress fixes](docs/UI_COLOR_FIX.md)
+
+### Lettering overlays
+
+Some small signs have replacement text drawn over the upscaled texture because the original assets are too low-resolution to remain readable, and AI upscaling alone deforms the letters. The reviewed overlays currently cover the HERBERT machine label and the CYBORG ASSIMILATION MOVEMENT neon sign in a story panel. They preserve the wording, placement and surrounding artwork. This is selective relettering, not recovered detail from the original pixels, and does not replace every background inscription. Original mode keeps the unmodified imported textures.
+
+The builder applies these overlays locally to the owner's imported images. No original or modified game textures are included in the release ZIP.
 
 ## Authorship and reused code
 

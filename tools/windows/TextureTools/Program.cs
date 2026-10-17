@@ -153,6 +153,19 @@ try
         Dishwasher.DesktopTextureColors.Preserve(b, a);
         Save(a, ai.Width, ai.Height, args[3]);
     }
+    else if (args[0] == "lettering-check")
+    {
+        using var before=Read(args[1]);using var after=Read(args[2]);
+        Lettering.Validate(before,after,args[3]);
+    }
+    else if (args[0] == "lettering")
+    {
+        using var original=Read(args[1]); using var hd=Read(args[2]);
+        using var restored=Lettering.Restore(original,hd,args[4]);
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(args[3]))!);
+        restored.Save(args[3],ImageFormat.Png);
+        Console.WriteLine("Reviewed lettering restored: "+args[4]);
+    }
     else if (args[0] == "resize")
     {
         using var original = Read(args[1]); using var resized = Resize(original, 2);
@@ -199,6 +212,7 @@ try
         int count = 0; long transparent = 0, partial = 0;
         foreach (string path in Directory.EnumerateFiles(Path.Combine(args[1], args[0] == "audit-maps" ? "gfx/maps" : "gfx"), "*.png", SearchOption.AllDirectories))
         {
+            string asset=Path.GetRelativePath(args[1],path).Replace('\\','/');
             string target = Path.Combine(args[2], Path.GetRelativePath(args[1], path));
             using var original = Read(path); using var hd = Read(target); using var expected = Resize(original, 2);
             if (hd.Size != expected.Size) throw new InvalidDataException("Wrong HD dimensions: " + path);
@@ -206,7 +220,9 @@ try
             for (int i = 0; i < a.Length; i += 4)
             {
                 if (a[i + 3] != b[i + 3]) throw new InvalidDataException("Alpha changed: " + path);
-                if (a[i + 3] > 0 && (a[i] - a[i + 2] != b[i] - b[i + 2] || a[i + 1] - a[i + 2] != b[i + 1] - b[i + 2]))
+                bool lettering=Lettering.Contains(asset,(i/4)%hd.Width,(i/4)/hd.Width);
+                if (lettering && (a[i]>a[i+2])!=(b[i]>b[i+2])) throw new InvalidDataException("Lettering changed bloom classification: "+path);
+                if (!lettering && a[i + 3] > 0 && (a[i] - a[i + 2] != b[i] - b[i + 2] || a[i + 1] - a[i + 2] != b[i + 1] - b[i + 2]))
                     throw new InvalidDataException("Authored colour/mask changed: " + path);
                 if (a[i + 3] == 0)
                 {

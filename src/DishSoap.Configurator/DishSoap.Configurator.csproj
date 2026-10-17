@@ -10,6 +10,7 @@
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.5.1" />
     <Compile Include="../Dishwasher.Desktop/ConfigurationWindow.cs" Link="ConfigurationWindow.cs" />
     <Compile Include="../Dishwasher.Desktop/Platform/DesktopSettings.cs" Link="DesktopSettings.cs" />
+    <Compile Include="../Dishwasher.Desktop/Platform/DesktopGameLanguage.cs" Link="DesktopGameLanguage.cs" />
     <Compile Include="../Dishwasher.Desktop/Platform/DesktopPaths.cs" Link="DesktopPaths.cs" />
     <Compile Include="../Dishwasher.Desktop/Platform/DesktopLocale.cs" Link="DesktopLocale.cs" />
   </ItemGroup>

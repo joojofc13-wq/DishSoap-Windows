@@ -48,8 +48,10 @@ function Invoke-WebRequest { param([switch]$UseBasicParsing,$Headers,$Uri,$OutFi
 function Report-BuildStage { param($Stage,$Message,$TransferFile) }
 $downloaded=Get-LatestBuilder (Join-Path $Root 'downloads') '0.2.0'
 if (!(Test-Path -LiteralPath $downloaded) -or $script:downloadCalls -ne 1) { throw 'Verified release download failed.' }
-$current=Get-LatestBuilder (Join-Path $Root 'downloads') '0.3.0'
+$current=Get-LatestBuilder (Join-Path $Root 'downloads') '0.3.0' (($script:releaseFixture.assets[0].digest -split ':')[1])
 if ($current -or $script:downloadCalls -ne 1) { throw 'Up-to-date installation should not download again.' }
+$republished=Get-LatestBuilder (Join-Path $Root 'downloads') '0.3.0' ('f'*64)
+if (!$republished -or $script:downloadCalls -ne 2) { throw 'A replaced release ZIP should be offered again.' }
 $script:releaseFixture.assets[0].digest='sha256:'+('0'*64)
 $rejected=$false
 try { $null=Get-LatestBuilder (Join-Path $Root 'downloads') '0.2.0' } catch { $rejected=$_.Exception.Message -like '*checksum mismatch*' }

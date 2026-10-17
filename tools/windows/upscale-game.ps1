@@ -53,6 +53,7 @@ try {
     if ($LASTEXITCODE) { throw 'Background restoration failed.' }
     & $Dotnet tools/windows/TextureTools/bin/Release/net8.0-windows/TextureTools.dll audit-maps $sourceTextures (Join-Path $pack 'scenes')
     if ($LASTEXITCODE) { throw 'Background verification failed.' }
-    Write-Host 'HD 2x pack ready. It will load the next time the game starts.'
+    & (Join-Path $PSScriptRoot 'restore-lettering.ps1') -ContentRoot $ContentRoot -Dotnet $Dotnet
+    Write-Host 'HD 2x pack ready, including reviewed sign lettering. It will load the next time the game starts.'
 }
 finally { Pop-Location }

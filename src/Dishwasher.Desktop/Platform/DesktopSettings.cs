@@ -16,6 +16,7 @@ namespace Dishwasher
         public bool SmoothMotion { get; set; } = true;
         public bool DiscordRichPresence { get; set; } = true;
         public string TextureQuality { get; set; } = "Enhanced";
+        public string GameLanguage { get; set; } = "System";
         public float Volume { get; set; } = 1;
         public int Width { get; set; } = 1280;
         public int Height { get; set; } = 720;
@@ -42,6 +43,7 @@ namespace Dishwasher
                     if (!Enum.TryParse<Keys>(key, true, out _)) throw new InvalidDataException("Invalid key: " + key);
                 // Migrate prior monitor/custom resolutions to fixed 720p output.
                 settings.NativeResolution = false; settings.Width = 1280; settings.Height = 720;
+                settings.GameLanguage=DesktopGameLanguage.Normalize(settings.GameLanguage);
                 return settings;
             }
             catch (Exception ex) when (ex is JsonException || ex is InvalidDataException)
@@ -54,5 +56,9 @@ namespace Dishwasher
         }
         public void Save() => DesktopPaths.AtomicWrite(FilePath,
             JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+        public static void SaveFullscreen(bool fullscreen)
+        {
+            var current=Load();current.Fullscreen=fullscreen;current.Save();
+        }
     }
 }
