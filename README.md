@@ -6,7 +6,7 @@ Windows x64 port of The Dishwasher: Dead Samurai. Build the game from your own c
 
 ## Get started
 
-1. Download `DishSoap-Builder-v0.2.0-win-x64.zip` from [Releases](https://github.com/joojofc13-wq/DishSoap-Windows/releases).
+1. Download `DishSoap-Builder-v0.3.0-win-x64.zip` from [Releases](https://github.com/joojofc13-wq/DishSoap-Windows/releases).
 2. Extract the entire ZIP to a writable folder.
 3. Open `DishSoap.Builder.exe`.
 4. Select your legitimate game copy and a destination folder. The builder creates a new game subfolder inside it.
@@ -19,6 +19,10 @@ If you downloaded the repository source instead of the release, open `Build-My-G
 You need Windows x64, internet access for initial tool setup, your own game copy and a Vulkan-compatible GPU for AI texture preparation. The release includes the builder's .NET runtime. The .NET SDK and other build tools are downloaded separately when needed. No Android SDK or administrator installation is required.
 
 [Builder guide](BUILDER_GUIDE.md) | [Manual build](docs/WINDOWS_BUILD.md) | [Release details](docs/RELEASE_NOTES.md)
+
+## Updating your game
+
+The builder can download the latest stable update and rebuild an existing game folder while preserving imported assets, AI-upscaled textures, saves and settings. It keeps backups of replaced runtime files. Use **Download game update** or **Verify installed files**; see the [builder guide](BUILDER_GUIDE.md#update-an-existing-installation).
 
 ## Features
 

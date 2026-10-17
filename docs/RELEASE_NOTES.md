@@ -1,15 +1,14 @@
-Discord Rich Presence support for the Windows port.
+Update existing installations and restore guitar audio.
 
 ## Added
 
-- Discord activity with the full game name, project icon, session timer and menu/game/paused status.
-- Discord Rich Presence checkbox in the configurator. Enabled by default; changes apply on the next game launch.
-- Background IPC connection with automatic reconnection and activity cleanup on exit. Discord being closed does not prevent playing.
+- **Download game update** in the builder. Downloads the latest stable builder from GitHub, verifies its SHA-256 digest and rebuilds an existing installation in place.
+- Existing imports, AI-upscaled textures, saves and player settings are preserved during updates. Replaced runtime files are backed up; failed replacements are rolled back.
+- **Verify installed files** checks runtime checksums, original content, upscaled texture checksums and audio decoding. New builds also record checksums for derived content.
 
-## Requirements
+## Fixed
 
-The Discord desktop app must be open with activity sharing enabled. Players do not need a developer account, application ID, OAuth login or token.
+- Guitar solos prepare both audio stems before the countdown starts, preventing silent notes and keeping the guitar and backing track aligned.
+- The builder displays verification progress and reports completion for builds and updates.
 
-Extract `DishSoap-Builder-v0.2.0-win-x64.zip` and open `DishSoap.Builder.exe`. Rebuild your owned copy to use the integration. Original game files and imported assets are not included.
-
-[Build instructions](https://github.com/joojofc13-wq/DishSoap-Windows/blob/main/BUILDER_GUIDE.md)
+Extract `DishSoap-Builder-v0.3.0-win-x64.zip` and open `DishSoap.Builder.exe`. To update a compiled game, select **Download game update** and choose its folder.

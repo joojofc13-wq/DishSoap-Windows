@@ -25,6 +25,22 @@ The log updates while the worker runs. Initial setup shows an animated bar; late
 
 On success, the bar reaches 100%, a message appears and the game output folder opens. On failure, read the error in the log. A compiled executable left by a failed content or upscale stage does not mean the full preparation succeeded. The builder never starts the game automatically.
 
+## Update an existing installation
+
+Open the builder and click **Download game update**. Select the folder containing `Dishwasher.exe` and `local-build.json`. The builder checks the latest stable GitHub release, downloads its kit and verifies the ZIP against the SHA-256 digest reported by GitHub before running it. If the recorded game version is already current, no download or rebuild is performed.
+
+The downloaded kit recompiles your copy and replaces the game and configurator in the same folder. It reuses the active imported content and upscaled textures instead of extracting audio or running AI processing again. Your original local game copy is still needed to regenerate the adapted source. If it has moved, select its new location in the source field before updating.
+
+Close the game and configurator before updating. The builder does not close them for you. Replaced files are preserved under `UpdateBackups` in the game folder. A failed replacement restores the earlier files; if Windows prevents restoration, the error identifies the backup folder for manual recovery. Saves and settings under `%LOCALAPPDATA%\DishSoapWindows` are preserved. Future updates can be downloaded from this builder without manually replacing its kit.
+
+Version 0.1.0 and 0.2.0 installations can be updated using this builder. Their old builders do not gain the new update button automatically. The original game copy and a working content import must still be available on this PC.
+
+## Verify installed files
+
+Click **Verify installed files** and choose a game built with version 0.3.0 or later. Verification runs in a background worker and reports individual audio files in the log. It checks installed runtime hashes, original unmodified content hashes, derived texture formats, AI texture hashes and WAV/Vorbis audio decoding, including guitar cues. It does not play audio or start gameplay.
+
+New builds and successful update preparation record a SHA-256 baseline of the derived content. Older imports are first checked using the original manifest, texture manifests and decoded file formats; their first baseline cannot prove that an already altered derived file matches its original import. Verification reports this distinction. Damaged content is reported rather than silently accepted. Use **Build my game** with your original copy to regenerate broken assets.
+
 ## Play and configure
 
 Open `DishSoap.Configurator.exe`, choose your preferences and save. It does not start the game. Open `Dishwasher.exe` to play with the saved configuration.

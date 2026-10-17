@@ -115,6 +115,7 @@ AtomicSave.Recover(savePath, xml);
 using (var recovered = File.OpenRead(savePath))
     Check(((SyntheticSave)xml.Deserialize(recovered)).Progress == 1 &&
         Directory.GetFiles(DesktopPaths.Saves, "*.corrupt-*").Length == 1, "corrupt save restored and preserved");
+ContentVerificationChecks.Run(root);
 await DiscordPresenceChecks.Run();
 Console.WriteLine("All platform checks passed. These are not campaign tests.");
 

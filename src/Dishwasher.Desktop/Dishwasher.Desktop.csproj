@@ -8,7 +8,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>12</LangVersion>
     <AssemblyName>Dishwasher</AssemblyName>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <DishwasherBuildGame Condition="'$(DishwasherBuildGame)' == ''">true</DishwasherBuildGame>
     <!-- Independent copy: preparing desktop sources cannot alter the Android tree. -->
     <GameSourceRoot Condition="'$(GameSourceRoot)' == ''">$(MSBuildThisFileDirectory)GameSource</GameSourceRoot>

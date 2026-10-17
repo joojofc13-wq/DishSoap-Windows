@@ -1,4 +1,4 @@
-param([string]$Version = '0.2.0', [string]$Dotnet = 'dotnet', [string]$DestinationZip)
+param([string]$Version = '0.3.0', [string]$Dotnet = 'dotnet', [string]$DestinationZip)
 $ErrorActionPreference = 'Stop'
 if ($Version -notmatch '^\d+\.\d+\.\d+([-.][A-Za-z0-9.-]+)?$') { throw 'Invalid version.' }
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))

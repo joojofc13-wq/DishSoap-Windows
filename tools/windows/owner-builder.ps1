@@ -1,7 +1,10 @@
-﻿param(
+param(
     [switch]$Worker,
     [string]$Source,
     [string]$Destination,
+    [string]$UpdateExisting,
+    [switch]$FetchLatest,
+    [string]$VerifyExisting,
     [string]$Dotnet,
     [string]$Python,
     [string]$Ffmpeg,
@@ -21,6 +24,7 @@ $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $localTools = Join-Path $repoRoot '.local-tools'
 $builderScript = $PSCommandPath
 $script:buildStage = 1
+. (Join-Path $PSScriptRoot 'installation-update.ps1')
 function Read-BuildLog([string]$Path) {
     # Start-Process keeps its redirected logs open for writing. ReadAllText
     # uses FileShare.Read, which conflicts with that writer on Windows.
@@ -106,14 +110,58 @@ function Find-Ffmpeg {
 }
 
 if ($Worker) {
-    $workerExit = 1; $gameExe = $null; $failureMessage = $null
+    $workerExit = 1; $gameExe = $null; $failureMessage = $null; $installationLock=$null
     Push-Location $repoRoot
     try {
+        if ($VerifyExisting) {
+            $gameExe=Join-Path ([IO.Path]::GetFullPath($VerifyExisting)) 'Dishwasher.exe'
+            $verifyMetadata=Join-Path $VerifyExisting 'local-build.json'
+            if (!$DataRoot -and (Test-Path -LiteralPath $verifyMetadata)) { $DataRoot=(Get-Content -LiteralPath $verifyMetadata -Raw | ConvertFrom-Json).DataRoot }
+            $version=[Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $VerifyExisting 'Dishwasher.dll')).FileVersion
+            if ([version]$version -lt [version]'0.3.0') { throw 'Update this game to version 0.3.0 before using file verification.' }
+            Report-BuildStage 4 '4/6 Verifying executable files, textures and audio...'
+            $checkArgs=@('--verify-content')
+            if ($DataRoot) { $checkArgs+=@('--data-root',[IO.Path]::GetFullPath($DataRoot)) }
+            & $gameExe @checkArgs
+            if ($LASTEXITCODE) { throw 'File verification failed. See the file list in the log. Rebuild your owned copy to repair assets.' }
+            Report-BuildStage 6 '6/6 Installed files verified.'
+            $workerExit=0; exit 0
+        }
+        if ($FetchLatest) {
+            if ($NoDownloads) { throw 'Update downloads are disabled.' }
+            Assert-GameClosed $UpdateExisting
+            $installed=Get-Content -LiteralPath (Join-Path $UpdateExisting 'local-build.json') -Raw | ConvertFrom-Json
+            $gameExe=Join-Path $UpdateExisting 'Dishwasher.exe'
+            if (!(Test-Path -LiteralPath $gameExe)) { throw 'Dishwasher.exe was not found.' }
+            $latest = Get-LatestBuilder (Join-Path $repoRoot 'work/updates') $installed.Version
+            if (!$latest) { $workerExit=0; exit 0 }
+            $forward = @('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+$latest+'"'),'-Worker','-UpdateExisting',('"'+$UpdateExisting+'"'),'-ResultFile',('"'+$ResultFile+'"'),'-ProgressFile',('"'+$ProgressFile+'"'))
+            if ($Source) { $forward += @('-Source',('"'+$Source+'"')) }
+            if ($DataRoot) { $forward += @('-DataRoot',('"'+$DataRoot+'"')) }
+            Report-BuildStage 1 'Preparing downloaded update tools...'
+            $forward += @('-Dotnet',('"'+(Find-Dotnet)+'"'),'-Python',('"'+(Find-Python)+'"'))
+            & powershell.exe @forward
+            if ($LASTEXITCODE) { throw 'The downloaded update failed. See the log below.' }
+            $gameExe=Join-Path $UpdateExisting 'Dishwasher.exe'
+            $workerExit=0
+            exit 0
+        }
+        if ($UpdateExisting) {
+            $UpdateExisting=[IO.Path]::GetFullPath($UpdateExisting)
+            $metadataPath=Join-Path $UpdateExisting 'local-build.json'
+            if (!(Test-Path -LiteralPath $metadataPath) -or !(Test-Path -LiteralPath (Join-Path $UpdateExisting 'Dishwasher.exe'))) { throw 'Select the compiled game folder containing Dishwasher.exe and local-build.json.' }
+            Assert-GameClosed $UpdateExisting
+            $previous=Get-Content -LiteralPath $metadataPath -Raw | ConvertFrom-Json
+            if (!$Source) { $Source=$previous.Source }
+            if (!$DataRoot -and $previous.DataRoot) { $DataRoot=$previous.DataRoot }
+            try { $installationLock=[IO.File]::Open((Join-Path $UpdateExisting '.dishsoap-update.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None) }
+            catch { throw 'Another update is using this game folder, or the folder is not writable.' }
+        }
         if (!$Source -or !(Test-Path -LiteralPath $Source)) { throw ('Select an existing local copy of the game.') }
         if (!$Destination) { $Destination = Join-Path $repoRoot 'dist' }
         $destinationParent = [IO.Path]::GetFullPath($Destination)
         # Always create a separate child, including in a nonempty chosen folder.
-        $Destination = Join-Path $destinationParent ('Dishwasher-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0,6))
+        $Destination = if ($UpdateExisting) { $UpdateExisting } else { Join-Path $destinationParent ('Dishwasher-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [guid]::NewGuid().ToString('N').Substring(0,6)) }
         $run = Join-Path $repoRoot ('work/owner-build-' + [guid]::NewGuid().ToString('N'))
         $generatedSource = Join-Path $run 'GameSource'
         New-Item -ItemType Directory -Force $run,$localTools | Out-Null
@@ -140,11 +188,23 @@ if ($Worker) {
             $_.Name -eq 'game.exe' -or $_.FullName -match '[\\/](gfx|Resources|GameSource)[\\/]'
         })
         if ($leaks.Count) { throw ('Unexpected original content found in the output package.') }
-        New-Item -ItemType Directory -Force $Destination | Out-Null
-        Get-ChildItem -LiteralPath $stage -Force | Copy-Item -Destination $Destination -Recurse
+        Write-InstallationManifest $stage
+        if ($UpdateExisting) {
+            Report-BuildStage 4 '4/6 Validating existing content and audio (no import or upscale)...'
+            $checkExe=Join-Path $stage 'Dishwasher.exe'
+            $checkArgs=@('--verify-content','--record-content')
+            if ($DataRoot) { $checkArgs += @('--data-root',[IO.Path]::GetFullPath($DataRoot)) }
+            & $checkExe @checkArgs
+            if ($LASTEXITCODE) { throw 'Installed content is missing or damaged. Rebuild from your original copy to repair assets; the installed game has not been replaced.' }
+            Report-BuildStage 5 '5/6 Installing update and preserving the previous files...'
+            Install-GameUpdate $stage $Destination
+        } else {
+            New-Item -ItemType Directory -Force $Destination | Out-Null
+            Get-ChildItem -LiteralPath $stage -Force | Copy-Item -Destination $Destination -Recurse
+        }
         Copy-Item -LiteralPath (Join-Path $repoRoot 'docs/WINDOWS_BUILD.md') -Destination $Destination
         $gameExe = Join-Path $Destination 'Dishwasher.exe'
-        if (!$SkipImport) {
+        if (!$SkipImport -and !$UpdateExisting) {
             if (!$prepared.ContentSource) { throw ('Game built, but this standalone game.exe has no assets. Import them with the executable.') }
             Report-BuildStage 4 ('4/6 Importing your copy and converting audio...')
             $decoder = Find-Ffmpeg
@@ -160,15 +220,20 @@ if ($Worker) {
             $activeContent = Join-Path (Join-Path $importRoot 'Imports') $activeId
             & (Join-Path $PSScriptRoot 'upscale-game.ps1') -ContentRoot $activeContent -Dotnet $sdk -Python $pythonExe -EngineDirectory $UpscaleEngine -NoDownloads:$NoDownloads
             if ($LASTEXITCODE) { throw ('Game built, but upscaled texture preparation failed. Check the log.') }
+            $verifyArgs=@('--verify-content','--record-content')
+            if ($DataRoot) { $verifyArgs += @('--data-root',[IO.Path]::GetFullPath($DataRoot)) }
+            & $gameExe @verifyArgs
+            if ($LASTEXITCODE) { throw 'Content validation failed. Check the missing or damaged files listed above.' }
         }
         Report-BuildStage 6 ('6/6 Complete. The game will not start automatically.')
         Write-Host ("Executable: $gameExe")
-        @{ Executable = $gameExe; GameSource = $generatedSource; Source = [IO.Path]::GetFullPath($Source); Imported = !$SkipImport } |
+        @{ Executable = $gameExe; GameSource = $generatedSource; Source = [IO.Path]::GetFullPath($Source); Imported = (!$SkipImport -or [bool]$UpdateExisting); Version = '0.3.0'; DataRoot = $DataRoot } |
             ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Destination 'local-build.json') -Encoding UTF8
         $workerExit = 0
     }
     catch { $failureMessage = $_.Exception.Message; [Console]::Error.WriteLine($_.ToString()) }
     finally {
+        if ($installationLock) { $installationLock.Dispose() }
         if ($ResultFile) {
             try {
                 $resultPath = [IO.Path]::GetFullPath($ResultFile)
@@ -216,12 +281,17 @@ $buildButton = New-Object Windows.Forms.Button
 $buildButton.SetBounds(18,252,200,34); $buildButton.Text = ('Build my game')
 $openButton = New-Object Windows.Forms.Button
 $openButton.SetBounds(230,252,165,34); $openButton.Text = ('Open game folder'); $openButton.Enabled = $false
+$updateButton = New-Object Windows.Forms.Button
+$updateButton.SetBounds(407,252,170,34); $updateButton.Text = 'Download game update'
+$verifyButton = New-Object Windows.Forms.Button
+$verifyButton.SetBounds(589,252,171,34); $verifyButton.Text = 'Verify installed files'
 $progressBar = New-Object Windows.Forms.ProgressBar
 $progressBar.SetBounds(18,220,742,21); $progressBar.Style = 'Continuous'; $progressBar.Maximum = 100
 $logBox = New-Object Windows.Forms.TextBox
 $logBox.SetBounds(18,302,742,237); $logBox.Multiline = $true; $logBox.ReadOnly = $true
 $logBox.ScrollBars = 'Vertical'; $logBox.Anchor = 'Top,Bottom,Left,Right'
 $form.Controls.AddRange(@($label,$sourceBox,$fileButton,$folderButton,$outLabel,$outBox,$outButton,$note,$buildButton,$openButton,$progressBar,$logBox))
+$form.Controls.AddRange(@($updateButton,$verifyButton))
 $fileButton.Add_Click({
     $picker = New-Object Windows.Forms.OpenFileDialog
     $picker.Filter = ('XBLA package or ZIP|*.*'); $picker.Title = ('Your legitimate copy of the game')
@@ -243,26 +313,28 @@ $outButton.Add_Click({
 $script:workerProcess = $null
 $script:stdoutLog = $null; $script:stderrLog = $null; $script:resultLog = $null; $script:progressLog = $null
 $script:buildDestination = $null; $script:buildSucceeded = $false
+$script:operation='Build'
 $timer = New-Object Windows.Forms.Timer; $timer.Interval = 700
 function Complete-Build([bool]$Success, [string]$Details) {
     $timer.Stop()
     $progressBar.Style = 'Continuous'
     $buildButton.Enabled = $sourceBox.Enabled = $outBox.Enabled = $true
+    $updateButton.Enabled = $verifyButton.Enabled = $true
     $fileButton.Enabled = $folderButton.Enabled = $outButton.Enabled = $true
     $script:buildSucceeded = $Success; $openButton.Enabled = $Success
     $script:workerProcess = $null
     if ($Success) {
         $progressBar.Value = 100
-        $note.Text = 'Complete! Your game is ready. Opening the game folder.'
+        $note.Text = if ($script:operation -eq 'Verify') { 'Installed files verified.' } elseif ($script:operation -eq 'Update') { 'Update check complete. Your game is ready.' } else { 'Complete! Your game is ready. Opening the game folder.' }
         $message = $note.Text + "`r`n`r`n" + (Join-Path $script:buildDestination 'Dishwasher.exe')
         $icon = [Windows.Forms.MessageBoxIcon]::Information
-        if (!$UiCheck) {
+        if (!$UiCheck -and $script:operation -ne 'Verify') {
             try { Start-Process -FilePath explorer.exe -ArgumentList ('"' + $script:buildDestination + '"') }
             catch { $logBox.AppendText("`r`n" + $_.Exception.Message) }
         }
     }
     else {
-        $note.Text = 'Build failed. Check the log below.'
+        $note.Text = $script:operation + ' failed. Check the log below.'
         $message = $note.Text + "`r`n`r`n" + $Details
         $icon = [Windows.Forms.MessageBoxIcon]::Error
     }
@@ -290,6 +362,13 @@ function Update-BuildProgress {
         if ($phase -lt 1 -or $phase -gt 6) { throw 'Invalid build stage.' }
         $percent = @(0,0,12,35,55,70,98)[$phase]
         $progressBar.Style = if ($phase -eq 1) { 'Marquee' } else { 'Continuous' }
+        if ($phase -eq 4) {
+            $audio=[regex]::Matches($logText,'Audio verified (\d+)/(\d+)')
+            if ($audio.Count) {
+                $lastAudio=$audio[$audio.Count-1]
+                $percent=55+[int](12*[int]$lastAudio.Groups[1].Value/[Math]::Max(1,[int]$lastAudio.Groups[2].Value))
+            }
+        }
         if ($phase -eq 5) {
             $phaseLog = if ($latest) { $logText.Substring($latest.Index) } else { $logText }
             $textures = [regex]::Matches($phaseLog, '\[(\d+)/(\d+)\]')
@@ -323,6 +402,7 @@ function Update-BuildProgress {
 }
 $timer.Add_Tick({ Update-BuildProgress })
 $buildButton.Add_Click({
+    $script:operation='Build'
     if (!(Test-Path -LiteralPath $sourceBox.Text)) { [Windows.Forms.MessageBox]::Show(('Select your copy of the game.')); return }
     if ([string]::IsNullOrWhiteSpace($outBox.Text)) { [void][Windows.Forms.MessageBox]::Show(('Choose where to save the game.')); return }
     $logs = Join-Path $repoRoot 'work/builder-logs'
@@ -339,9 +419,62 @@ $buildButton.Add_Click({
     try { $script:workerProcess = Start-Process -FilePath $shellExe -ArgumentList $arguments -WindowStyle Hidden -PassThru -RedirectStandardOutput $script:stdoutLog -RedirectStandardError $script:stderrLog }
     catch { Complete-Build $false $_.Exception.Message; return }
     $buildButton.Enabled = $sourceBox.Enabled = $outBox.Enabled = $fileButton.Enabled = $folderButton.Enabled = $outButton.Enabled = $false
+    $updateButton.Enabled = $verifyButton.Enabled = $false
     $note.Text = ('Building... The first run may download around 450 MB. Progress appears below.')
     $progressBar.Style = 'Marquee'; $progressBar.MarqueeAnimationSpeed = 35
     $timer.Start()
+})
+$updateButton.Add_Click({
+    $script:operation='Update'
+    $picker=New-Object Windows.Forms.FolderBrowserDialog
+    $picker.Description='Select your compiled game folder (Dishwasher.exe)'
+    if ($picker.ShowDialog($form) -ne 'OK') { $picker.Dispose(); return }
+    $target=$picker.SelectedPath; $picker.Dispose()
+    try {
+        Assert-GameClosed $target
+        $metadata=Get-Content -LiteralPath (Join-Path $target 'local-build.json') -Raw | ConvertFrom-Json
+        $original=$metadata.Source
+        if (!(Test-Path -LiteralPath $original)) {
+            $original=$sourceBox.Text
+            if (!$original -or !(Test-Path -LiteralPath $original)) { throw 'Your original game copy is needed to rebuild the update. Select it in the source field first.' }
+        }
+        $logs=Join-Path $repoRoot 'work/builder-logs'
+        New-Item -ItemType Directory -Force $logs | Out-Null
+        $id=[guid]::NewGuid().ToString('N')
+        $script:stdoutLog=Join-Path $logs ($id+'.stdout.log'); $script:stderrLog=Join-Path $logs ($id+'.stderr.log')
+        $script:resultLog=Join-Path $logs ($id+'.result.json'); $script:progressLog=Join-Path $logs ($id+'.progress.json')
+        $script:buildDestination=$target
+        $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+$builderScript+'"'),'-Worker','-FetchLatest','-UpdateExisting',('"'+$target+'"'),'-Source',('"'+$original+'"'),'-ResultFile',('"'+$script:resultLog+'"'),'-ProgressFile',('"'+$script:progressLog+'"'))
+        $script:workerProcess=Start-Process -FilePath powershell.exe -ArgumentList $arguments -WindowStyle Hidden -PassThru -RedirectStandardOutput $script:stdoutLog -RedirectStandardError $script:stderrLog
+        $buildButton.Enabled=$updateButton.Enabled=$verifyButton.Enabled=$openButton.Enabled=$sourceBox.Enabled=$outBox.Enabled=$fileButton.Enabled=$folderButton.Enabled=$outButton.Enabled=$false
+        $script:buildSucceeded=$false; $logBox.Clear(); $progressBar.Value=0; $progressBar.Style='Marquee'
+        $note.Text='Downloading the latest stable builder, then updating your game in place. Saves and settings are preserved.'
+        $timer.Start()
+    } catch { [void][Windows.Forms.MessageBox]::Show($form,$_.Exception.Message,'DishSoap') }
+})
+$verifyButton.Add_Click({
+    $picker=New-Object Windows.Forms.FolderBrowserDialog
+    $picker.Description='Select a compiled game folder'
+    if ($picker.ShowDialog($form) -ne 'OK') { $picker.Dispose(); return }
+    $target=$picker.SelectedPath; $picker.Dispose()
+    try {
+        $exe=Join-Path $target 'Dishwasher.exe'
+        if (!(Test-Path -LiteralPath $exe)) { throw 'Dishwasher.exe was not found.' }
+        $version=[Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $target 'Dishwasher.dll')).FileVersion
+        if ([version]$version -lt [version]'0.3.0') { throw 'Update this game to version 0.3.0 before using file verification.' }
+        $logs=Join-Path $repoRoot 'work/builder-logs'
+        New-Item -ItemType Directory -Force $logs | Out-Null
+        $id=[guid]::NewGuid().ToString('N')
+        $script:stdoutLog=Join-Path $logs ($id+'.stdout.log'); $script:stderrLog=Join-Path $logs ($id+'.stderr.log')
+        $script:resultLog=Join-Path $logs ($id+'.result.json'); $script:progressLog=Join-Path $logs ($id+'.progress.json')
+        $script:operation='Verify'; $script:buildDestination=$target
+        $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+$builderScript+'"'),'-Worker','-VerifyExisting',('"'+$target+'"'),'-ResultFile',('"'+$script:resultLog+'"'),'-ProgressFile',('"'+$script:progressLog+'"'))
+        $script:workerProcess=Start-Process -FilePath powershell.exe -ArgumentList $arguments -WindowStyle Hidden -PassThru -RedirectStandardOutput $script:stdoutLog -RedirectStandardError $script:stderrLog
+        $buildButton.Enabled=$updateButton.Enabled=$verifyButton.Enabled=$openButton.Enabled=$sourceBox.Enabled=$outBox.Enabled=$fileButton.Enabled=$folderButton.Enabled=$outButton.Enabled=$false
+        $script:buildSucceeded=$false; $logBox.Clear(); $progressBar.Value=0; $progressBar.Style='Marquee'
+        $note.Text='Verifying installed files. Progress appears below.'
+        $timer.Start()
+    } catch { [void][Windows.Forms.MessageBox]::Show($form,$_.Exception.Message,'DishSoap') }
 })
 $openButton.Add_Click({ Start-Process -FilePath explorer.exe -ArgumentList ('"' + $script:buildDestination + '"') })
 $form.Add_FormClosing({ if ($script:workerProcess -and !$script:workerProcess.HasExited) { $_.Cancel = $true; $note.Text = ('Wait for the build to finish before closing.') } })
@@ -350,7 +483,7 @@ if ($UiCheck) {
     if ($Destination -and $outBox.Text -ne $Destination) { throw 'Explicit destination was not preserved.' }
     Write-Host 'Builder empty/default and explicit destination PASS'
     $form.CreateControl()
-    if ($form.Controls.Count -ne 12 -or !$buildButton.Enabled -or $openButton.Enabled) { throw 'Invalid initial interface state.' }
+    if ($form.Controls.Count -ne 14 -or !$buildButton.Enabled -or $openButton.Enabled) { throw 'Invalid initial interface state.' }
     $testFolder = Join-Path $repoRoot ('work/ui-check-' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Force $testFolder | Out-Null
     $script:stdoutLog = Join-Path $testFolder 'stdout.log'; $script:stderrLog = Join-Path $testFolder 'stderr.log'

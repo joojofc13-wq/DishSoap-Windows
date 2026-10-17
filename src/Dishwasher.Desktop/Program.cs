@@ -46,7 +46,7 @@ namespace Dishwasher
                 if (Array.IndexOf(args, "--help") >= 0)
                 {
                     Console.WriteLine("DishSoap Windows\n--import <ZIP/package/folder>  --data-root <folder>  --ffmpeg <exe>\n" +
-                        "--diagnose  --graphics-check  --setup  --help\n" +
+                        "--verify-content  --diagnose  --graphics-check  --setup  --help\n" +
                         "Without GameSource, this executable only provides setup and diagnostics.");
                     return 0;
                 }
@@ -75,6 +75,11 @@ namespace Dishwasher
                     DesktopImporter.Import(source, p => {
                         if (p.Done == 1 || p.Done % 25 == 0) Console.WriteLine(p.Phase + " " + p.Done + "/" + p.Total + " " + p.Path);
                     });
+                    return 0;
+                }
+                if (Array.IndexOf(args, "--verify-content") >= 0)
+                {
+                    ContentVerification.Verify(Array.IndexOf(args, "--record-content") >= 0);
                     return 0;
                 }
                 if (Array.IndexOf(args, "--setup") >= 0 || !DesktopImporter.TryGetActive(out _))
