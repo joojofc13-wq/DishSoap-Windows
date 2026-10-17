@@ -33,6 +33,7 @@ The builder can download the latest stable update and rebuild an existing game f
 - Fixed 1280 x 720 output, downsampled from a 1920 x 1080 internal canvas.
 - Original or Upscaled textures, including a separate pass for backgrounds.
 - Windowed or fullscreen display, VSync and an optional FPS counter.
+- Optional controller vibration. Uncheck **Controller vibration** in the configurator's **Game** tab, save and restart the game to disable both motors.
 - FPS limits of 60, 90, 120, 144, 165, 180, 240 and 360.
 - Original game simulation at 60 Hz, with optional visual motion interpolation.
 - Keyboard and controller input, a local player profile and save backup recovery.

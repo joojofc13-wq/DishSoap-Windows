@@ -16,6 +16,7 @@ namespace Dishwasher
         public bool SmoothMotion { get; set; } = true;
         public bool DiscordRichPresence { get; set; } = true;
         public bool LocalCoop { get; set; } = false;
+        public bool ControllerVibration { get; set; } = true;
         public string TextureQuality { get; set; } = "Enhanced";
         public string GameLanguage { get; set; } = "en";
         public float Volume { get; set; } = 1;

@@ -90,5 +90,12 @@ internal static class GameCheatChecks
         save.Invoke(panel, null);
         using var reset = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "Config", "cheats.json")));
         Check(!reset.RootElement.GetProperty("Enabled").GetBoolean() && reset.RootElement.GetProperty("MovementSpeed").GetDouble() == 1, "reset cheats disables modifiers and restores default values");
+        var windowType=assembly.GetType("Dishwasher.ConfigurationWindow");
+        using var window=(System.Windows.Forms.Form)Activator.CreateInstance(windowType,true);
+        var vibration=(System.Windows.Forms.CheckBox)windowType.GetField("_vibration",All).GetValue(window);
+        Check(vibration.Checked,"configurator preserves vibration for settings without the new option");
+        vibration.Checked=false;windowType.GetMethod("SaveChoices",All).Invoke(window,null);
+        using var desktop=System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(root,"Config","desktop.json")));
+        Check(!desktop.RootElement.GetProperty("ControllerVibration").GetBoolean(),"actual configurator saves the vibration opt-out");
     }
 }

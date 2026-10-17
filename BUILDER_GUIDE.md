@@ -51,6 +51,8 @@ Open `DishSoap.Configurator.exe`, choose your preferences and save. It does not 
 
 Output is fixed at 1280 x 720. Settings include Original or Upscaled textures, fullscreen, FPS limit, VSync, Show FPS and Smooth Motion. The interfaces use English on every Windows region. **Game language** selects the bundled in-game translation. English is the default; Automatic optionally follows the Windows UI language. Portuguese is the original European Portuguese translation. This setting takes effect on the next game launch and does not translate lettering painted into scenes.
 
+**Controller vibration** is in the **Game** tab. Uncheck it, save and restart the game to disable both vibration motors. It is enabled by default to preserve the original behavior.
+
 ## Cheats and save backups
 
 The configurator has separate **Game** and **Cheats** tabs. Cheats start disabled. **Cheats can permanently change your save; back up saves before making any changes.** Use **Back up saves** for a manual copy. Saving changed cheats while enabled creates a backup first under `%LOCALAPPDATA%\DishSoapWindows\SaveBackups`; if copying fails, the changes are not saved. Close the game before restoring files from a backup into the Saves folder.

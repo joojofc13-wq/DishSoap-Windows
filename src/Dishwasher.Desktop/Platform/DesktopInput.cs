@@ -47,7 +47,14 @@ namespace Dishwasher
         public static bool SetVibration(PlayerIndex index,float leftMotor,float rightMotor)
         {
             int physical=Physical(index);
-            return physical>=0&&GamePad.SetVibration((PlayerIndex)physical,leftMotor,rightMotor);
+            return SendVibration(physical,leftMotor,rightMotor,GamePad.SetVibration);
+        }
+        internal static bool SendVibration(int physical,float leftMotor,float rightMotor,Func<PlayerIndex,float,float,bool> send)
+        {
+            if(physical<0||physical>3) return false;
+            // Send an explicit stop instead of leaving a previous rumble running.
+            if(!Settings.ControllerVibration) { leftMotor=0;rightMotor=0; }
+            return send((PlayerIndex)physical,leftMotor,rightMotor);
         }
         public static GamePadState GetState(PlayerIndex index) => GetState(index, GamePadDeadZone.IndependentAxes);
         public static GamePadState GetState(PlayerIndex index, GamePadDeadZone deadZone)

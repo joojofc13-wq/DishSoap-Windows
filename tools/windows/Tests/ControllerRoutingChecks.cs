@@ -7,6 +7,21 @@ internal static class ControllerRoutingChecks
     public static void Run()
     {
         Check(!new DesktopSettings().LocalCoop,"single-player input is the default");
+        Check(new DesktopSettings().ControllerVibration,"vibration remains enabled by default for existing players");
+        var originalSettings=DesktopInput.Settings;
+        try
+        {
+            DesktopInput.Settings=new DesktopSettings();
+            int calls=0,slot=-1;float left=-1,right=-1;
+            bool Send(Microsoft.Xna.Framework.PlayerIndex index,float l,float r) { calls++;slot=(int)index;left=l;right=r;return true; }
+            Check(DesktopInput.SendVibration(2,.7f,.4f,Send)&&slot==2&&left==.7f&&right==.4f,"enabled vibration retains motor strength and the mapped physical slot");
+            DesktopInput.Settings.ControllerVibration=false;
+            Check(DesktopInput.SendVibration(2,.7f,.4f,Send)&&left==0&&right==0,"disabled vibration sends an explicit stop for both motors");
+            Check(!DesktopInput.SendVibration(-1,1,1,Send)&&!DesktopInput.SendVibration(4,1,1,Send)&&calls==2,"unmapped players never address vibration hardware");
+            DesktopInput.Settings.Save();
+            Check(!DesktopSettings.Load().ControllerVibration,"vibration opt-out survives saving and reloading settings");
+        }
+        finally { DesktopInput.Settings=originalSettings; }
         Check(!DesktopInput.HasActivity(default),"idle controller state does not claim ownership");
         Check(DesktopInput.HasActivity(new Microsoft.Xna.Framework.Input.GamePadState(Microsoft.Xna.Framework.Vector2.Zero,Microsoft.Xna.Framework.Vector2.Zero,0,0,Microsoft.Xna.Framework.Input.Buttons.A)),"a real button press claims controller ownership");
         for(int slot=0;slot<4;slot++)

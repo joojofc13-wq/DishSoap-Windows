@@ -11,6 +11,7 @@ namespace Dishwasher
         private readonly DesktopSettings _settings = DesktopSettings.Load();
         private readonly ComboBox _fps = new(), _quality = new(), _language=new();
         private readonly CheckBox _fullscreen = new(), _vsync = new(), _showFps = new(), _smooth = new(), _discord = new(), _localCoop=new();
+        private readonly CheckBox _vibration = new();
         private readonly Button _save = new(), _cancel = new(), _openSaves = new();
         private readonly TabControl _tabs = new();
         private readonly TabPage _gameTab = new("Game"), _cheatsTab = new("Cheats");
@@ -47,7 +48,8 @@ namespace Dishwasher
             _discord.Width = 300;
             Place(_localCoop,"Local co-op (additional controllers)",20,305,_settings.LocalCoop);
             _localCoop.Width=400;
-            _openSaves.Text = "Open saves folder"; _openSaves.SetBounds(20, 351, 178, 34);
+            Place(_vibration,"Controller vibration",20,338,_settings.ControllerVibration);
+            _openSaves.Text = "Open saves folder"; _openSaves.SetBounds(20, 389, 178, 34);
             _openSaves.Click += (_, _) => {
                 try
                 {
@@ -87,6 +89,7 @@ namespace Dishwasher
             _settings.VSync = _vsync.Checked; _settings.ShowFps = _showFps.Checked; _settings.SmoothMotion = _smooth.Checked;
             _settings.DiscordRichPresence = _discord.Checked;
             _settings.LocalCoop=_localCoop.Checked;
+            _settings.ControllerVibration=_vibration.Checked;
             _settings.TextureQuality = _quality.SelectedIndex == 0 ? "Original" : "Enhanced";
             _settings.GameLanguage=((DesktopGameLanguage.Choice)_language.SelectedItem).Code;
             _settings.Save();
@@ -95,7 +98,8 @@ namespace Dishwasher
             _quality.Items[0].ToString() == "Original" && _quality.Items[1].ToString() == "Upscaled" &&
             Text == "dishwasher" && _save.Text == "Save settings" && _openSaves.Text == "Open saves folder" &&
             _gameTab.Controls.Contains(_discord) && _gameTab.Controls.Contains(_localCoop) && _discord.Text == "Discord Rich Presence" && _language.Items.Count==DesktopGameLanguage.Choices.Length && _language.SelectedIndex>=0 &&
-            _tabs.TabPages.Count == 2 && _cheatsTab.Text == "Cheats" && _cheats.Values != null;
+            _tabs.TabPages.Count == 2 && _cheatsTab.Text == "Cheats" && _cheats.Values != null &&
+            _gameTab.Controls.Contains(_vibration) && _vibration.Text == "Controller vibration";
         internal void SavePreview(string path)
         {
             _previewing = true; ShowInTaskbar = false; StartPosition = FormStartPosition.Manual;

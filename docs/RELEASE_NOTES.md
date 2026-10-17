@@ -9,6 +9,7 @@ Fix unintended second-player input and add configurable cheats with save backups
 
 ## Added
 
+- **Controller vibration** toggle in the configurator's **Game** tab. Uncheck it, save and restart the game to disable both motors.
 - **Local co-op (additional controllers)** in the configurator. Disabled by default; enable it before launching the game to allow additional controllers to join.
 - A **Cheats** tab, disabled by default: health damage protection, editable ammunition and magic skull locks, infinite movement energy, and multipliers for player damage taken, enemy damage taken, movement speed and newly earned orbs.
 - Cheat changes apply to a running game within one second after saving. Resource locks restore underlying counters when disabled; earned orbs and progress remain saved.
