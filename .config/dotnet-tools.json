@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "ilspycmd": { "version": "9.1.0.7988", "commands": ["ilspycmd"] },
+    "dotnet-mgcb": { "version": "3.8.5.1", "commands": ["mgcb"] }
+  }
+}

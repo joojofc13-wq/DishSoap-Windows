@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType><TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms><ImplicitUsings>disable</ImplicitUsings><Nullable>disable</Nullable>
+    <AssemblyName>DishSoap.Configurator</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.5.1" />
+    <Compile Include="../Dishwasher.Desktop/ConfigurationWindow.cs" Link="ConfigurationWindow.cs" />
+    <Compile Include="../Dishwasher.Desktop/Platform/DesktopSettings.cs" Link="DesktopSettings.cs" />
+    <Compile Include="../Dishwasher.Desktop/Platform/DesktopPaths.cs" Link="DesktopPaths.cs" />
+    <Compile Include="../Dishwasher.Desktop/Platform/DesktopLocale.cs" Link="DesktopLocale.cs" />
+  </ItemGroup>
+</Project>

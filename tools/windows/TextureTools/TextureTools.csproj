@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0-windows</TargetFramework><UseWindowsForms>true</UseWindowsForms><ImplicitUsings>enable</ImplicitUsings><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
+  <ItemGroup><Compile Include="../../../src/Dishwasher/Platform/Import/XnbV2.cs" Link="XnbV2.cs" /><Compile Include="../../../src/Dishwasher/Platform/Import/PngWriter.cs" Link="PngWriter.cs" /><Compile Include="../../../src/Dishwasher.Desktop/Platform/DesktopTextureColors.cs" Link="DesktopTextureColors.cs" /></ItemGroup>
+</Project>

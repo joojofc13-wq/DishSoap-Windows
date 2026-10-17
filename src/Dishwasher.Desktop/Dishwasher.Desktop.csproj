@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>12</LangVersion>
+    <AssemblyName>Dishwasher</AssemblyName>
+    <DishwasherBuildGame Condition="'$(DishwasherBuildGame)' == ''">true</DishwasherBuildGame>
+    <!-- Independent copy: preparing desktop sources cannot alter the Android tree. -->
+    <GameSourceRoot Condition="'$(GameSourceRoot)' == ''">$(MSBuildThisFileDirectory)GameSource</GameSourceRoot>
+    <DefineConstants>$(DefineConstants);DISHWASHER_OGG;DISHWASHER_DESKTOP</DefineConstants>
+    <NoWarn>$(NoWarn);CS0067;CS0108</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(DishwasherBuildGame)' == 'true'">
+    <DefineConstants>$(DefineConstants);DISHWASHER_GAME</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(DishwasherBuildGame)' != 'true'">
+    <AssemblyName>DishSoap.Setup</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.5.1" />
+    <PackageReference Include="NVorbis" Version="0.10.5" />
+    <Compile Remove="GameSource/**/*.cs" />
+    <Compile Include="../Dishwasher/Platform/Import/*.cs"
+             Exclude="../Dishwasher/Platform/Import/AndroidContentSource.cs;../Dishwasher/Platform/Import/ImportController.cs" Link="Shared/Import/%(Filename)%(Extension)" />
+    <Compile Include="../Dishwasher/DishwasherContentManager.cs" Link="Shared/DishwasherContentManager.cs" />
+    <Compile Include="../Dishwasher/Platform/Audio/XactShim.cs" Link="Shared/XactShim.cs" />
+    <Compile Include="../Dishwasher/Platform/Shim_GamerServices.cs" Link="Shared/Shim_GamerServices.cs" />
+    <Compile Include="../Dishwasher/Platform/Shim_Net.cs" Link="Shared/Shim_Net.cs" />
+    <Compile Include="../Dishwasher/Platform/Shim_EffectCompat.cs" Link="Shared/Shim_EffectCompat.cs" />
+    <Content Include="../Dishwasher/Assets/fx/*.xnb" Exclude="../Dishwasher/Assets/fx/redhaze.xnb" Link="fx/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/fx/redhaze.xnb" Link="fx/redhaze.xnb" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/fx/sceneEdges.xnb" Link="fx/sceneEdges.xnb" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../Dishwasher/Assets/import-manifest.json" Link="import-manifest.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../LICENSE;../../THIRD-PARTY-NOTICES.md" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(DishwasherBuildGame)' == 'true'">
+    <Compile Include="$(GameSourceRoot)/**/*.cs" Exclude="$(GameSourceRoot)/**/Program.cs;$(GameSourceRoot)/**/AssemblyInfo.cs;$(GameSourceRoot)/**/obj/**;$(GameSourceRoot)/**/bin/**" Link="GameSource/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+  <Target Name="RequireRealGameSource" BeforeTargets="CoreCompile" Condition="'$(DishwasherBuildGame)' == 'true'">
+    <Error Condition="!Exists('$(GameSourceRoot)/projectDish/Game1.cs')" Text="GameSource real ausente. Execute tools/windows/prepare-game.ps1 com seu game.exe gerenciado. Para compilar SOMENTE o importador: -p:DishwasherBuildGame=false. Veja docs/WINDOWS_BUILD.md." />
+  </Target>
+</Project>
