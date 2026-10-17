@@ -3,6 +3,7 @@
     <OutputType>WinExe</OutputType><TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms><ImplicitUsings>disable</ImplicitUsings><Nullable>disable</Nullable>
     <AssemblyName>DishSoap.Configurator</AssemblyName>
+    <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
     <Version>0.3.0</Version>
   </PropertyGroup>
   <ItemGroup>
