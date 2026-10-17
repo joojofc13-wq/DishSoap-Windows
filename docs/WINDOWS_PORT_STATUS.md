@@ -23,7 +23,7 @@ See [rendering architecture](HD_LAUNCHER.md) and [progress/color regressions](UI
 
 ## Not yet established
 
-The entire campaign, all encounters and stages, co-op, network play, all controller hotplug cases and long sessions at high FPS have not been validated. Local profile shims do not provide Xbox LIVE services. The high-FPS option is a cap, not a guarantee of constant throughput or equivalent visual timing for every effect.
+The high-FPS option is a cap, not a guarantee of constant throughput or equivalent visual timing for every effect.
 
 The source-color fix addresses a reproduced cause of false purple/cyan bloom. Other stage-specific composition artifacts, including large empty-area blocks in an earlier screenshot, still require manual review.
 
