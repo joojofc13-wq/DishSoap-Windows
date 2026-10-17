@@ -9,6 +9,7 @@ internal static class GameLanguageChecks
         var original=CultureInfo.CurrentCulture;var originalUi=CultureInfo.CurrentUICulture;
         try
         {
+            if(new DesktopSettings().GameLanguage!="en") throw new Exception("English must be the default game language.");
             foreach(var choice in DesktopGameLanguage.Choices)
             {
                 var settings=DesktopSettings.Load();settings.GameLanguage=choice.Code;settings.Save();
@@ -17,7 +18,7 @@ internal static class GameLanguageChecks
             if(DesktopGameLanguage.Resolve("System",CultureInfo.GetCultureInfo("pt-BR")).Name!="pt-PT" ||
                DesktopGameLanguage.Resolve("System",CultureInfo.GetCultureInfo("zh-CN")).Name!="zh-TW" ||
                DesktopGameLanguage.Resolve("System",CultureInfo.GetCultureInfo("ko-KR")).Name!="en" ||
-               DesktopGameLanguage.Normalize("unsupported")!="System") throw new Exception("Language fallback failed.");
+               DesktopGameLanguage.Normalize("unsupported")!="en") throw new Exception("Language fallback failed.");
             var selected=DesktopSettings.Load();selected.GameLanguage="pt-PT";selected.Save();
             DesktopSettings.SaveFullscreen(!selected.Fullscreen);
             if(DesktopSettings.Load().GameLanguage!="pt-PT") throw new Exception("A fullscreen shortcut overwrote the selected game language.");

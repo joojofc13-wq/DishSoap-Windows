@@ -20,7 +20,7 @@ namespace Dishwasher
             new("ja","Japanese"),new("zh-TW","Chinese (Traditional)")
         };
         private static readonly CultureInfo SystemCulture=CultureInfo.CurrentUICulture;
-        public static string Normalize(string code)=>Choices.Any(c=>c.Code==code)?code:"System";
+        public static string Normalize(string code)=>Choices.Any(c=>c.Code==code)?code:"en";
         public static CultureInfo Resolve(string code,CultureInfo system=null)
         {
             code=Normalize(code);

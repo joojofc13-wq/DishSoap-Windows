@@ -2,7 +2,7 @@ In-place updates, selectable game language and targeted lettering fixes.
 
 ## Added
 
-- **Game language** selector in the configurator, with Windows automatic selection and the supported bundled translations. The configurator interface stays in English.
+- **Game language** selector in the configurator, with English selected by default, optional Windows automatic selection and the supported bundled translations. The configurator interface stays in English.
 - **Download game update** in the builder. Downloads the latest stable builder from GitHub, verifies its SHA-256 digest and rebuilds an existing installation in place.
 - Existing imports, AI-upscaled textures, saves and player settings are preserved during updates. Replaced runtime files are backed up; failed replacements are rolled back.
 - **Verify installed files** checks runtime checksums, original content, upscaled texture checksums and audio decoding. New builds also record checksums for derived content.

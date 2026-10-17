@@ -45,7 +45,7 @@ New builds and successful update preparation record a SHA-256 baseline of the de
 
 Open `DishSoap.Configurator.exe`, choose your preferences and save. It does not start the game. Open `Dishwasher.exe` to play with the saved configuration.
 
-Output is fixed at 1280 x 720. Settings include Original or Upscaled textures, fullscreen, FPS limit, VSync, Show FPS and Smooth Motion. The interfaces use English on every Windows region. **Game language** selects the bundled in-game translation; Automatic follows the Windows UI language. Portuguese is the original European Portuguese translation. This setting takes effect on the next game launch and does not translate lettering painted into scenes.
+Output is fixed at 1280 x 720. Settings include Original or Upscaled textures, fullscreen, FPS limit, VSync, Show FPS and Smooth Motion. The interfaces use English on every Windows region. **Game language** selects the bundled in-game translation. English is the default; Automatic optionally follows the Windows UI language. Portuguese is the original European Portuguese translation. This setting takes effect on the next game launch and does not translate lettering painted into scenes.
 
 ## Tools and storage
 

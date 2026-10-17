@@ -26,7 +26,7 @@ The builder can download the latest stable update and rebuild an existing game f
 
 ## Features
 
-- Select the game language in the configurator. Automatic follows Windows; the bundled Portuguese translation is European Portuguese.
+- Select the game language in the configurator. English is the default; Automatic optionally follows Windows. The bundled Portuguese translation is European Portuguese.
 
 - Fixed 1280 x 720 output, downsampled from a 1920 x 1080 internal canvas.
 - Original or Upscaled textures, including a separate pass for backgrounds.

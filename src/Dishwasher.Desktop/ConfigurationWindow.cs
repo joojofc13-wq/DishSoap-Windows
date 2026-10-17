@@ -35,7 +35,7 @@ namespace Dishwasher
             _language.Items.AddRange(DesktopGameLanguage.Choices);
             foreach(DesktopGameLanguage.Choice choice in _language.Items)
                 if(choice.Code==_settings.GameLanguage) _language.SelectedItem=choice;
-            if(_language.SelectedIndex<0) _language.SelectedIndex=0;
+            if(_language.SelectedIndex<0) _language.SelectedIndex=1;
             Place(_fullscreen, "Fullscreen", 20, 206, _settings.Fullscreen);
             Place(_vsync, "VSync", 240, 206, _settings.VSync);
             Place(_showFps, "Show FPS", 20, 239, _settings.ShowFps);
