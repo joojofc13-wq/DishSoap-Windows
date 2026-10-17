@@ -35,3 +35,9 @@ The FPS overlay shows actual drawn frames and logic Hz. VSync can restrict prese
 Local tests cover fixed-step timing at multiple render rates, bounded catch-up, RNG separation, BC1/BC3 decoding, atlas crops and pivots, font drawing, 128 texture loads and the real bloom shader regression. Pixel audits cover alpha and channel relationships for all 128 HD sheets and eight scene overrides.
 
 A short warmed-up synthetic benchmark reached 180 FPS rendering with 60 Hz logic on the local RX 6650 XT. This is a technical benchmark, not a measurement of the entire campaign. Full campaign, co-op and prolonged high-FPS gameplay remain unverified.
+
+## Discord Rich Presence
+
+The configurator includes a Discord Rich Presence checkbox, enabled by default. Changes apply when the game next starts. The runtime uses local named-pipe IPC with the public application ID 1560847384727134278. It publishes the full game name, project icon, menu/game/paused state and elapsed session time. Discord desktop and activity sharing are required. Players need no developer account or tokens.
+
+Connection, handshake, reads and retries run in a background task. State changes are coalesced to at most one update every five seconds; the session timestamp survives reconnects. Shutdown attempts to clear presence and then closes the pipe. No Discord credentials or saves are read. The setting affects the game only, not the builder, configurator or asset import.

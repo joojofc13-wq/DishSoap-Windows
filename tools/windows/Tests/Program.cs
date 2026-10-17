@@ -26,9 +26,12 @@ string config = Path.Combine(DesktopPaths.Config, "atomic.txt");
 DesktopPaths.AtomicWrite(config, "old"); DesktopPaths.AtomicWrite(config, "new");
 Check(File.ReadAllText(config) == "new" && File.ReadAllText(config + ".bak") == "old", "atomic replace preserves backup");
 var settings = new DesktopSettings { Width = 1920, Height = 1080, NativeResolution = true, VSync = false, Volume = .65f };
+Check(settings.DiscordRichPresence, "Discord Rich Presence enabled by default");
+settings.DiscordRichPresence = false;
 settings.Save(); var loaded = DesktopSettings.Load();
 Check(loaded.Width == 1280 && loaded.Height == 720 && !loaded.NativeResolution && !loaded.VSync && loaded.Volume == .65f,
     "old native/1080p settings migrate to 720p while preserving other choices");
+Check(!loaded.DiscordRichPresence, "Discord Rich Presence opt-out persists");
 var regionalCulture = System.Globalization.CultureInfo.CurrentCulture;
 foreach (string culture in new[] { "pt-BR", "pt-PT", "es-MX", "en-US", "ja-JP" })
 {
@@ -112,6 +115,7 @@ AtomicSave.Recover(savePath, xml);
 using (var recovered = File.OpenRead(savePath))
     Check(((SyntheticSave)xml.Deserialize(recovered)).Progress == 1 &&
         Directory.GetFiles(DesktopPaths.Saves, "*.corrupt-*").Length == 1, "corrupt save restored and preserved");
+await DiscordPresenceChecks.Run();
 Console.WriteLine("All platform checks passed. These are not campaign tests.");
 
 public sealed class SyntheticSave { public int Progress { get; set; } }

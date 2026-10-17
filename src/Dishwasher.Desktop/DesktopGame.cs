@@ -12,6 +12,7 @@ namespace Dishwasher
     {
         public static double SmokeSeconds;
         public static string CaptureDirectory;
+        internal DesktopDiscordPresence DiscordPresence;
         private readonly Stopwatch _clock = Stopwatch.StartNew();
         private int _lastSecond = -1, _lastCapture = -1;
         private bool _profileReady;
@@ -67,6 +68,7 @@ namespace Dishwasher
                     + " playSeconds=" + projectDish.Globals.player?.playSeconds);
             }
             if (SmokeSeconds > 0 && now >= SmokeSeconds) Exit();
+            DiscordPresence?.SetState(gameMode == 0, projectDish.Globals.paused);
         }
         protected override void Draw(GameTime gameTime)
         {

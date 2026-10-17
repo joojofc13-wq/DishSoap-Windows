@@ -6,7 +6,7 @@ Windows x64 port of The Dishwasher: Dead Samurai. Build the game from your own c
 
 ## Get started
 
-1. Download `DishSoap-Builder-v0.1.0-win-x64.zip` from [Releases](https://github.com/joojofc13-wq/DishSoap-Windows/releases).
+1. Download `DishSoap-Builder-v0.2.0-win-x64.zip` from [Releases](https://github.com/joojofc13-wq/DishSoap-Windows/releases).
 2. Extract the entire ZIP to a writable folder.
 3. Open `DishSoap.Builder.exe`.
 4. Select your legitimate game copy and a destination folder. The builder creates a new game subfolder inside it.
@@ -29,8 +29,15 @@ You need Windows x64, internet access for initial tool setup, your own game copy
 - Original game simulation at 60 Hz, with optional visual motion interpolation.
 - Keyboard and controller input, a local player profile and save backup recovery.
 - A separate Windows settings editor. The builder, settings editor and Windows tools use English regardless of region.
+- Optional Discord Rich Presence with the game name, icon, elapsed session time and menu/game/paused state.
 
 Settings are stored in `%LOCALAPPDATA%\DishSoapWindows\Config\desktop.json`. Saves are stored in `%LOCALAPPDATA%\DishSoapWindows\Saves`.
+
+## Discord activity
+
+Discord Rich Presence is enabled by default. Uncheck Discord Rich Presence in the configurator to disable it, then restart the game to apply the change. It requires the Discord desktop app and Discord activity sharing to be enabled. Players do not need to register a developer application, sign in through the game or provide tokens.
+
+The integration uses Discord's local IPC interface. It reconnects in the background, keeps the session timer across reconnects and clears activity when the game exits. It sends the game name, menu/game/paused state, session timestamp and project icon. It does not transmit save contents or account credentials. The game still works when Discord is closed.
 
 ## Texture preparation
 

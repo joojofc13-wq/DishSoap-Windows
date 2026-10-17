@@ -10,14 +10,14 @@ namespace Dishwasher
     {
         private readonly DesktopSettings _settings = DesktopSettings.Load();
         private readonly ComboBox _fps = new(), _quality = new();
-        private readonly CheckBox _fullscreen = new(), _vsync = new(), _showFps = new(), _smooth = new();
+        private readonly CheckBox _fullscreen = new(), _vsync = new(), _showFps = new(), _smooth = new(), _discord = new();
         private readonly Button _save = new(), _cancel = new(), _openSaves = new();
         private bool _previewing;
         protected override bool ShowWithoutActivation => _previewing;
 
         public ConfigurationWindow()
         {
-            Text = "dishwasher"; ClientSize = new Size(450, 337);
+            Text = "dishwasher"; ClientSize = new Size(450, 373);
             FormBorderStyle = FormBorderStyle.FixedDialog; MaximizeBox = false;
             StartPosition = FormStartPosition.CenterScreen; Font = new Font("Segoe UI", 9);
             AddLabel("Image:", 20, 24);
@@ -35,7 +35,9 @@ namespace Dishwasher
             Place(_vsync, "VSync", 240, 162, _settings.VSync);
             Place(_showFps, "Show FPS", 20, 195, _settings.ShowFps);
             Place(_smooth, "Smooth motion", 240, 195, _settings.SmoothMotion);
-            _openSaves.Text = "Open saves folder"; _openSaves.SetBounds(20, 238, 178, 34);
+            Place(_discord, "Discord Rich Presence", 20, 228, _settings.DiscordRichPresence);
+            _discord.Width = 300;
+            _openSaves.Text = "Open saves folder"; _openSaves.SetBounds(20, 274, 178, 34);
             _openSaves.Click += (_, _) => {
                 try
                 {
@@ -44,8 +46,8 @@ namespace Dishwasher
                 }
                 catch (Exception ex) { MessageBox.Show(this, ex.Message, "dishwasher", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             };
-            _save.Text = "Save settings"; _save.SetBounds(231, 281, 199, 34);
-            _cancel.Text = "Cancel"; _cancel.SetBounds(119, 281, 100, 34); _cancel.DialogResult = DialogResult.Cancel;
+            _save.Text = "Save settings"; _save.SetBounds(231, 317, 199, 34);
+            _cancel.Text = "Cancel"; _cancel.SetBounds(119, 317, 100, 34); _cancel.DialogResult = DialogResult.Cancel;
             Controls.AddRange(new Control[] { _openSaves, _save, _cancel }); AcceptButton = _save; CancelButton = _cancel;
             _save.Click += (_, _) => {
                 try
@@ -66,12 +68,14 @@ namespace Dishwasher
             _settings.NativeResolution = false; _settings.Width = 1280; _settings.Height = 720;
             _settings.FrameLimit = (int)_fps.SelectedItem; _settings.Fullscreen = _fullscreen.Checked;
             _settings.VSync = _vsync.Checked; _settings.ShowFps = _showFps.Checked; _settings.SmoothMotion = _smooth.Checked;
+            _settings.DiscordRichPresence = _discord.Checked;
             _settings.TextureQuality = _quality.SelectedIndex == 0 ? "Original" : "Enhanced";
             _settings.Save();
         }
         internal bool CheckControls() => _fps.Items.Contains(180) && _quality.Items.Count == 2 &&
             _quality.Items[0].ToString() == "Original" && _quality.Items[1].ToString() == "Upscaled" &&
-            Text == "dishwasher" && _save.Text == "Save settings" && _openSaves.Text == "Open saves folder";
+            Text == "dishwasher" && _save.Text == "Save settings" && _openSaves.Text == "Open saves folder" &&
+            Controls.Contains(_discord) && _discord.Text == "Discord Rich Presence";
         internal void SavePreview(string path)
         {
             _previewing = true; ShowInTaskbar = false; StartPosition = FormStartPosition.Manual;

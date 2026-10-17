@@ -102,7 +102,7 @@ Graphics diagnostics load, draw and read back the rewritten effects and check HD
 From a clean committed checkout:
 
 ```powershell
-./tools/windows/package-builder-release.ps1 -Version 0.1.0 -Dotnet dotnet
+./tools/windows/package-builder-release.ps1 -Version 0.2.0 -Dotnet dotnet
 ```
 
 This publishes a self-contained Windows x64 builder and combines it with a committed source allowlist. It verifies binary origins, rejects private content and writes SHA256 manifests. `package-builder.ps1` produces a source-only kit.

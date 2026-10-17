@@ -22,6 +22,8 @@ namespace Dishwasher
                 if (gamers[(PlayerIndex)i] == null)
                     gamers.Add(new Microsoft.Xna.Framework.GamerServices.SignedInGamer { PlayerIndex = (PlayerIndex)i, Gamertag = "Player " + (i + 1) });
             using var game = new DesktopGame();
+            using var presence = new DesktopDiscordPresence(settings.DiscordRichPresence);
+            game.DiscordPresence = presence;
             settings.NativeResolution = false; settings.Width = 1280; settings.Height = 720;
             settings.Save();
             var manager = game.Services.GetService(typeof(IGraphicsDeviceManager)) as GraphicsDeviceManager
