@@ -1,6 +1,8 @@
 # DishSoap Windows
 
-Windows x64 port of The Dishwasher: Dead Samurai. Build the game from your own copy, then run it with original or AI-upscaled textures.
+The Upscaled option uses Real-ESRGAN AI and is enabled by default. Keeping it selected is recommended.
+
+Windows x64 port of The Dishwasher: Dead Samurai. Build the game from your own copy, then run it with original or upscaled textures.
 
 ## Get started
 
@@ -30,9 +32,9 @@ You need Windows x64, internet access for initial tool setup, your own game copy
 
 Settings are stored in `%LOCALAPPDATA%\DishSoapWindows\Config\desktop.json`. Saves are stored in `%LOCALAPPDATA%\DishSoapWindows\Saves`.
 
-## AI upscaling
+## Texture preparation
 
-The Upscaled option uses Real-ESRGAN AI models. It is generated locally from the textures in your own copy; no upscaled game artwork is included in this repository or the builder download.
+Textures are prepared locally from the assets in your own copy. No upscaled game artwork is included in this repository or the builder download.
 
 The current pipeline prepares 128 texture sheets at 2x size: 121 art sheets use the AnimeVideo-v3 model, while seven font sheets use bicubic scaling. Eight background sheets receive an additional Real-ESRGAN x4plus pass at 4x, then are reduced to 2x. Original alpha and channel relationships are preserved to keep transparency and bloom masks intact. Processing happens before playing, with no neural inference during gameplay.
 

@@ -23,18 +23,19 @@ namespace Dishwasher
             AddLabel("Image:", 20, 24);
             Setup(_quality, 178, 20); _quality.Items.AddRange(new object[] { "Original", "Upscaled" });
             _quality.SelectedIndex = _settings.TextureQuality == "Original" ? 0 : 1;
-            AddLabel("FPS limit:", 20, 63);
-            Setup(_fps, 178, 59);
+            AddLabel("Recommended: keep Upscaled enabled.", 20, 54);
+            AddLabel("FPS limit:", 20, 83);
+            Setup(_fps, 178, 79);
             foreach (int fps in new[] { 60, 90, 120, 144, 165, 180, 240, 360 }) _fps.Items.Add(fps);
             if (!_fps.Items.Contains(_settings.FrameLimit)) _fps.Items.Add(_settings.FrameLimit);
             _fps.SelectedItem = _settings.FrameLimit;
-            AddLabel("Resolution:", 20, 102);
-            AddLabel("720p (1280 × 720)", 178, 102);
-            Place(_fullscreen, "Fullscreen", 20, 142, _settings.Fullscreen);
-            Place(_vsync, "VSync", 240, 142, _settings.VSync);
-            Place(_showFps, "Show FPS", 20, 175, _settings.ShowFps);
-            Place(_smooth, "Smooth motion", 240, 175, _settings.SmoothMotion);
-            _openSaves.Text = "Open saves folder"; _openSaves.SetBounds(20, 218, 178, 34);
+            AddLabel("Resolution:", 20, 122);
+            AddLabel("720p (1280 × 720)", 178, 122);
+            Place(_fullscreen, "Fullscreen", 20, 162, _settings.Fullscreen);
+            Place(_vsync, "VSync", 240, 162, _settings.VSync);
+            Place(_showFps, "Show FPS", 20, 195, _settings.ShowFps);
+            Place(_smooth, "Smooth motion", 240, 195, _settings.SmoothMotion);
+            _openSaves.Text = "Open saves folder"; _openSaves.SetBounds(20, 238, 178, 34);
             _openSaves.Click += (_, _) => {
                 try
                 {
