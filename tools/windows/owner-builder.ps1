@@ -206,7 +206,7 @@ $outLabel = New-Object Windows.Forms.Label
 $outLabel.SetBounds(18,110,740,20); $outLabel.Text = ('Save in (a game subfolder will be created here):')
 $outBox = New-Object Windows.Forms.TextBox
 $outBox.SetBounds(18,134,654,25)
-$outBox.Text = if ($Destination) { $Destination } else { Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'DishSoap' }
+$outBox.Text = if ($Destination) { $Destination } else { '' }
 $outButton = New-Object Windows.Forms.Button
 $outButton.SetBounds(678,132,82,28); $outButton.Text = ('Browse...')
 $note = New-Object Windows.Forms.Label
@@ -346,6 +346,9 @@ $buildButton.Add_Click({
 $openButton.Add_Click({ Start-Process -FilePath explorer.exe -ArgumentList ('"' + $script:buildDestination + '"') })
 $form.Add_FormClosing({ if ($script:workerProcess -and !$script:workerProcess.HasExited) { $_.Cancel = $true; $note.Text = ('Wait for the build to finish before closing.') } })
 if ($UiCheck) {
+    if (!$Destination -and $outBox.Text.Length) { throw 'Destination must start empty unless explicitly supplied.' }
+    if ($Destination -and $outBox.Text -ne $Destination) { throw 'Explicit destination was not preserved.' }
+    Write-Host 'Builder empty/default and explicit destination PASS'
     $form.CreateControl()
     if ($form.Controls.Count -ne 12 -or !$buildButton.Enabled -or $openButton.Enabled) { throw 'Invalid initial interface state.' }
     $testFolder = Join-Path $repoRoot ('work/ui-check-' + [guid]::NewGuid().ToString('N'))
