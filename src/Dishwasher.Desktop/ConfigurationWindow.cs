@@ -12,12 +12,15 @@ namespace Dishwasher
         private readonly ComboBox _fps = new(), _quality = new(), _language=new();
         private readonly CheckBox _fullscreen = new(), _vsync = new(), _showFps = new(), _smooth = new(), _discord = new(), _localCoop=new();
         private readonly Button _save = new(), _cancel = new(), _openSaves = new();
+        private readonly TabControl _tabs = new();
+        private readonly TabPage _gameTab = new("Game"), _cheatsTab = new("Cheats");
+        private readonly CheatConfigurationPanel _cheats = new();
         private bool _previewing;
         protected override bool ShowWithoutActivation => _previewing;
 
         public ConfigurationWindow()
         {
-            Text = "dishwasher"; ClientSize = new Size(450, 450);
+            Text = "dishwasher"; ClientSize = new Size(500, 604);
             FormBorderStyle = FormBorderStyle.FixedDialog; MaximizeBox = false;
             StartPosition = FormStartPosition.CenterScreen; Font = new Font("Segoe UI", 9);
             AddLabel("Image:", 20, 24);
@@ -53,14 +56,20 @@ namespace Dishwasher
                 }
                 catch (Exception ex) { MessageBox.Show(this, ex.Message, "dishwasher", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             };
-            _save.Text = "Save settings"; _save.SetBounds(231, 394, 199, 34);
-            _cancel.Text = "Cancel"; _cancel.SetBounds(119, 394, 100, 34); _cancel.DialogResult = DialogResult.Cancel;
-            Controls.AddRange(new Control[] { _openSaves, _save, _cancel }); AcceptButton = _save; CancelButton = _cancel;
+            Controls.Add(_openSaves);
+            while (Controls.Count > 0) _gameTab.Controls.Add(Controls[0]);
+            _tabs.SetBounds(12, 12, 476, 532); _tabs.TabPages.AddRange(new[] { _gameTab, _cheatsTab });
+            _cheatsTab.Controls.Add(_cheats); Controls.Add(_tabs);
+            _save.Text = "Save settings"; _save.SetBounds(278, 558, 210, 34);
+            _cancel.Text = "Cancel"; _cancel.SetBounds(166, 558, 100, 34); _cancel.DialogResult = DialogResult.Cancel;
+            Controls.AddRange(new Control[] { _save, _cancel }); AcceptButton = _save; CancelButton = _cancel;
             _save.Click += (_, _) => {
                 try
                 {
                     SaveChoices();
-                    MessageBox.Show(this, "Settings saved. Open Dishwasher.exe to play.", "dishwasher", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    string message = "Settings saved. Cheats apply in-game within one second.\nRestart Dishwasher.exe for other settings.";
+                    if (_cheats.LastBackup != null) message += "\n\nSave backup: " + _cheats.LastBackup;
+                    MessageBox.Show(this, message, "dishwasher", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     Close();
                 }
                 catch (Exception ex) { MessageBox.Show(this, ex.Message, "dishwasher", MessageBoxButtons.OK, MessageBoxIcon.Error); }
@@ -72,6 +81,7 @@ namespace Dishwasher
         { box.Text = text; box.SetBounds(x, y, 210, 27); box.Checked = selected; Controls.Add(box); }
         internal void SaveChoices()
         {
+            _cheats.SaveChoices();
             _settings.NativeResolution = false; _settings.Width = 1280; _settings.Height = 720;
             _settings.FrameLimit = (int)_fps.SelectedItem; _settings.Fullscreen = _fullscreen.Checked;
             _settings.VSync = _vsync.Checked; _settings.ShowFps = _showFps.Checked; _settings.SmoothMotion = _smooth.Checked;
@@ -84,12 +94,16 @@ namespace Dishwasher
         internal bool CheckControls() => _fps.Items.Contains(180) && _quality.Items.Count == 2 &&
             _quality.Items[0].ToString() == "Original" && _quality.Items[1].ToString() == "Upscaled" &&
             Text == "dishwasher" && _save.Text == "Save settings" && _openSaves.Text == "Open saves folder" &&
-            Controls.Contains(_discord) && Controls.Contains(_localCoop) && _discord.Text == "Discord Rich Presence" && _language.Items.Count==DesktopGameLanguage.Choices.Length && _language.SelectedIndex>=0;
+            _gameTab.Controls.Contains(_discord) && _gameTab.Controls.Contains(_localCoop) && _discord.Text == "Discord Rich Presence" && _language.Items.Count==DesktopGameLanguage.Choices.Length && _language.SelectedIndex>=0 &&
+            _tabs.TabPages.Count == 2 && _cheatsTab.Text == "Cheats" && _cheats.Values != null;
         internal void SavePreview(string path)
         {
             _previewing = true; ShowInTaskbar = false; StartPosition = FormStartPosition.Manual;
             Location = new Point(-10000, -10000); Opacity = 0; Show(); Application.DoEvents();
             using var bitmap = new Bitmap(Width, Height); DrawToBitmap(bitmap, new Rectangle(0, 0, Width, Height)); bitmap.Save(path);
+            _tabs.SelectedTab = _cheatsTab; Application.DoEvents();
+            using var cheatsBitmap = new Bitmap(Width, Height); DrawToBitmap(cheatsBitmap, new Rectangle(0, 0, Width, Height));
+            cheatsBitmap.Save(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(path)), Path.GetFileNameWithoutExtension(path) + "-cheats.png"));
             Hide(); _previewing = false;
         }
     }

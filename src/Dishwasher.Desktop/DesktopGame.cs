@@ -48,6 +48,7 @@ namespace Dishwasher
             double now = _clock.Elapsed.TotalSeconds;
             double elapsed = _lastUpdateTime < 0 ? FixedSimulationClock.StepSeconds : now - _lastUpdateTime;
             _lastUpdateTime = now;
+            DesktopCheats.BeginFrame(gameMode == 0 && !projectDish.Globals.paused);
             _simulation.Advance(elapsed, () => {
                 DesktopInput.MenuContext = gameMode != 0 || projectDish.Globals.paused;
                 DesktopInput.BeginFrame();

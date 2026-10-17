@@ -76,6 +76,21 @@ def port(text):
 
 
 def integrate(relative, text):
+    # Hook health-loss operations, not HP assignments used by initialization,
+    # weapon changes, healing or scripted cleanup. Fail if the owned revision
+    # has different call sites rather than silently shipping incomplete cheats.
+    damage_counts = {'projectDish/Character.cs': 8, 'projectDish/Game1.cs': 3, 'projectDish/SpriteManager.cs': 2}
+    if relative.as_posix() in damage_counts:
+        text, subtracts = re.subn(r'^(\s*)(?:(\w+\[[^\n;]+?\])\.)?HP -= ([^;\n]+);',
+            lambda m: m[1] + (m[2] + '.' if m[2] else '') + 'PortTakeDamage(' + m[3] + ');', text, flags=re.M)
+        text, decrements = re.subn(r'^(\s*)HP--;', r'\1PortTakeDamage(1);', text, flags=re.M)
+        if subtracts + decrements != damage_counts[relative.as_posix()]:
+            raise ValueError('Review cheat damage hooks: ' + relative.as_posix())
+    if relative.as_posix() in ('projectDish/Game1.cs', 'projectDish/SpriteManager.cs'):
+        text, additions = re.subn(r'Globals\.player\.expOrbs \+= ([^;\n]+);', r'Globals.player.PortAddOrbs(\1);', text)
+        text, increments = re.subn(r'Globals\.player\.expOrbs\+\+;', 'Globals.player.PortAddOrbs(1);', text)
+        expected = 1 if relative.as_posix() == 'projectDish/Game1.cs' else 2
+        if additions + increments != expected: raise ValueError('Review earned-orb call sites: ' + relative.as_posix())
     if relative.as_posix() == 'projectDish/GuitarSolo.cs':
         marker = 'if (needsStart)\n\t\t{'
         if text.count(marker) != 1:
@@ -108,6 +123,10 @@ def integrate(relative, text):
     if relative.as_posix() == 'projectDish/ThreadLoader.cs':
         text = text.replace('i < loadList.Length;', 'i < loadList.Length && !Dishwasher.DesktopThreads.StopRequested;')
     if relative.as_posix() in ('projectDish/Player.cs', 'projectDish/Settings.cs'):
+        if relative.as_posix() == 'projectDish/Player.cs':
+            marker = 'public int expOrbs;'
+            if text.count(marker) != 1: raise ValueError('Review earned-orb hook')
+            text = text.replace(marker, marker + '\n\tpublic void PortAddOrbs(int earned) => expOrbs = Dishwasher.DesktopCheats.EarnedOrbs(expOrbs, earned);')
         text = re.sub(r'FileStream fileStream = File.Open\(path, FileMode.Create\);\s*'
                       r'(XmlSerializer xmlSerializer = new XmlSerializer\(typeof\(Save\)\);)\s*'
                       r'xmlSerializer.Serialize\(fileStream, save\);\s*fileStream.Close\(\);',
@@ -132,6 +151,45 @@ def integrate(relative, text):
         text = re.sub(r'catch \(Exception (\w+)\)\n\s*\{',
                       lambda m: m.group(0) + '\n\t\tDishwasher.Log.Exception("Game1 phase=" + loadPhase, ' + m[1] + ');', text)
     if relative.as_posix() == 'projectDish/Character.cs':
+        for field, backing, option, value in (
+            ('ammo', '_portAmmo', 'InfiniteAmmo', 'AmmoValue'),
+            ('skulls', '_portSkulls', 'InfiniteMagic', 'MagicValue'),
+            ('MP', '_portEnergy', 'InfiniteEnergy', None)):
+            marker = 'public int ' + field + ';'
+            if text.count(marker) != 1: raise ValueError('Review cheat resource hook: ' + field)
+            target = 'Math.Max(1, mMP)' if value is None else 'Dishwasher.DesktopCheats.Current.' + value
+            condition = 'PortCheatPlayer && Dishwasher.DesktopCheats.Current.' + option
+            prop = ('private int ' + backing + ';\n\tpublic int ' + field + '\n\t{\n' +
+                    '\t\tget => ' + condition + ' ? ' + target + ' : ' + backing + ';\n' +
+                    '\t\tset { if (!(' + condition + ')) ' + backing + ' = value; }\n\t}')
+            text = text.replace(marker, prop)
+        marker = 'private float speed;'
+        if text.count(marker) != 1: raise ValueError('Review movement speed hook')
+        text = text.replace(marker, '''private float _portSpeed;
+    private float speed
+    {
+        get => _portSpeed * (PortCheatPlayer ? (float)Dishwasher.DesktopCheats.Current.MovementSpeed : 1f);
+        set => _portSpeed = value;
+    }
+    private bool _portCheatsReady;
+    private double _portDamageRemainder;
+    private bool PortCheatPlayer => _portCheatsReady && exists && team == 0 && !iNPC && Dishwasher.DesktopCheats.Active;
+    public void PortTakeDamage(int amount)
+    {
+        int damage = Dishwasher.DesktopCheats.Damage(amount,
+            _portCheatsReady && exists && team == 0 && !iNPC,
+            _portCheatsReady && exists && team == 1 && !iNPC, ref _portDamageRemainder);
+        HP = (int)Math.Clamp((long)HP - damage, int.MinValue, int.MaxValue);
+    }''')
+        marker = 'public void Init(Vector2 newLoc, int newDef, int newID, int newAI, int newTeam, string newTag, Map map)'
+        if text.count(marker) != 1: raise ValueError('Review cheat initialization boundary')
+        start = text.index('{', text.index(marker)); end = start + 1; depth = 1
+        while depth:
+            if text[end] == '{': depth += 1
+            elif text[end] == '}': depth -= 1
+            end += 1
+        text = (text[:start + 1] + '\n\t\t_portCheatsReady = false; _portDamageRemainder = 0;\n\t\ttry {\n' +
+                text[start + 1:end - 1] + '\n\t\t} finally { _portCheatsReady = true; }\n\t' + text[end - 1:])
         marker = '\tpublic Vector2 getLoc()\n\t{'
         if text.count(marker) != 1: raise ValueError('Review character interpolation hook')
         text = text.replace(marker, '\tinternal Vector2 PortVisualLocation { get => loc; set => loc = value; }\n\n' + marker)

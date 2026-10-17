@@ -51,6 +51,12 @@ Open `DishSoap.Configurator.exe`, choose your preferences and save. It does not 
 
 Output is fixed at 1280 x 720. Settings include Original or Upscaled textures, fullscreen, FPS limit, VSync, Show FPS and Smooth Motion. The interfaces use English on every Windows region. **Game language** selects the bundled in-game translation. English is the default; Automatic optionally follows the Windows UI language. Portuguese is the original European Portuguese translation. This setting takes effect on the next game launch and does not translate lettering painted into scenes.
 
+## Cheats and save backups
+
+The configurator has separate **Game** and **Cheats** tabs. Cheats start disabled. **Cheats can permanently change your save; back up saves before making any changes.** Use **Back up saves** for a manual copy. Saving changed cheats while enabled creates a backup first under `%LOCALAPPDATA%\DishSoapWindows\SaveBackups`; if copying fails, the changes are not saved. Close the game before restoring files from a backup into the Saves folder.
+
+Cheats include health damage protection, ammunition and skull locks with editable values, infinite movement energy, and numeric multipliers for player damage, enemy damage, movement speed and earned orbs. **Save settings** applies cheat changes to a running game within one second. Normal graphics, language and controller options apply on the next launch. **Reset cheats** restores cheat defaults; save to apply it. Collected orbs and progress are still saved normally, and disabling cheats does not undo purchases or progress. Resource locks do not unlock abilities or skip scripted events and boss phases. See the [cheat options](README.md#cheats) for limits.
+
 ## Tools and storage
 
 The initial build needs internet access for tools and NuGet packages. Compatible installed tools may be reused. Otherwise, the scripts obtain .NET 8, Python, FFmpeg and Real-ESRGAN in `.local-tools`, with download verification. AI processing requires a Vulkan-compatible GPU. Preparation can take considerably longer than compilation.

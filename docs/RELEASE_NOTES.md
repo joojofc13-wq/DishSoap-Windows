@@ -1,4 +1,4 @@
-Fix unintended second-player input when playing with one controller.
+Fix unintended second-player input and add configurable cheats with save backups.
 
 ## Fixed
 
@@ -10,5 +10,8 @@ Fix unintended second-player input when playing with one controller.
 ## Added
 
 - **Local co-op (additional controllers)** in the configurator. Disabled by default; enable it before launching the game to allow additional controllers to join.
+- A **Cheats** tab, disabled by default: health damage protection, editable ammunition and magic skull locks, infinite movement energy, and multipliers for player damage taken, enemy damage taken, movement speed and newly earned orbs.
+- Cheat changes apply to a running game within one second after saving. Resource locks restore underlying counters when disabled; earned orbs and progress remain saved.
+- Manual save backups and automatic backups before saving changed cheats while enabled. **Cheats can permanently change your save. Back up saves before making any changes.**
 
 Download and extract `DishSoap-Builder-v0.4.0-win-x64.zip`, open `DishSoap.Builder.exe` and select **Download game update** to update an existing compiled installation.

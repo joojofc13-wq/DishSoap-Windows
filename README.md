@@ -38,8 +38,19 @@ The builder can download the latest stable update and rebuild an existing game f
 - Keyboard and controller input, a local player profile and save backup recovery.
 - A separate Windows settings editor. The builder, settings editor and Windows tools use English regardless of region.
 - Optional Discord Rich Presence with the game name, icon, elapsed session time and menu/game/paused state.
+- A **Cheats** tab with damage protection, resource locks and numeric modifiers for damage, movement and earned orbs. Disabled by default, with manual and automatic save backups.
 
 Settings are stored in `%LOCALAPPDATA%\DishSoapWindows\Config\desktop.json`. Saves are stored in `%LOCALAPPDATA%\DishSoapWindows\Saves`.
+
+## Cheats
+
+**Cheats can permanently change your save. Back up your saves before making any changes.** Use **Back up saves** in the configurator's **Cheats** tab. Backups are stored in `%LOCALAPPDATA%\DishSoapWindows\SaveBackups`. Changed settings with cheats enabled also create a backup automatically before they are saved; a failed backup prevents applying the changes.
+
+Enable the master switch, select cheats and click **Save settings**. The running game reads `Config\cheats.json` within one second. Disable the switch to return to normal behavior, or use **Reset cheats** and save. Other configurator settings still require restarting the game.
+
+Available options: infinite health through damage protection; ammunition locked to 1–999; magic skulls locked to 1–9; infinite movement energy; player damage taken at 0–10x; enemy damage taken at 0.1–20x; movement speed at 0.5–3x; and newly earned orbs at 1–100x. Resource locks temporarily override the player's counters and restore their underlying counts when disabled. Existing orbs and shop prices are not multiplied. Earned orbs, purchases and campaign progress remain in your save after cheats are disabled.
+
+Damage protection does not revive dead characters or bypass scripted events, hit reactions, required boss phases or story ability unlocks. Enemy damage scaling also affects environmental health loss. A backup can be restored by closing the game and copying its files into the Saves folder.
 
 ## Discord activity
 
