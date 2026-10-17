@@ -1,7 +1,9 @@
-Fix unintended second-player input and add configurable cheats with save backups.
+Fix controller routing and rendering, and add configurable cheats with save backups.
 
 ## Fixed
 
+- Restore the refraction silhouette of cloaked enemies. Their original low-health reveal behavior is preserved.
+- Smooth the bloom transition that produced bright purple blocks in the theatre spotlight. Strong blue light effects remain enabled.
 - Route the primary physical controller to player one even when Windows assigns it a different device slot after reconnecting.
 - An active controller can claim player one ahead of an idle virtual device, then keeps its ownership until disconnecting.
 - Keyboard and primary controller input stay with player one. Additional controller slots cannot join in the default single-player configuration.

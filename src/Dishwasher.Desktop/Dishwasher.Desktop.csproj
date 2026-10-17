@@ -34,7 +34,8 @@
     <Compile Include="../Dishwasher/Platform/Shim_GamerServices.cs" Link="Shared/Shim_GamerServices.cs" />
     <Compile Include="../Dishwasher/Platform/Shim_Net.cs" Link="Shared/Shim_Net.cs" />
     <Compile Include="../Dishwasher/Platform/Shim_EffectCompat.cs" Link="Shared/Shim_EffectCompat.cs" />
-    <Content Include="../Dishwasher/Assets/fx/*.xnb" Exclude="../Dishwasher/Assets/fx/redhaze.xnb" Link="fx/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../Dishwasher/Assets/fx/*.xnb" Exclude="../Dishwasher/Assets/fx/redhaze.xnb;../Dishwasher/Assets/fx/lense.xnb;../Dishwasher/Assets/fx/bloom.xnb" Link="fx/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets/fx/lense.xnb;Assets/fx/bloom.xnb" Link="fx/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets/fx/redhaze.xnb" Link="fx/redhaze.xnb" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets/fx/sceneEdges.xnb" Link="fx/sceneEdges.xnb" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../Dishwasher/Assets/import-manifest.json" Link="import-manifest.json" CopyToOutputDirectory="PreserveNewest" />

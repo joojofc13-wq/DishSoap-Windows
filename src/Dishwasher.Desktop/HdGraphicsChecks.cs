@@ -60,7 +60,7 @@ namespace Dishwasher
                 var faulty = RunBloom(new Color(drift[2], drift[1], drift[0], drift[3]));
                 DesktopTextureColors.Preserve(neutral, drift);
                 var corrected = RunBloom(new Color(drift[2], drift[1], drift[0], drift[3]));
-                Check(faulty.B > 100 && corrected.B == 0, "GPU bloom rejects neural chroma noise after colour preservation");
+                Check(faulty.B == 0 && corrected.B == 0, "GPU bloom rejects one-byte neutral chroma noise with and without colour preservation");
                 Check(RunBloom(new Color(60, 60, 180)).B > 200, "GPU bloom retains authored blue light effects");
             }
             var effect = effectContent.Load<Effect>("fx/sceneEdges");
@@ -99,6 +99,7 @@ namespace Dishwasher
                 }
                 Check(count == pack.TextureCount, "complete HD texture pack loaded on GPU: " + count);
             }
+            failures += RenderingRegressionChecks.Run(device, services);
             return failures;
         }
     }

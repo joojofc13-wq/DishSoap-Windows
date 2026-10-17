@@ -86,7 +86,7 @@ The port also uses code from [Hdmaniak/DishSoap](https://github.com/Hdmaniak/Dis
 - XWB/XSB audio bank and cue readers, the audio importer and `XactShim`.
 - `DishwasherContentManager`, adapted here for desktop texture packs.
 - XNA compatibility shims for gamer services, networking and effects.
-- Rewritten shaders and the reference extraction, audio and shader tools. Windows also adds a redhaze variant and scene-edge filtering.
+- Rewritten shaders and the reference extraction, audio and shader tools. Windows adds a redhaze variant and scene-edge filtering, and adapts the lens and bloom shaders to render green-channel camouflage and smooth near-neutral lighting.
 
 The LZX decoder is separately credited to Xenia Manager. The game logic is generated from the user's game copy; it is not original port code and is not published here. Licenses and notices from reused components remain in the repository.
 

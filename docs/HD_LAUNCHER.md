@@ -41,3 +41,10 @@ A short warmed-up synthetic benchmark reached 180 FPS rendering with 60 Hz logic
 The configurator includes a Discord Rich Presence checkbox, enabled by default. Changes apply when the game next starts. The runtime uses local named-pipe IPC with the public application ID 1560847384727134278. It publishes the full game name, project icon, menu/game/paused state and elapsed session time. Discord desktop and activity sharing are required. Players need no developer account or tokens.
 
 Connection, handshake, reads and retries run in a background task. State changes are coalesced to at most one update every five seconds; the session timestamp survives reconnects. Shutdown attempts to clear presence and then closes the pipe. No Discord credentials or saves are read. The setting affects the game only, not the builder, configurator or asset import.
+## Camouflage and theatre lighting
+
+The desktop lens shader consumes both refraction channels. Ordinary impact ripples keep their red-channel behavior; cloaked enemies write a green silhouette that now displaces the scene behind it. The game still removes their cloak below one quarter of their maximum health or when grabbed. This rendering change does not make them permanently opaque or alter their AI.
+
+The desktop bloom shader uses a continuous blue-excess mask instead of a binary blue-greater-than-red switch. A two-byte neutral dead zone and a thirty-byte ramp prevent faint colour differences in a spotlight blending over warm scenery from turning into bright rectangular patches. Strongly blue effects retain the full bloom response. Both Original and Upscaled texture modes use these shaders; no assets need to be regenerated.
+
+GPU regression checks compare the old and new shaders on identical fixtures. The old lens produces no displacement for a green-only cloak; the new lens produces a visible refracted silhouette while matching the old red-channel result exactly. On a near-neutral lighting ramp, the largest adjacent bloom jump falls from 161 to 9 byte levels. These fixtures test the rendering failure; they do not establish that every campaign scene has been checked.
