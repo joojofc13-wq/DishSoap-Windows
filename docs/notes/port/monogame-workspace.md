@@ -1,4 +1,4 @@
-# The Dishwasher: Dead Samurai — managed MonoGame/Android port workspace
+# The Dishwasher: Dead Samurai: managed MonoGame/Android port workspace
 
 Workspace for the **managed** port route: decompile the Xbox 360 XNA game's IL to C#
 (`ilspycmd`) and rebuild it on **MonoGame for Android**.
@@ -9,7 +9,6 @@ It is the canonical recipe for the rest of the team.
 > Status: **toolchain installed and validated** (clean throwaway Android app built and
 > produced a signed APK). No game code has been decompiled here yet.
 
----
 
 ## 1. Installed tool versions (validated on this host)
 
@@ -29,7 +28,7 @@ It is the canonical recipe for the rest of the team.
 | JDK | **OpenJDK 21.0.12.1** | `/usr/lib/jvm/java-21-openjdk-amd64` |
 | Android SDK | platform `android-35`, build-tools `34.0.0` + `35.0.0`, platform-tools | `$ANDROID_SDK_DIR` |
 | Android NDK | r28b | `$HOME/android-ndk-r28b` |
-| adb | — | `$ADB` (device `<device-serial>`, Galaxy A52, API 34, arm64-v8a) |
+| adb |: | `$ADB` (device `<device-serial>`, Galaxy A52, API 34, arm64-v8a) |
 
 ### Version notes / gotchas
 - **apt only ships `dotnet-sdk-10.0` on this host** (no 8.0 / 9.0 packages), so the SDK was
@@ -52,7 +51,6 @@ It is the canonical recipe for the rest of the team.
 - **`/tmp` is tmpfs and is wiped on reboot.** Keep only disposable scratch there
   (`/tmp/opencode`). Installed tooling lives under `~/.dotnet` (persistent).
 
----
 
 ## 2. Environment setup (PATH)
 
@@ -67,7 +65,6 @@ source tools/scripts/env.sh
 ```
 (`scripts/env.sh` exports the same, plus convenience vars for SDK/NDK/Java.)
 
----
 
 ## 3. Create + build a MonoGame Android app (the recipe)
 
@@ -118,7 +115,6 @@ $ADB -s <device-serial> install -r bin/Debug/net8.0-android/<id>-Signed.apk
 $ADB -s <device-serial> shell monkey -p <ApplicationId> 1
 ```
 
----
 
 ## 4. Throwaway build test results (evidence)
 
@@ -126,11 +122,11 @@ Reproduced twice (including after a `/tmp` wipe) in `/tmp/opencode/mgtest`:
 
 | Test | Command | Result |
 |---|---|---|
-| Untouched template | `dotnet build -f net9.0-android -p:AndroidSdkDirectory=... -p:AndroidNdkDirectory=...` | **FAIL** — `error NETSDK1139: The target platform identifier android was not recognized.` |
-| `-f net8.0-android` on untouched net9 csproj | same props | **FAIL** — same `NETSDK1139` |
-| Template retargeted to net8.0-android | `dotnet build -f net8.0-android -p:AndroidSdkDirectory=... -p:AndroidNdkDirectory=... -p:JavaSdkDirectory=...` | **SUCCESS** — `Build succeeded. 0 Error(s)`; signed APK produced |
+| Untouched template | `dotnet build -f net9.0-android -p:AndroidSdkDirectory=... -p:AndroidNdkDirectory=...` | **FAIL**: `error NETSDK1139: The target platform identifier android was not recognized.` |
+| `-f net8.0-android` on untouched net9 csproj | same props | **FAIL**: same `NETSDK1139` |
+| Template retargeted to net8.0-android | `dotnet build -f net8.0-android -p:AndroidSdkDirectory=... -p:AndroidNdkDirectory=... -p:JavaSdkDirectory=...` | **SUCCESS**: `Build succeeded. 0 Error(s)`; signed APK produced |
 | Retargeted, only `AndroidSdkDirectory` | `dotnet build -f net8.0-android -p:AndroidSdkDirectory=$ANDROID_SDK_DIR` | **SUCCESS** |
-| Headless content | `mgcb Content/Content.mgcb /platform:Android /outputDir:... /intermediateDir:...` | **SUCCESS** (`Build 0 succeeded, 0 failed` — template ships no content) |
+| Headless content | `mgcb Content/Content.mgcb /platform:Android /outputDir:... /intermediateDir:...` | **SUCCESS** (`Build 0 succeeded, 0 failed`: template ships no content) |
 
 Warnings observed (benign): `XA1008: The TargetFrameworkVersion (Android API level 34) is lower
 than the targetSdkVersion (35)` (net8 workload is API 34; manifest targets 35), and javac
@@ -139,9 +135,8 @@ than the targetSdkVersion (35)` (net8 workload is API 34; manifest targets 35), 
 
 Blocker encountered and resolved: ilspycmd version pin (see §1).
 
----
 
-## 5. MGCB — headless content rebuild for Android
+## 5. MGCB: headless content rebuild for Android
 
 Global tool `dotnet-mgcb` **3.8.5.1** is installed; command is `mgcb`
 (also `dotnet mgcb ...`). This is fully headless (no display needed).
@@ -166,7 +161,6 @@ Notes:
   `/outputDir:bin/$(Platform)`.
 - The GUI (`mgcb-editor`) is **not** required and is not usable headless; the CLI is enough.
 
----
 
 ## 6. Workspace layout
 
@@ -188,7 +182,6 @@ Scratch/throwaway work lives in `/tmp/opencode/` (wiped on reboot):
 `<rexglue-sdk>*`, `<android-app>`.
 These belong to other agents/routes.
 
----
 
 ## 7. Decompilation (next step, another agent)
 

@@ -4,7 +4,6 @@
 **Status:** ReXGlue static-recompilation route is a **dead end for this title** (structural, not a bug).
 Two independent analyses reached the same conclusion. Evidence below is reproducible.
 
----
 
 ## 1. What we are trying to achieve
 
@@ -17,7 +16,6 @@ package and deploy via ADB.
 
 Input artifact: `Dishwasher, The - Dead Samurai (World) (XBLA).zip` (61.9 MB, "World" ROM).
 
----
 
 ## 2. THE SHOWSTOPPER (one paragraph)
 
@@ -28,9 +26,8 @@ CLR (`RuntimeHost.xex` + `NetCFUserMode.dll`) **JIT-compiles that IL to PowerPC 
 ReXGlue is an *ahead-of-time* recompiler with **no interpreter and no JIT fallback**: it maps
 static guest addresses to host C++ functions. There is nothing to translate (the game is IL,
 not PPC), and recompiling the CLR itself would produce an ARM64 program that *emits and executes
-PowerPC machine code at runtime* — impossible on ARM64. The two halves fail independently.
+PowerPC machine code at runtime*: impossible on ARM64. The two halves fail independently.
 
----
 
 ## 3. Hard evidence (reproducible)
 
@@ -45,7 +42,7 @@ Extracted from the STFS/LIVE package (reXGlue has no extract command; the SDK's 
 | `HostLoader.dll` | Native PPC; string `RuntimeHost.xex`, `RuntimeHost_CreateInstance` |
 | `RuntimeHost.xex` | **The .NET CF CLR + XNA native layer** (native PPC) |
 | `NetCFUserMode.dll` | .NET CF native support (611 exports) |
-| `game.exe.xex` | **The game — managed IL** |
+| `game.exe.xex` | **The game: managed IL** |
 | `Runtime/v2.0/{mscorlib,System,System.Xml,System.SR,Microsoft.Xna.Framework,Microsoft.Xna.Framework.Game}.dll.xex` | **Managed IL framework/BCL** |
 | `Runtime/v2.0/*.nlp.xex` (×10) | BCL codepage/sort data |
 
@@ -88,7 +85,7 @@ Identical findings for the six framework DLLs (`Flags = 0x9` = `ILONLY|STRONGNAM
 the assembly probe list (`mscorlib.dll` / `mscorlib.dlx`, `system.dll`, `system.sr.dll`,
 `microsoft.xna.framework.dll`, …), reflection types (`RuntimeMethodInfo`, `RuntimeConstructorInfo`,
 `AssemblyName`, `CustomAttribute`), and the metadata stream-name literals `#~`/`#Strings`/`#US`/`#GUID`/`#Blob`.
-(It also contains the D3DX/HLSL compiler — the XNA native graphics layer.)
+(It also contains the D3DX/HLSL compiler: the XNA native graphics layer.)
 
 **No `.dlx` (native image) exists anywhere in the package**, although the CLR probes for them →
 the runtime takes the IL path, i.e. **JIT**.
@@ -96,10 +93,9 @@ the runtime takes the IL path, i.e. **JIT**.
 > Measured: all `ILONLY` flags, COR20 headers, IL method bodies, metadata streams, PE section
 > layout, imports/exports, and the absence of native images.
 > Inferred (strong basis): the .NET CF execution engine JITs to the target CPU (PowerPC on 360).
-> Not established: whether it is pure-JIT or a hybrid interpreter/JIT — the conclusion is
+> Not established: whether it is pure-JIT or a hybrid interpreter/JIT: the conclusion is
 > unchanged either way.
 
----
 
 ## 4. Dependency graph
 
@@ -115,7 +111,6 @@ Minimal native set to stand up the runtime: `default.xex` + `HostLoader.dll` +
 `RuntimeHost.xex` + `NetCFUserMode.dll`. The **game** additionally needs the 7 IL assemblies,
 **none of which are recompilable**.
 
----
 
 ## 5. Why ReXGlue cannot bridge this
 
@@ -125,10 +120,9 @@ Minimal native set to stand up the runtime: `default.xex` + `HostLoader.dll` +
   mapping. Its README is explicit that it does not interpret or JIT at runtime.
 - **What would be required instead:** a runtime IL execution engine (guest interpreter/JIT in the
   host) or replacing the guest CLR with a host .NET runtime, plus a reimplemented XNA platform
-  layer, guest-module export registration, loader/`mscoree`/reflection/GC semantics — i.e. a new
+  layer, guest-module export registration, loader/`mscoree`/reflection/GC semantics: i.e. a new
   runtime, not a port.
 
----
 
 ## 6. Recommended alternative (the practical route)
 
@@ -148,12 +142,11 @@ Minimal native set to stand up the runtime: `default.xex` + `HostLoader.dll` +
 |---|---|
 | Host toolchain | clang 20.1.8, cmake 4.2.3, ninja 1.13.2 |
 | Android toolchain | NDK r28b `$HOME/android-ndk-r28b`; SDK 35 + build-tools 35 + JDK 21 `$ANDROID_SDK_DIR` |
-| ReXGlue SDK v0.10.0 | built for host + **cross-compiled for Android arm64 (795/795 steps, 0 errors)** — only relevant if another *native* 360 title is attempted |
-| Android APK skeleton | `<android-app>` (package `com.recomp.dishwasher`, SDLActivity, Gradle 8.12/AGP 8.7.3, keystore, `build-apk.sh`, `deploy.sh`) — **builds, signs, installs on the target device** |
+| ReXGlue SDK v0.10.0 | built for host + **cross-compiled for Android arm64 (795/795 steps, 0 errors)**: only relevant if another *native* 360 title is attempted |
+| Android APK skeleton | `<android-app>` (package `com.recomp.dishwasher`, SDLActivity, Gradle 8.12/AGP 8.7.3, keystore, `build-apk.sh`, `deploy.sh`): **builds, signs, installs on the target device** |
 | Device | Samsung SM-A525F (Galaxy A52), Android 14 / API 34, **Adreno 618, Vulkan 1.1.128** (probed) |
 | Managed payload extractor | STFS extractor + `/tmp/opencode/xex_dump.cpp` (decrypts XEX modules via SDK loader) |
 
----
 
 ## 7. Open questions for an expert
 
@@ -167,7 +160,6 @@ Minimal native set to stand up the runtime: `default.xex` + `HostLoader.dll` +
    game actually use, and what is the minimal shim?
 5. **Is there prior art** for an XNA 3.x Xbox 360 title running on MonoGame/FNA + Android?
 
----
 
 ## 8. Reproduce / verify
 

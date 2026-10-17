@@ -1,4 +1,4 @@
-# Proposed Vulkan/mobile fixes — ReXGlue SDK 0.10.0
+# Proposed Vulkan/mobile fixes: ReXGlue SDK 0.10.0
 
 > **NOT APPLIED.** These are proposals only. Do not apply to `rexglue-sdk` (read-only reference) or
 > `rexglue-sdk-android` (owned by another agent). Every diff below is a *proposal*; verify with a
@@ -8,7 +8,6 @@
 Only concrete, defensible changes are included. Performance rewrites (R1/R2) are deliberately **not**
 included because they need on-device profiling first and touch correctness-sensitive resolve paths.
 
----
 
 ## P1. Enable scalar/uniform-block-layout features on Vulkan 1.1 devices (R6, defensive)
 
@@ -16,7 +15,7 @@ included because they need on-device profiling first and touch correctness-sensi
 `apiVersion >= 1.2`. The A52 reports **1.1.128**, so `scalarBlockLayout` and
 `uniformBufferStandardLayout` are never enabled even though the driver advertises both (and exposes
 `VK_EXT_scalar_block_layout` / `VK_KHR_uniform_buffer_standard_layout`). The backend emits explicit
-`DecorationOffset`s, so this is believed harmless today — but enabling the ext features removes a
+`DecorationOffset`s, so this is believed harmless today: but enabling the ext features removes a
 silent layout assumption at zero cost when the driver supports them.
 
 **File:** `src/ui/vulkan/vulkan_device.cpp`
@@ -102,12 +101,11 @@ Enable the feature bits when present (in the `1.2` / else branch, around line 64
 **Risk:** low. The features are only enabled if the driver reports them; the SPIR-V descriptor
 layouts emitted by the translator are unchanged either way. Verify with the GPU validation layer.
 
----
 
 ## P2. Guard the 512 MB guest buffer against `maxStorageBufferRange` (R7, defensive)
 
 **Why:** A52 reports `maxStorageBufferRange = 536870912` and `SharedMemory::kBufferSize = 1<<29`
-= 536870912 — an exact fit with no headroom. If the shared-memory buffer is ever grown, or the
+= 536870912: an exact fit with no headroom. If the shared-memory buffer is ever grown, or the
 device reports a smaller range, device creation succeeds but buffer/memory binding or descriptor
 updates can fail at runtime. Add an early, explicit diagnostic.
 
@@ -133,7 +131,6 @@ near line 627, before device creation at 743):
 **Note:** if a future change makes shared memory smaller, replace the literal with the actual
 `SharedMemory::kBufferSize` (include `rex/graphics/shared_memory.h`).
 
----
 
 ## P3. Keep the FSI path from being selected on Adreno (R3, hardening/documentation)
 
@@ -162,14 +159,13 @@ opaquely at initialization.
 **Risk:** low; only changes logging + makes the fallback explicit. (Not required for the A52, which
 uses the default path.)
 
----
 
 ## P4. Reference: `include/rex/ui/surface_android.h` for the platform agent (do not apply here)
 
 **Why:** This file does not exist (`src/ui/vulkan/vulkan_presenter.cpp:37` includes it,
 `:799-810` uses `AndroidNativeWindowSurface`). This is the platform agent's file; provided here only
 as the exact interface the Vulkan presenter needs (see audit §7.2). **Do not add this to
-`rexglue-sdk`/`rexglue-sdk-android` from this patch** — hand it to the platform agent.
+`rexglue-sdk`/`rexglue-sdk-android` from this patch**: hand it to the platform agent.
 
 ```cpp
 // include/rex/ui/surface_android.h
@@ -203,7 +199,6 @@ Companion (platform-owned) requirements, restated:
 - `GetSizeImpl` returns physical pixels (`ANativeWindow_getWidth/Height` or
   `SDL_GetWindowSizeInPixels`).
 
----
 
 ## P5. Not proposed (needs profiling first)
 

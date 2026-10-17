@@ -1,19 +1,25 @@
 # Third-Party Notices
 
-This repository and the release APK built from it include or build against the
-third-party components listed below. Each is the property of its respective
+This repository contains a Windows port and historical Android source. The Windows
+builder release includes the .NET 8 runtime and its license files under
+`licenses/dotnet`. The game uses MonoGame DesktopGL and NVorbis.
+
+The following Android component notes describe the upstream project; they do not
+mean Android libraries are included in the Windows builder ZIP. Both targets
+include or build against the components listed for their platform below. Each is the property of its respective
 authors and is provided under its own licence.
 
 This project does **not** use, link, or depend on Xenia or ReXGlue emulation or
 static-recompilation code (see `PROJECT_STATE.md` §2 and `docs/HANDOFF.md`).
-The managed port runs on MonoGame / .NET for Android. A single, clearly scoped
+The Windows port runs on MonoGame DesktopGL / .NET 8. The upstream Android
+port uses MonoGame / .NET for Android. A single, clearly scoped
 provenance acknowledgement for the STFS *format* is given at the end.
 
 ---
 
 ## 1. Runtime components shipped in the APK
 
-### MonoGame — `MonoGame.Framework.Android` 3.8.5.1
+### MonoGame: `MonoGame.Framework.Android` 3.8.5.1
 - **Licence:** MS-PL (Microsoft Public License)
 - **Homepage:** https://monogame.net/ · https://github.com/MonoGame/MonoGame
 - **Used for:** the XNA 4.0-compatible framework the port is compiled against.
@@ -24,7 +30,7 @@ provenance acknowledgement for the STFS *format* is given at the end.
 - **Used for:** the native runtime that executes the managed app on device.
 
 ### NVorbis 0.10.5
-- **Licence:** MIT — Copyright (c) 2020 Andrew Ward
+- **Licence:** MIT: Copyright (c) 2020 Andrew Ward
 - **Homepage:** https://github.com/ioctlLR/NVorbis
 - **Used for:** decoding OGG Vorbis background-music tracks that the XACT shim
   feeds to MonoGame's `SoundEffect` (`DISHWASHER_OGG`).
@@ -38,7 +44,7 @@ provenance acknowledgement for the STFS *format* is given at the end.
   library; it can be replaced/relinked by the recipient by rebuilding MonoGame's
   OpenAL library or supplying an ABI-compatible `libopenal.so`.
 
-### FFmpeg 7.1 — minimal build (`libavcodec.so`, `libavutil.so`)
+### FFmpeg 7.1: minimal build (`libavcodec.so`, `libavutil.so`)
 - **Licence:** LGPL-2.1-or-later. **Dynamically linked.**
 - **Homepage / source:** https://ffmpeg.org/releases/ffmpeg-7.1.tar.xz
 - **Build config:** `--disable-everything` with only the `xma1`/`xma2` audio
@@ -56,7 +62,7 @@ provenance acknowledgement for the STFS *format* is given at the end.
   > official FFmpeg 7.1 source release. No FFmpeg source is modified.
 
 ### libogg 1.3.5 and libvorbis 1.3.7
-- **Licence:** BSD-3-Clause — Copyright (c) 2002-2020 Xiph.Org Foundation
+- **Licence:** BSD-3-Clause: Copyright (c) 2002-2020 Xiph.Org Foundation
 - **Homepage:** https://www.xiph.org/ · https://www.xiph.org/licenses/
 - **Used for:** Vorbis encoding inside `libdishaudio.so` (statically linked).
 - **Required BSD-3-Clause notice:**
@@ -109,16 +115,16 @@ abstract "halftone-burst" generator, is retained for reference only.)
 
 ---
 
-## 4. Provenance acknowledgement (format reference — not a runtime dependency)
+## 4. Provenance acknowledgement (format reference: not a runtime dependency)
 
 The STFS/LIVE ("XContent") package reader used by the public build
 (`src/Dishwasher/Platform/Import/StfsReader.cs`, and its validated Python
 reference `tools/stfs_extract.py`) was written with reference to the STFS
 container parser in the Xenia project and ReXGlue SDK:
 
-- **Xenia** — Copyright (c) 2022 Ben Vanik and Xenia project contributors,
+- **Xenia**: Copyright (c) 2022 Ben Vanik and Xenia project contributors,
   BSD-3-Clause. https://xenia.jp
-- **ReXGlue SDK** — Copyright (c) 2026 Tom Clay, BSD-3-Clause
+- **ReXGlue SDK**: Copyright (c) 2026 Tom Clay, BSD-3-Clause
   (portions derived from Xenia). `rexglue-sdk/src/filesystem/devices/stfs_container_device.cpp`
 
 This acknowledgement covers only the documented STFS on-disk format. No
@@ -150,3 +156,16 @@ or shipped by this project, and neither Xenia nor ReXGlue is a dependency.
 - TextureTools' image preparation, alpha handling, compositing and verification
   and the desktop scale/timing adapters are project code. No FXAA, FSR or Anime4K
   implementation was copied into these changes.
+
+## Windows builder runtime
+
+The compiled Windows builder redistributes Microsoft.NETCore.App.Runtime.win-x64
+and Microsoft.WindowsDesktop.App.Runtime.win-x64 from the NuGet runtime packs.
+Their complete license and notice files are included in `licenses/dotnet` in the
+binary release. .NET is licensed under MIT with additional third-party notices;
+see https://github.com/dotnet/runtime and https://github.com/dotnet/windowsdesktop .
+The builder downloads the SDK separately when a suitable local SDK is absent.
+
+The Windows port uses shared source from Hdmaniak/DishSoap under its existing MIT
+license. The concrete reused/adapted components are listed in README.md. AI model
+weights, FFmpeg and original game files are not included in the builder ZIP.

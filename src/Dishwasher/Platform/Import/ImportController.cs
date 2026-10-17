@@ -63,7 +63,7 @@ namespace Dishwasher.Import
             _root.SetBackgroundColor(Color.Black);
             _root.SetPadding(Dp(20), Dp(16), Dp(20), Dp(16));
 
-            var title = new TextView(_activity) { Text = "The Dishwasher — Import Game Files" };
+            var title = new TextView(_activity) { Text = "The Dishwasher: Import Game Files" };
             title.SetTextColor(Color.White);
             title.SetTextSize(Android.Util.ComplexUnitType.Sp, 20f);
             _root.AddView(title);
@@ -72,11 +72,11 @@ namespace Dishwasher.Import
             {
                 Text =
                     "This public build contains no game content. To play, supply your own copy:\n\n" +
-                    "• SELECT FOLDER — pick the extracted game folder.\n" +
-                    "• SELECT ZIP / PACKAGE — pick the retail .zip or a .zip of the extracted files.\n\n" +
+                    "• SELECT FOLDER: pick the extracted game folder.\n" +
+                    "• SELECT ZIP / PACKAGE: pick the retail .zip or a .zip of the extracted files.\n\n" +
                     "Your files are compared with the bundled SHA-256 manifest, but the import is " +
                     "tolerant: files that differ or are missing are only warnings, so a different " +
-                    "revision still works — a missing audio bank just means that sound is absent. " +
+                    "revision still works: a missing audio bank just means that sound is absent. " +
                     "Textures, fonts and audio (360 XMA) are derived on-device from your files; " +
                     "nothing is downloaded. Audio derivation can take a minute for the music."
             };
@@ -326,7 +326,7 @@ namespace Dishwasher.Import
         {
             _busy = false;
             _progress.Visibility = ViewStates.Gone;
-            _status.Text = "✗ Strict validation failed — selection rejected.";
+            _status.Text = "✗ Strict validation failed: selection rejected.";
             var sb = new StringBuilder();
             sb.AppendLine(report.Summary());
             sb.AppendLine();
@@ -353,7 +353,7 @@ namespace Dishwasher.Import
         {
             _busy = false;
             _progress.Visibility = ViewStates.Gone;
-            _status.Text = "✗ Nothing usable found — is this the game?";
+            _status.Text = "✗ Nothing usable found: is this the game?";
             var sb = new StringBuilder();
             sb.AppendLine("No usable Dishwasher content was found in your selection.");
             sb.AppendLine(report.Summary());
@@ -393,16 +393,16 @@ namespace Dishwasher.Import
             _busy = false;
             _progress.Progress = 100;
             _progress.Visibility = ViewStates.Gone;
-            _status.Text = "✓ Import complete — continuing";
+            _status.Text = "✓ Import complete: continuing";
             var sb = new StringBuilder();
             sb.AppendLine(report.Summary());
             sb.AppendLine();
             if (report.Differed > 0)
-                sb.AppendLine("• " + report.Differed + " file(s) differ from the reference copy — "
+                sb.AppendLine("• " + report.Differed + " file(s) differ from the reference copy: "
                               + "a different game revision. They were imported as-is. (fine, continuing)");
             if (report.Missing > 0)
             {
-                sb.AppendLine("• " + report.Missing + " file(s) were not found — the features that "
+                sb.AppendLine("• " + report.Missing + " file(s) were not found: the features that "
                               + "use them may be unavailable.");
                 if (AnyMissingPrefix(report, "sfx/"))
                     sb.AppendLine("   ↳ some audio banks are absent: those sounds/music will be silent.");

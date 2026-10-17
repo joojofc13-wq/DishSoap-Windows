@@ -25,7 +25,7 @@ namespace Dishwasher
             // The restored textures already have smoother edges. Avoid a
             // second smoothing pass over the higher-resolution painting.
             if (DesktopHdTextures.Active || DesktopInput.Settings?.TextureQuality == "Original") return;
-            if (_effect == null) throw new InvalidOperationException("Filtro do cenário não inicializado.");
+            if (_effect == null) throw new InvalidOperationException("Scene filter has not been initialized.");
             if (_copy == null || _copy.Width != scene.Width || _copy.Height != scene.Height)
             {
                 _copy?.Dispose();

@@ -1,4 +1,4 @@
-# Audio layer — XACT → MonoGame replacement
+# Audio layer: XACT → MonoGame replacement
 
 Owner: Audio Specialist subagent. This directory is **not** part of the live
 project; it holds the drop-in shim, the extraction tooling and this integration
@@ -15,12 +15,12 @@ variants and 200/222 waves are **XMA**, so MonoGame's parser cannot read them.
 
 Two ways forward:
 
-* **Option A — convert the banks to little-endian.** Re-serialise `.xwb`/`.xsb`
+* **Option A: convert the banks to little-endian.** Re-serialise `.xwb`/`.xsb`
   (and `.xgs`) as LE with PCM/ADPCM and let the game keep using MonoGame's own
   XACT classes. Zero game-code changes, but requires XSB/XGS serialisers. Not
   delivered (large, and the task asked for a shim); the parsers here are the
   groundwork.
-* **Option B — this shim (delivered).** Keep the game's XACT-shaped call sites
+* **Option B: this shim (delivered).** Keep the game's XACT-shaped call sites
   and back them with `SoundEffect`/`SoundEffectInstance` + an offline cue map.
   Requires changing one `using` line in 10 files.
 
@@ -53,7 +53,7 @@ Content-sfx/
   wav/<bank>/<bank>_wNNN.wav    214 files (6 banks, MS-ADPCM)  ~25 MB
 ```
 
-`NNN` is the **0-based wave index in the bank** — exactly the `trackIndex`
+`NNN` is the **0-based wave index in the bank**: exactly the `trackIndex`
 stored in the `.xsb`. `wav/` is omitted for `music` (8 long tracks stay OGG-only
 to keep the footprint small; add `music` to `ADPCM_BANKS` in `decode_banks.sh`
 to emit WAV for it too).
@@ -61,7 +61,7 @@ to emit WAV for it too).
 ### Android packaging (important)
 
 MonoGame Android's `TitleContainer.OpenStream("sfx/...")` calls
-`Application.Context.Assets.Open("sfx/...")` **directly** — there is no
+`Application.Context.Assets.Open("sfx/...")` **directly**: there is no
 `Content/` prefix. The game's `new AudioEngine("sfx/sfxproj.xgs")` etc. therefore
 need the files at APK `assets/sfx/...`. Add an Android asset item that strips the
 `Content/` prefix, e.g.:
@@ -86,7 +86,7 @@ pipeline, add the files to `Content.mgcb` and let MGCB place them.
    `Sound.cs`, `VoxSound.cs`, `MusicSound.cs`, `Music.cs`, `GuitarSolo.cs`,
    `GuitarHalper.cs`, `Map.cs`, `Globals.cs`, `Credits.cs`, `Intro.cs`.
    (Verified: the only audio types these files reference are `AudioEngine`,
-   `WaveBank`, `SoundBank`, `Cue`, `AudioStopOptions`, `AudioCategory` — all
+   `WaveBank`, `SoundBank`, `Cue`, `AudioStopOptions`, `AudioCategory`: all
    provided by the shim. No `SoundEffect`/`SoundEffectInstance` is referenced.)
 4. Optional (for OGG music): add
    `<PackageReference Include="NVorbis" Version="0.10.5" />` and
@@ -127,7 +127,7 @@ pipeline, add the files to `Content.mgcb` and let MGCB place them.
   weighted, and the exact per-play weight/RNG behaviour is not reproduced.
 * **Looping**: only `music` and `solo_*` cues loop (`loop:true` in the map).
   Every XMA entry in the XWB has a whole-stream loop region, so the raw XWB loop
-  flag cannot distinguish one-shot SFX from music — bank membership is used.
+  flag cannot distinguish one-shot SFX from music: bank membership is used.
 * **Category volume**: cue → `category_id` from the XSB (XGS order:
   `0 Global, 1 Default, 2 Music, 3 solo_bg, 4 solo_fg, 5 halper`).
 * **Missing cues** are silent no-ops (XNA throws; the game's `Music` ctor would

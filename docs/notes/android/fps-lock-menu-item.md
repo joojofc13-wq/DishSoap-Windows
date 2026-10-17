@@ -14,12 +14,11 @@ Read-only trees (`managed/decompiled`, `assets-clean`, `port`, `rexglue-sdk*`,
 
 **One-line result:** a new persistent **`FPS LOCK`** option (Unlimited / 30 / 60 /
 120) was added to the in-game settings screen, is navigable and wraps, and
-round-trips through the existing `settings.sav` — **verified on device
+round-trips through the existing `settings.sav`: **verified on device
 `<device-serial>`**, including loading an old save that has no `fpsLock` field.
-**No frame-limiting / vsync / frame-pacing behaviour was added** — the value is
+**No frame-limiting / vsync / frame-pacing behaviour was added**: the value is
 stored and displayed only.
 
----
 
 ## 1. Value mapping and default
 
@@ -40,7 +39,7 @@ stored and displayed only.
   current behaviour byte-for-byte identical for existing users, so a later
   limiter task cannot silently throttle anyone.
 * An **old `settings.sav` has no `<fpsLock>` element**, so `XmlSerializer`
-  leaves the field at `default(int) == 0`, which maps directly to Unlimited —
+  leaves the field at `default(int) == 0`, which maps directly to Unlimited,
   no migration step and no behaviour change on upgrade.
 * `60` would be a defensible "safe mobile" default, but it would be a real
   behaviour change once the limiter lands, with no user opt-in; `0` avoids that.
@@ -49,7 +48,6 @@ stored and displayed only.
 `Settings.cs`, the `Write`/`Read` round-trip stays generic, and replace the
 `fpsLockStr[4]` literals in `MainText.cs` (order must match the constants).
 
----
 
 ## 2. Sites changed (file:line)
 
@@ -57,39 +55,39 @@ stored and displayed only.
 | line | change |
 |---:|---|
 | 25 | `Save` struct: new `public int fpsLock;` (old saves lack it → `0`) |
-| 41–49 | new constants `FPS_UNLIMITED/FPS_30/FPS_60/FPS_120/FPS_LOCK_STATES` |
+| 41-49 | new constants `FPS_UNLIMITED/FPS_30/FPS_60/FPS_120/FPS_LOCK_STATES` |
 | 61 | new persisted field `public int fpsLock;` |
 | 98 | `Write`: `fpsLock = fpsLock` added to the serialized `Save` |
 | 134 | `Reset()`: `fpsLock = FPS_UNLIMITED;` |
-| 204–208 | `Read()`: `fpsLock = save.fpsLock;` + range clamp to `FPS_UNLIMITED` |
+| 204-208 | `Read()`: `fpsLock = save.fpsLock;` + range clamp to `FPS_UNLIMITED` |
 
 ### `GameSource/projectDish/MainText.cs`
 | line | change |
 |---:|---|
 | 484 | new field `public StringContainer[] fpsLockStr;` |
-| 3757–3763 | built from literals: `"fps lock: unlimited" / 30 / 60 / 120` |
+| 3757-3763 | built from literals: `"fps lock: unlimited" / 30 / 60 / 120` |
 
 ### `GameSource/projectDish/MainMenu.cs` (settings screen is `case 34`)
 | line | change |
 |---:|---|
 | 2701 | A-press handler: `case 3: settings.fpsLock = (settings.fpsLock + 1) % Settings.FPS_LOCK_STATES;` |
-| 2703–2739 | existing cases renumbered: control mode 4→5, storage 5→6, reset 6→7, back 7→8 (per-player `settings` local is unchanged) |
+| 2703-2739 | existing cases renumbered: control mode 4→5, storage 5→6, reset 6→7, back 7→8 (per-player `settings` local is unchanged) |
 | 1597 | `keyStrong` "view controls" shortcut: `selOption == 4` → `== 5` (control mode moved) |
 | 2901/2928 | SFX/BGM left-right volume handler: BGM `selOption == 3` → `== 4`; guard `(2 \|\| 3)` → `(2 \|\| 4)` |
 | 4777/4779 | render wrap bounds: `< 0 → 8`, `> 8 → 0` |
 | 4798 | `drawOption(3, Globals.maintext.fpsLockStr[settings2.fpsLock], …)` |
-| 4799–4814 | BGM 3→4, control 4→5, storage 5→6, reset 6→7, back 7→8 |
+| 4799-4814 | BGM 3→4, control 4→5, storage 5→6, reset 6→7, back 7→8 |
 
 ### Ordering decision
 The option was added at **index 3** exactly as specified, so the resulting top-to-
 bottom order is: BLOOD(0), VIBRATION(1), SFX(2), **FPS LOCK(3)**, BGM(4),
 CONTROLS(5), SELECT STORAGE DEVICE(6), RESET TO DEFAULTS(7), BACK(8). Existing
-indices 3–7 were shifted up by one and every reference to them (A-press, the
+indices 3-7 were shifted up by one and every reference to them (A-press, the
 `keyStrong` controls shortcut, the SFX/BGM left/right volume handler, and the
 render calls) was updated in lock-step. The renderer computes each row's Y from
 the index (`i * 48 + …`), so row 3 lands at the same 48 px pitch as the rest;
 row 8 (BACK) sits at ≈`8*48 + 300 - 190` ≈ 494 logical px (text baseline ≈ 499),
-well inside the 800×600 logical playfield / 1600×720 presented screen — no
+well inside the 800×600 logical playfield / 1600×720 presented screen: no
 overlap (screenshot `01-settings-old-save-unlimited.png`).
 
 ### Label / string approach
@@ -103,7 +101,6 @@ regeneration to add a key. The game already constructs option text
 programmatically this way (`sfxStr`/`bgmStr`), so this is consistent, and the
 renderer upper-cases it exactly like the localized options.
 
----
 
 ## 3. Old-save compatibility (explicit proof)
 
@@ -138,11 +135,10 @@ ALL PASS
 
 The same was proven **through the real game on device** (§5, screenshot 01): the
 APK was installed over the existing old save and the settings screen opened
-normally showing `FPS LOCK: UNLIMITED` — no exception, no `Reset()` fallback.
+normally showing `FPS LOCK: UNLIMITED`: no exception, no `Reset()` fallback.
 `XmlSerializer` ignores missing elements (default values) and ignores unknown
 elements, so new saves remain loadable by code that predates the field too.
 
----
 
 ## 4. Both players (co-op) handled
 
@@ -154,11 +150,10 @@ already per-player:
   Globals.settings : Globals.coopSettings;` then `settings.fpsLock = …`.
 * Render uses `Settings settings2 = …` and `settings2.fpsLock`.
 * Persistence uses the existing per-player `Settings.Write(player)` called on
-  back-out (`MainMenu.cs:2746–2753`).
+  back-out (`MainMenu.cs:2746-2753`).
 
 No main-player-only special case was introduced for the new field.
 
----
 
 ## 5. Build / device verification
 
@@ -175,7 +170,7 @@ dotnet build -f net8.0-android \
 `targetSdkVersion=35` unchanged. APK:
 `bin/Debug/net8.0-android/com.recomp.dishwasher-Signed.apk` (20:23).
 
-### Device — `<device-serial>` (SM-A525F), app `com.recomp.dishwasher`
+### Device: `<device-serial>` (SM-A525F), app `com.recomp.dishwasher`
 A device **was attached** during this task, so full GUI verification was
 performed. Backups were taken first (`/tmp/opencode/fpslock-backup/`,
 md5 `b662…dad` settings / `00ae…c01` profile) and the device was **restored to
@@ -200,7 +195,6 @@ path, because ADB keyevents only drive player 1 and no second controller was
 available. It is the same `case 34` code with a per-player `Settings` local
 (§4); it should be spot-checked when a second controller is available.
 
----
 
 ## 6. No frame limiting added (confirmation)
 
@@ -218,7 +212,6 @@ available. It is the same `case 34` code with a per-player `Settings` local
   `BlendState.NonPremultiplied`, `AndroidInputBridge`, the lense sampler fix,
   landscape/immersive, widescreen, the restored intro, or the autosave.
 
----
 
 ## 7. Revert
 

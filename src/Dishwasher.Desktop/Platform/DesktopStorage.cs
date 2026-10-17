@@ -16,7 +16,7 @@ namespace Microsoft.Xna.Framework.Storage
     public sealed class StorageContainer : IDisposable
     {
         public static string TitleLocation => Dishwasher.PublicBuild.ContentRoot
-            ?? throw new InvalidOperationException("Recursos ainda não importados.");
+            ?? throw new InvalidOperationException("Assets have not been imported yet.");
         public string Path => Dishwasher.DesktopPaths.Saves;
         public bool IsDisposed { get; private set; }
         public StorageContainer() { Directory.CreateDirectory(Path); }

@@ -37,33 +37,33 @@ namespace Dishwasher
         {
             Entries.Clear(); _root = PackRoot(contentRoot);
             _correctedRoot = Path.Combine(contentRoot, "corrected");
-            if (quality == "Original") { Log.Info("[hd] Texturas originais selecionadas."); return; }
+            if (quality == "Original") { Log.Info("[hd] Original textures selected."); return; }
             string manifest = Path.Combine(_root, "manifest.json");
-            if (!File.Exists(manifest)) { Log.Info("[hd] Sem pacote 2x; usando texturas originais em canvas 1080p."); return; }
+            if (!File.Exists(manifest)) { Log.Info("[hd] No 2x pack; using original textures on the 1080p internal canvas."); return; }
             var pack = JsonSerializer.Deserialize<Pack>(File.ReadAllText(manifest));
             if (pack == null || pack.Version != 1 || pack.Textures == null || pack.TextureCount == 0 || pack.TextureCount != pack.Textures.Count)
-                throw new InvalidDataException("Manifesto HD incompleto.");
+                throw new InvalidDataException("Incomplete HD manifest.");
             foreach (var entry in pack.Textures)
             {
                 if (entry.Scale != 2 || entry.Width <= 0 || entry.Height <= 0 || string.IsNullOrEmpty(entry.Asset) || entry.Sha256?.Length != 64)
-                    throw new InvalidDataException("Entrada HD inválida.");
-                if (!File.Exists(DesktopPaths.Under(_root, entry.File))) throw new FileNotFoundException("Textura HD ausente: " + entry.File);
+                    throw new InvalidDataException("Invalid HD entry.");
+                if (!File.Exists(DesktopPaths.Under(_root, entry.File))) throw new FileNotFoundException("Missing HD texture: " + entry.File);
                 Entries.Add(entry.Asset, entry);
             }
             string scenesFile = Path.Combine(_root, "scenes.json");
             if (quality == "Enhanced" && File.Exists(scenesFile))
             {
                 var scenes = JsonSerializer.Deserialize<Pack>(File.ReadAllText(scenesFile));
-                if (scenes?.Version != 1 || scenes.Textures == null || scenes.TextureCount != scenes.Textures.Count) throw new InvalidDataException("Manifesto de cenários inválido.");
+                if (scenes?.Version != 1 || scenes.Textures == null || scenes.TextureCount != scenes.Textures.Count) throw new InvalidDataException("Invalid scene manifest.");
                 foreach (var entry in scenes.Textures)
                 {
                     if (!Entries.TryGetValue(entry.Asset, out var original) || entry.Scale != 2 || entry.Width != original.Width || entry.Height != original.Height || entry.Sha256?.Length != 64 ||
-                        !File.Exists(DesktopPaths.Under(_root, entry.File))) throw new InvalidDataException("Cenário HD inválido: " + entry.Asset);
+                        !File.Exists(DesktopPaths.Under(_root, entry.File))) throw new InvalidDataException("Invalid HD scene: " + entry.Asset);
                     Entries[entry.Asset] = entry;
                 }
-                Log.Info("[hd] Restauração extra: " + scenes.TextureCount + " cenários.");
+                Log.Info("[hd] Additional restoration: " + scenes.TextureCount + " scenes.");
             }
-            Log.Info("[hd] Pacote 2x ativo: " + Entries.Count + " texturas; composição 1920x1080.");
+            Log.Info("[hd] Active 2x pack: " + Entries.Count + " textures; 1920x1080 composition.");
         }
         public static bool TryLoad(GraphicsDevice device, string asset, out Texture2D texture)
         {
@@ -80,11 +80,11 @@ namespace Dishwasher
             string file = DesktopPaths.Under(_root, entry.File);
             using var stream = File.OpenRead(file);
             string hash = Convert.ToHexString(SHA256.HashData(stream));
-            if (!hash.Equals(entry.Sha256, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Textura HD alterada/incompleta: " + asset);
+            if (!hash.Equals(entry.Sha256, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Modified/incomplete HD texture: " + asset);
             stream.Position = 0;
             texture = Texture2D.FromStream(device, stream, DefaultColorProcessors.ZeroTransparentPixels);
             if (texture.Width != entry.Width * entry.Scale || texture.Height != entry.Height * entry.Scale)
-            { texture.Dispose(); texture = null; throw new InvalidDataException("Dimensões HD inválidas: " + asset); }
+            { texture.Dispose(); texture = null; throw new InvalidDataException("Invalid HD dimensions: " + asset); }
             Register(texture, entry.Width, entry.Height);
             return true;
         }

@@ -1,4 +1,4 @@
-# Colour-grade fidelity fix — pink gameplay / green menu
+# Colour-grade fidelity fix: pink gameplay / green menu
 
 **Author:** Shader Fidelity Specialist (subagent)
 **Date:** 2026-10-02
@@ -13,7 +13,6 @@ Menu/gameplay are now warm/neutral and legible. The dominant cause was a
 per-draw vertex colour, which the game relies on for its colour grade. Four
 additional `.fx` were re-transcribed faithfully against the XenosRecomp HLSL.
 
----
 
 ## 0. TL;DR
 
@@ -32,11 +31,10 @@ additional `.fx` were re-transcribed faithfully against the XenosRecomp HLSL.
    (warm, G−R −38). Gameplay mean `(137,46,81)` (magenta) → `(149,83,84)`
    (warm red). The bloom overlay's blue contribution went `ΔB −39` → `ΔB 0`.
 
----
 
 ## 1. What was ruled out first (non-shader causes)
 
-### 1.1 Textures — **innocent** (no R/B inversion)
+### 1.1 Textures: **innocent** (no R/B inversion)
 
 The clean source art is XNA v2 XNB (`assets-clean/gfx/*.xnb`), raw 32-bpp
 `fmt 1`. I parsed `dish.xnb` (640×480) and `dishlogo.xnb` (450×90), re-read the
@@ -54,7 +52,7 @@ made the neutral menu clear `(0.85,0.85,0.7)` and the base gameplay scene
 not the cause. (The raw-format BGRA proof also exists at
 `<dev-notes>/proof/dbp_raw_channelorder_compare.png`.)
 
-### 1.2 Blend / alpha — **innocent**
+### 1.2 Blend / alpha: **innocent**
 
 The game uses `BlendState.AlphaBlend` (straight alpha:
 `src.rgb*src.a + dst*(1-src.a)`); the converted PNGs carry independent alpha
@@ -63,27 +61,26 @@ state. If premultiplication were required, ordinary text would fringe/wash out;
 it does not. The tint was confined to **custom-effect** draws only
 (measured in §2).
 
-### 1.3 Render-targets / MSAA — already exonerated
+### 1.3 Render-targets / MSAA: already exonerated
 
 Per `android/notes/render-diagnosis.md` §3 (RC3): `msaa=0`, RT→RT blits and the
 base scene are intact. Not re-tested.
 
----
 
 ## 2. Measured isolation tables
 
 Method: `Platform/RenderDiagnostics.cs` was extended with per-overlay kill
-switches (modes 20–34, toggled with the volume keys; see §4). Each frame was
+switches (modes 20-34, toggled with the volume keys; see §4). Each frame was
 captured with `screencap` and the mean RGB of the game viewport was computed in
 Python (PIL). Tables are means; `baseline` is mode 0.
 
-### 2.1 Menu (tight A/B, captures ~1 s apart) — the green is the `ink` overlays
+### 2.1 Menu (tight A/B, captures ~1 s apart): the green is the `ink` overlays
 
-Pre-fix build, region `(30,290)–(1050,820)`:
+Pre-fix build, region `(30,290)-(1050,820)`:
 
 | mode | action | mean R,G,B | G−R | ⇒ ink contributes |
 |---|---|---|---|---|
-| 0 | normal (both `ink` overlays) | **96,151,89** | **+55** | — |
+| 0 | normal (both `ink` overlays) | **96,151,89** | **+55** |: |
 | 10 | skip **refract** `ink` overlay | 96,107,89 | +11 | **G +44, B +0** |
 | 11 | skip **lense** `ink` overlay | 98,143,91 | +45 | G +8 |
 | 12 | skip both | 108,97,91 | −11 | base is neutral |
@@ -103,13 +100,13 @@ Post-fix build (same region):
 | 11 | 152,105,98 | −47 |
 | 12 | 105,105,98 | 0 |
 
-### 2.2 Gameplay (theme 0, Foghorn Café tutorial) — the pink is bloom + colour
+### 2.2 Gameplay (theme 0, Foghorn Café tutorial): the pink is bloom + colour
 
 Pre-fix build, mode-0 baseline `(137,46,81)` (magenta: G far below R and B):
 
 | mode | action | mean R,G,B | Δ vs mode 0 (R,G,B) | effect contribution |
 |---|---|---|---|---|
-| 0 | normal | **137,46,81** | — | — |
+| 0 | normal | **137,46,81** |: |: |
 | **20** | **skip bloom overlay** | **113,40,42** | **−24,−6,−39** | **bloom = R+24 G+6 B+39** |
 | 21 | skip fade theme overlay | 134,37,74 | −3,−9,−7 | fade = R+3 G+9 B+7 |
 | 22 | skip cam-splat | 137,46,81 | 0,0,0 | inactive (no splats) |
@@ -124,7 +121,7 @@ Post-fix build (same region):
 
 | mode | mean R,G,B | Δ vs mode 0 |
 |---|---|---|
-| 0 | **149,83,84** | — |
+| 0 | **149,83,84** |: |
 | 20 skip bloom | **149,83,84** | **0,0,0** (bloom now no-op on a warm scene) |
 | 24 grad bypass | 151,101,97 | +2,+18,+13 |
 | 32 all off + bypass | 97,73,71 | −52,−10,−13 |
@@ -139,28 +136,27 @@ Post-fix build (same region):
 ### 2.3 Ranked contribution to the casts (pre-fix, measured)
 
 **Gameplay pink/magenta (theme 0):**
-1. **`bloom` overlay** — adds `ΔB +39, ΔR +24`; the single biggest blue/magenta
+1. **`bloom` overlay**: adds `ΔB +39, ΔR +24`; the single biggest blue/magenta
    driver. Fixed by the faithful blue>red bright-pass (§3.2) → now `Δ 0`.
-2. **missing vertex colour** — `wallblood` adds `ΔR +23` untinted; `newblood`,
+2. **missing vertex colour**: `wallblood` adds `ΔR +23` untinted; `newblood`,
    `camsplat` drawn with `(num,num,num)`/`Black` were also untinted. Fixed
    globally.
-3. **`grad` final composite** — measurable hue suppression (G suppressed
+3. **`grad` final composite**: measurable hue suppression (G suppressed
    relative to R), but the isolation is confounded by zoom/rotation (above);
    still re-transcribed faithfully.
-4. **`fade` theme overlay** — small `Δ(R+3,G+9,B+7)`; the old 3-path logic was
+4. **`fade` theme overlay**: small `Δ(R+3,G+9,B+7)`; the old 3-path logic was
    structurally wrong, now faithful.
 5. `camsplat`, `water`, `newblood`, `redhaze`, `trainover`, `bubble`,
-   `burnblur`, `comicblur`, `trail`, `poster`, `color`, `blur` P0/P1 — **zero**
+   `burnblur`, `comicblur`, `trail`, `poster`, `color`, `blur` P0/P1: **zero**
    in this scene (their draw sites were not reached). `poster`/`color` are
    loaded but never driven by the game.
 
 **Menu green/orange:**
-1. **`refractTarg` `ink` overlay** — `ΔG +44` (glow channel not zeroed).
-2. **`lenseTarg` `ink` overlay** — `ΔG +8`.
+1. **`refractTarg` `ink` overlay**: `ΔG +44` (glow channel not zeroed).
+2. **`lenseTarg` `ink` overlay**: `ΔG +8`.
 
----
 
-## 3. Corrected effects — approximation vs faithful
+## 3. Corrected effects: approximation vs faithful
 
 ### 3.0 Systemic: vertex colour (all 19 runtime effects)
 
@@ -171,7 +167,7 @@ interpolated vertex colour, matching MonoGame's own `SpriteEffect`
 effect; it is what turns the menu `ink` from green to red and stops the
 untinted gameplay overlays.
 
-### 3.1 `fade.fx` — implemented all three `fader` paths
+### 3.1 `fade.fx`: implemented all three `fader` paths
 
 Reference `fade_t0p0_PS.hlsl`. The microcode keeps both the raw 13-tap sum and
 its `/13` average (`c254.z = 1/13`), plus constants `c253=(-0.1, 2.0)`,
@@ -185,7 +181,7 @@ its `/13` average (`c254.z = 1/13`), plus constants `c253=(-0.1, 2.0)`,
 
 So the old re-author had paths 0 and 1 swapped and never implemented path 2.
 
-### 3.2 `bloom.fx` — faithful blue bright-pass
+### 3.2 `bloom.fx`: faithful blue bright-pass
 
 Reference `bloom_t0p0_PS.hlsl`: it samples **8** offsets scaled by `0.015`,
 keeps each tap's **blue channel only when blue > red** (`tfetch(...).xz`,
@@ -199,9 +195,9 @@ value with `alpha = 1`.
   blue. Measured contribution `ΔB −39` → `ΔB 0`.
 * The `offsets` array is kept declared `float2[12]` so the MGFX constant-buffer
   layout still matches the table (the microcode reads only 8; the unused four
-  are retained at `1e-7` weight — see the crash note in §5).
+  are retained at `1e-7` weight: see the crash note in §5).
 
-### 3.3 `ink.fx` — faithful level ramp
+### 3.3 `ink.fx`: faithful level ramp
 
 Reference `ink_t0p0_PS.hlsl`. `t = 1 − red`; the level is piecewise-linear with
 knots at `0.1 / 0.4 / 0.5`:
@@ -217,7 +213,7 @@ out   = (uv.y*0.25 + bright + glow,  glow,  0,  0.85*level)
 * Combined with the vertex-colour multiply, the menu overlay is now red (its
   `glow` green channel is zeroed by the `(0.5,0,0,1)` tint).
 
-### 3.4 `grad.fx` — faithful walk / gradient / burn
+### 3.4 `grad.fx`: faithful walk / gradient / burn
 
 Reference `grad_t0p0_PS.hlsl`. When `levs>0` it walks **7 times away from
 `(xcenter,ycenter)` by `dir / width`**, accumulating 8 taps × `0.125`; gradient
@@ -239,7 +235,6 @@ bodies are otherwise the previous observable-behaviour re-authors (noted in
 but they now honour the game's `Color.DarkGray` / `Color.Black` /
 `(num,num,num)` tints.
 
----
 
 ## 4. Diagnostics harness (reused and extended)
 
@@ -263,7 +258,6 @@ guards (all marked `TEMP RENDER DIAGNOSTICS`):
 
 Volume-up = mode+1, volume-down = mode−1 (the game ignores these keys).
 
----
 
 ## 5. Build / deploy
 
@@ -290,27 +284,25 @@ the buffer but the reflected default still had 12 elements, and
 negligible weight. Any future array-size reduction should be checked the same
 way.
 
----
 
 ## 6. Before / after evidence (`<dev-notes>/proof/render/`)
 
 | stage | before | after |
 |---|---|---|
-| menu / title | `before-menu-green.png` (mean 96,151,89 — green wash, ghosted text) | `after-menu-warm.png` (mean 140,102,96 — warm brown, legible) |
+| menu / title | `before-menu-green.png` (mean 96,151,89: green wash, ghosted text) | `after-menu-warm.png` (mean 140,102,96: warm brown, legible) |
 | menu base (both ink overlays skipped) | `before-menu-skip-refract.png` | `after-menu-skip-both.png` |
-| gameplay | `before-gameplay-pink.png` (mean 137,46,81 — magenta, washed out) | `after-gameplay-warm.png` (mean 149,83,84 — warm red, detail visible) |
+| gameplay | `before-gameplay-pink.png` (mean 137,46,81: magenta, washed out) | `after-gameplay-warm.png` (mean 149,83,84: warm red, detail visible) |
 
 Additional captures from this session: `pre-gp-m20..m34.png` (pre-fix isolation
 sweep), `post-gp-m20/m24/m32/m34.png` (post-fix), `fix-menu-01.png` (main menu),
 `d3.png` (level select), `e1/e3.png` (intro comic), `c1..c16.png` (navigation).
 
-**What changed visually:** the menu's green/orange noise is gone — the title
+**What changed visually:** the menu's green/orange noise is gone: the title
 screen, main menu, difficulty list and level select are now a warm brown/red
 with clearly legible text and the character/skull splash art. Gameplay lost the
 uniform magenta wash: the diner walls are now light/neutral under the red theme
 lighting, the character and HUD are visible, and no blue bloom floods the frame.
 
----
 
 ## 7. Remaining tint issues (ranked)
 
@@ -321,7 +313,7 @@ lighting, the character and HUD are visible, and no blue bloom floods the frame.
    is wanted, tune the level's theme colour, not the shader.
 2. **Residual red band at the bottom of menu screens.** Visible in
    `after-menu-warm.png` (a thin red strip above the letterbox). It comes from
-   the `refractTarg` `ink` overlay — `ink`'s red output is
+   the `refractTarg` `ink` overlay: `ink`'s red output is
    `uv.y*0.25 + bright + glow`, so the overlay has a vertical gradient and the
    bottom edge of the refract RT lights up. Not fully resolved; would need the
    original Xbox capture or a study of the SpriteBatch UV orientation.
@@ -337,7 +329,6 @@ lighting, the character and HUD are visible, and no blue bloom floods the frame.
 5. **`poster.fx` / `color.fx`** are loaded but never driven by the game, so
    their bodies cannot affect the shipped colour grade.
 
----
 
 ## 8. Trees touched
 

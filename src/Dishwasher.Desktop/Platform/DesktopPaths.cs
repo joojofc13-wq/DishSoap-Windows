@@ -23,11 +23,11 @@ namespace Dishwasher
         public static string Under(string root, string relative)
         {
             if (string.IsNullOrWhiteSpace(relative) || Path.IsPathRooted(relative) || relative.Contains(':'))
-                throw new InvalidDataException("Caminho relativo inválido: " + relative);
+                throw new InvalidDataException("Invalid relative path: " + relative);
             string prefix = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
             string result = Path.GetFullPath(Path.Combine(prefix, relative.Replace('/', Path.DirectorySeparatorChar)));
             if (!result.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidDataException("Caminho fora da pasta: " + relative);
+                throw new InvalidDataException("Path outside the folder: " + relative);
             return result;
         }
         public static void AtomicWrite(string path, string text)
@@ -77,7 +77,7 @@ namespace Dishwasher
         public static string ContentRoot { get; set; }
         public static Stream OpenContent(string path)
         {
-            if (ContentRoot == null) throw new InvalidOperationException("Conteúdo não inicializado.");
+            if (ContentRoot == null) throw new InvalidOperationException("Content has not been initialized.");
             return File.OpenRead(DesktopPaths.Under(ContentRoot, path));
         }
     }

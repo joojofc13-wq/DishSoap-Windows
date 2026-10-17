@@ -1,4 +1,4 @@
-# Audio integration — XACT shim wired into the live port
+# Audio integration: XACT shim wired into the live port
 
 Owner: Audio Integration Lead. Date: 2026-10-02. Device: `<device-serial>`.
 Based on `notes/audio/README.md` + `shim/XactShim.cs`.
@@ -10,7 +10,7 @@ Based on `notes/audio/README.md` + `shim/XactShim.cs`.
 ## 1. Files added / modified
 
 Added:
-* `Dishwasher/Platform/Audio/XactShim.cs` — copy of `notes/audio/shim/XactShim.cs`
+* `Dishwasher/Platform/Audio/XactShim.cs`: copy of `notes/audio/shim/XactShim.cs`
   (namespace `Dishwasher.Audio`). Two deliberate additions:
   * its two `Log(...)` helpers now route through `global::Dishwasher.Log.Info`
     (logcat) instead of only `Debug.WriteLine`, so boot iteration can see them;
@@ -18,7 +18,7 @@ Added:
     diagnostics.
 
 Modified:
-* `Dishwasher/Dishwasher.csproj` — added `NVorbis 0.10.5` PackageReference and
+* `Dishwasher/Dishwasher.csproj`: added `NVorbis 0.10.5` PackageReference and
   `<DefineConstants>$(DefineConstants);DISHWASHER_OGG</DefineConstants>`.
 * The 10 audio game files: `using Microsoft.Xna.Framework.Audio;` →
   `using Dishwasher.Audio;`
@@ -88,7 +88,7 @@ APK: `com.recomp.dishwasher-Signed.apk`, 184,489,873 B.
 
 ## 6. Evidence
 
-Clean boot (`/tmp/opencode/audio-final.log`) — effects loaded, no loader failure,
+Clean boot (`/tmp/opencode/audio-final.log`): effects loaded, no loader failure,
 audio registered, title screen rendered (`notes/proof/audio-boot-menu.png`):
 
 ```
@@ -117,7 +117,7 @@ finished; phase 25 = complete):
 ## 7. Residual limitations
 
 * OGG is decoded wholly into a single `SoundEffect` on demand; a long music track
-  is ~10–47 MB of PCM and can take ~6 s to decode (`music_w004`, 45 s, took 5.7 s).
+  is ~10-47 MB of PCM and can take ~6 s to decode (`music_w004`, 45 s, took 5.7 s).
   Could OOM/ANR on long tracks on low-memory devices; a streaming OGG reader would
   be the proper fix. Non-music WAV/ADPCM is small and cached.
 * `AudioStopOptions.AsAuthored` release/fade tails, RPC/DSP/reverb, per-play

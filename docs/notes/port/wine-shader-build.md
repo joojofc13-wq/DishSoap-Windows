@@ -3,10 +3,9 @@
 **Author:** Build-Infrastructure Specialist (subagent)
 **Date:** 2026-10-02
 **Host:** Ubuntu 26.04 (Resolute) x86_64, .NET SDK 8.0.425, MGCB v3.8.5.1
-**Status:** ✅ **WORKING** — `/platform:Android` and `/platform:DesktopGL` compile the 6
+**Status:** ✅ **WORKING**: `/platform:Android` and `/platform:DesktopGL` compile the 6
 re-authored shaders to MGFX through Wine. `/platform:XboxOne` still compiles natively.
 
----
 
 ## 0. TL;DR
 
@@ -27,7 +26,6 @@ Linux/MonoGame setup script that installs these (`fxccs.zip`) is the one at
 MonoGame repo (`Tools/MonoGame.Effect.Compiler/mgfxc_wine_setup.sh`) is **stale and does
 not download `fxccs`**.
 
----
 
 ## 1. Why Wine is required (and exactly what it needs)
 
@@ -40,7 +38,7 @@ wine64 dotnet c:\fxccs.dll "<Z:\...\in.fx>" <EntryPoint> <profile> <flags> <disp
 
 `WineHelper`'s static ctor requires **all** of:
 
-1. `which wine64` (or `which wine`) succeeds — Linux prefers `wine64`.
+1. `which wine64` (or `which wine`) succeeds: Linux prefers `wine64`.
 2. `which winepath` succeeds.
 3. `MGFXC_WINE_PATH` is set and non-empty (used as `WINEPREFIX`).
 
@@ -62,7 +60,6 @@ It does **not** touch `DISPLAY`. The prefix itself must contain:
 | `drive_c/windows/system32/d3dcompiler_47.dll` | native D3DCompiler (overridden to native) |
 | `drive_c/fxccs.dll` (+ `fxccs.deps.json`, `SharpDX*.dll`) | the actual HLSL→DX9-bytecode shim |
 
----
 
 ## 2. Provisioning (reproducible)
 
@@ -116,7 +113,6 @@ env -u DISPLAY WAYLAND_DISPLAY=wayland-0 wine cmd /c echo wayland-ok
 So `DISPLAY` does **not** need to be unset; it is not a source of failure. (The commands
 below unset it only to model a CI host.)
 
----
 
 ## 3. Minimal working environment + command
 
@@ -129,7 +125,7 @@ mgcb F.mgcb /platform:Android /outputDir:bin/Android /intermediateDir:obj/Androi
 ```
 
 `WINEARCH`, `WINEPREFIX`, `WINEDLLOVERRIDES`, `WINEDEBUG` and `MVK_CONFIG_LOG_LEVEL` are
-set by `WineHelper` at run time — do **not** set them by hand (a stray `WINEARCH=win32`
+set by `WineHelper` at run time: do **not** set them by hand (a stray `WINEARCH=win32`
 in the environment would be overridden anyway).
 
 ### Outputs (scratch, `/tmp/opencode/fxandroid`)
@@ -146,7 +142,6 @@ bin/Android/fx/Ink.xnb           2813 bytes
 Each is a valid MGFX effect: XNB header platform byte `a` (Android), and the literal
 `MGFX` magic at file offset 141 (`XNB a`, then the `Microsoft.Xna.Framework.Content.EffectReader` type string). Platform bytes observed: `a`=Android, `d`=DesktopGL, `O`=XboxOne.
 
----
 
 ## 4. DesktopGL (second OpenGL reference target)
 
@@ -158,15 +153,14 @@ mgcb F.mgcb /platform:DesktopGL /outputDir:bin/DesktopGL /intermediateDir:obj/De
 ```
 
 `/platform:XboxOne` (native bundled `dxc`, **no Wine**) still works as before:
-`Build 6 succeeded, 0 failed` (XNB sizes 9.5–13.8 KB).
+`Build 6 succeeded, 0 failed` (XNB sizes 9.5-13.8 KB).
 
----
 
 ## 5. Running against the real project content
 
 `Dishwasher/Content/Content.mgcb` currently lists **no content items** (the
 `#---- Content ----` section is empty), so a plain build emits nothing. This is
-expected — the six `.fx` files were staged under `Content/fx/` but not yet wired into the
+expected: the six `.fx` files were staged under `Content/fx/` but not yet wired into the
 manifest (another agent may be mid-edit).
 
 The real sources were verified to compile into the project's own output directory with
@@ -232,7 +226,7 @@ and the MSBuild `MonoGame.Content.Builder.Task` target
 for `net8.0-android` builds.
 
 **2. Make `MGFXC_WINE_PATH` available to the build.** The natural place is
-`tools/scripts/env.sh` — add:
+`tools/scripts/env.sh`: add:
 
 ```bash
 export MGFXC_WINE_PATH="$HOME/.wine-mgcb"
@@ -240,14 +234,13 @@ export MGFXC_WINE_PATH="$HOME/.wine-mgcb"
 
 (Not added here: this agent's write scope was `/tmp/opencode` + `notes/` + build outputs.)
 
----
 
 ## 6. MGCB invocation gotchas hit during this work
 
 * A `.mgcb` file passed on the command line is treated as a **response file**
   (`ParsePreprocessArg` matches `*.mgcb`). Lines starting with `#` are ignored; every
   other line must be a valid command-line option. Content entries therefore must be
-  `#begin <source>` + `/build:<source>` — a bare `/fx/Name.fx` line is parsed as a bad
+  `#begin <source>` + `/build:<source>`: a bare `/fx/Name.fx` line is parsed as a bad
   option ("Unknown option 'x'"/"Invalid value 'true'").
 * **Relative `/build:` paths are resolved against the current directory at parse time.**
   When a response file is read, MGCB temporarily `cd`s to that file's directory, so a
@@ -259,11 +252,10 @@ export MGFXC_WINE_PATH="$HOME/.wine-mgcb"
   reason. `SetWorkingDir` calls `Directory.SetCurrentDirectory` immediately, so the last
   `/workingDir:` wins.
 
----
 
 ## 7. Residual limitations / notes
 
-* **Shader compilation itself has no residual limitation** — all six Android/GL shaders
+* **Shader compilation itself has no residual limitation**: all six Android/GL shaders
   compile and emit MGFX, headless.
 * Cosmetic Wine quirk: `wine dotnet --version` inside this prefix throws
   `System.ConsolePal.SetConsoleOutputEncoding(...)` → unhandled exception. This is the
@@ -276,5 +268,5 @@ export MGFXC_WINE_PATH="$HOME/.wine-mgcb"
 * `WineHelper` throws `PlatformNotSupportedException` on non-Unix; a Windows build host
   does not need any of this.
 * If Wine were unavailable, the fallback for the *shipping* shaders is `/platform:XboxOne`
-  (native DXC) — but that targets SM6/DX12, **not** Android/GL, so it is not a substitute
+  (native DXC): but that targets SM6/DX12, **not** Android/GL, so it is not a substitute
   for this path.

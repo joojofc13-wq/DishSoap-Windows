@@ -1,17 +1,11 @@
-# Extração local de assemblies gerenciados
+# Local managed assembly extraction
 
-`dotnet run --project tools/windows/ManagedExtractor -- <extraídos> <managed>`
+```text
+dotnet run --project tools/windows/ManagedExtractor -- EXTRACTED_ROOT MANAGED_ROOT
+```
 
-Lê XEX2 retail com compressão BASIC ou NORMAL/LZX. Extrai somente PE x86
-embutido (game.exe e assemblies .NET CF/XNA); não executa código Xbox.
-Foi validado com os sete assemblies do pacote fornecido pelo usuário.
-Não transforma módulos PowerPC em executáveis Windows.
+Reads retail XEX2 with BASIC or NORMAL/LZX compression and extracts the embedded x86 managed PE assemblies. It does not execute Xbox code or convert PowerPC modules into Windows programs. The local check covered the seven assemblies in the owner's package. Delta patches and XEX1 are unsupported.
 
-LzxDecoder.cs é de Xenia Manager (BSD-3-Clause), obtido em 2026-10-16:
-https://github.com/xenia-manager/xenia-manager/blob/main/source/XeniaManager.Files/Utilities/LzxDecoder.cs
-Licença integral em LICENSE-LZX.txt. Estrutura XEX verificada no Xenia:
-https://github.com/xenia-project/xenia/blob/master/src/xenia/cpu/xex_module.cc
-e src/xenia/kernel/util/xex2_info.h. O wrapper é código novo deste port.
+`LzxDecoder.cs` comes from [Xenia Manager](https://github.com/xenia-manager/xenia-manager/blob/main/source/XeniaManager.Files/Utilities/LzxDecoder.cs), obtained on 2026-10-16 under BSD-3-Clause. The full license is in `LICENSE-LZX.txt`. The XEX wrapper was developed for this Windows port, using [Xenia's XEX structures](https://github.com/xenia-project/xenia/blob/master/src/xenia/cpu/xex_module.cc) as a format reference.
 
-Entradas/saídas são propriedade do usuário e ficam fora do controle de versão.
-Use apenas arquivos locais de sua cópia. Delta patches e XEX1 não suportados.
+Use local files from your own copy. Inputs, extracted assemblies and generated game source stay outside version control and public releases.

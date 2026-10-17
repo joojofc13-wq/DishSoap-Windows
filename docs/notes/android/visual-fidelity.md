@@ -1,4 +1,4 @@
-# Visual fidelity — reference match + motion "blur"
+# Visual fidelity: reference match + motion "blur"
 
 **Author:** Visual Fidelity Specialist (subagent)
 **Date:** 2026-10-02
@@ -9,7 +9,6 @@ trees (`managed/decompiled`, `assets-clean`, `port`, `rexglue-sdk*`,
 **Reference (ground truth):** `android/notes/reference/dishwasher-reference.jpg`
 (750×422).
 
----
 
 ## 0. TL;DR
 
@@ -45,7 +44,6 @@ trees (`managed/decompiled`, `assets-clean`, `port`, `rexglue-sdk*`,
    consistent with the reference being a different (more neutral) level than
    the red-lit Foghorn Café; see §4.
 
----
 
 ## 1. Reference traits (measured)
 
@@ -64,9 +62,8 @@ All numbers from `android/notes/reference/dishwasher-reference.jpg`:
 | red-blood pixels (H≤20/≥235, S>150, V>70) | 2.49 % of frame, mean **S=181, V=81** |
 | brightest pixel (p99.9 / max L) | 198 / **217** (highlights do **not** reach white) |
 
----
 
-## 2. Problem 2 — the "blur" while moving
+## 2. Problem 2: the "blur" while moving
 
 ### 2.1 Mechanism (with evidence)
 
@@ -83,7 +80,7 @@ sprite.Draw(fadeTarg, getDRect(), new Color(1f, 0.8f, 1f, 0.8f)); // Additive
 `fadeTarg` is a **128×128** downsample of the whole scene run through a 13-tap
 blur. The buggy `fade.fx` returned that blur with `alpha = 1.0`, so under
 `BlendState.Additive` (src·src.a + dst) each frame added `0.8 × blurred-scene`
-on top of the sharp scene — a soft, low-resolution duplicate of the entire
+on top of the sharp scene: a soft, low-resolution duplicate of the entire
 frame. On a moving, high-contrast character the duplicate reads as a **blur /
 ghosting halo**. This is a per-frame spatial haze (not a temporal trail), which
 is why it is present whenever the game runs and is most visible on motion.
@@ -102,7 +99,7 @@ same path:
 The game only ever calls `drawFade(…, 0)` (three call sites: `Game1.cs:3576`,
 `:3642`, `:4003`; the `fader` argument is a literal `0`). The previous
 re-author instead emitted `float4(blur, 1.0)` for `fader==0`, the `2.0/−0.25`
-mask for `fader==1`, and the `sum×0.1154` path for `fader==2` — **shifted by
+mask for `fader==1`, and the `sum×0.1154` path for `fader==2`: **shifted by
 one**. Fixed to the table above.
 
 ### 2.2 Experiments that excluded the other hypotheses
@@ -136,26 +133,25 @@ return outc * input.Color;
 
 Corrected backup kept at `android/notes/fx-fade-fixed.bak`.
 
----
 
-## 3. Problem 1 — reference vs port trait table
+## 3. Problem 1: reference vs port trait table
 
-Port frames are the 1080×750 game band (rows 336–1086 of the device
+Port frames are the 1080×750 game band (rows 336-1086 of the device
 screenshot). "Pre-fix" = buggy `fade`; "post-fix" = corrected `fade`.
 
 | trait | how measured | REFERENCE | PORT pre-fix | PORT post-fix | verdict |
 |---|---|---|---|---|---|
-| overall luminance | mean L | 74.9 | **112.4** | **81.3** | ✅ fixed — now close |
+| overall luminance | mean L | 74.9 | **112.4** | **81.3** | ✅ fixed: now close |
 | vignette | corner/centre L | 0.511 | 0.500 | 0.410 | ✅ present (port a little stronger) |
 | radial falloff | L centre→corner (6 bins) | 124→56 | 157→80 | 144→59 | ✅ present |
-| bottom gradient | L bottom10 %/middle | 0.147 | 0.069 | ~0.01–0.05 | ✅ present |
-| top gradient | L top10 %/middle | 0.879 | 1.43 | 1.12–1.32 | ⚠️ port top brighter (scene) |
+| bottom gradient | L bottom10 %/middle | 0.147 | 0.069 | ~0.01-0.05 | ✅ present |
+| top gradient | L top10 %/middle | 0.879 | 1.43 | 1.12-1.32 | ⚠️ port top brighter (scene) |
 | background saturation | mean HSV S (V>30) | 0.342 | 0.485 | **0.446** | ⚠️ port ≈ +30 % |
-| wall region | mean RGB / S | (117,85,91) / 0.298 grey-brown | — | **(204,123,129) / 0.409** pink | ⚠️ residual (theme) |
+| wall region | mean RGB / S | (117,85,91) / 0.298 grey-brown |: | **(204,123,129) / 0.409** pink | ⚠️ residual (theme) |
 | character black level | 5th-pct L | 1 | 3 | **0** | ✅ pure black |
 | blood saturation | mean S of red pixels | 181 | 179 | **182** | ✅ matched |
 | blood brightness | mean V of red pixels | 81 | 111 | 122 | ⚠️ port brighter |
-| highlight bloom | fraction V>240 | **0.000** (max L 217) | 0.244 | 0.05–0.10 | ⚠️ port highlights clip |
+| highlight bloom | fraction V>240 | **0.000** (max L 217) | 0.244 | 0.05-0.10 | ⚠️ port highlights clip |
 
 **Reading:** the fade fix moved the port from a washed-out +50 % brightness to
 within ~8 % of the reference, and the reference's defining dark traits
@@ -169,13 +165,12 @@ scene).
 
 **Which effect produces the reference's vignette/darkening?** The `grad`
 full-screen composite. Its microcode computes `burn = burnmag · |uv−0.5|` and
-does `col = (acc + grd)·bright − burn` — a radial edge darkening (the vignette)
+does `col = (acc + grd)·bright − burn`: a radial edge darkening (the vignette)
 plus a vertical `grd = t /(rgrad,ggrad,bgrad)` gradient. Our `grad.fx` already
 implements this faithfully (burn centred on the screen, matching the microcode,
 not the blast centre), and the measured radial profile confirms it is active
 and comparable to the reference. It is **not missing**.
 
----
 
 ## 4. Effects corrected / not corrected
 
@@ -185,10 +180,9 @@ and comparable to the reference. It is **not missing**.
 | `grad.fx` | left as-is (verified faithful: burn + gradient + bright) | microcode; radial profile matches reference |
 | `bloom.fx`, `ink.fx` | left as-is (faithful re-transcriptions from the prior colour-grade pass) | prior work |
 | `blur`, `trainblur`, `comicblur`, `burnblur` | left as-is (not reached in normal gameplay; radial blur is intentional on blasts) | call-site audit |
-| `lense.fx` refraction | left as-is; noted as an observable-behaviour re-author (original adds a `G·0.15` displacement term and uses ±0.003/0.15; ours uses ±0.002/0.6) | microcode; invisible in the café (no refract sprites) — ranked residual |
+| `lense.fx` refraction | left as-is; noted as an observable-behaviour re-author (original adds a `G·0.15` displacement term and uses ±0.003/0.15; ours uses ±0.002/0.6) | microcode; invisible in the café (no refract sprites): ranked residual |
 | `DiscardContents` | **left at the original value** (Preserve swap reverted) | all RTs cleared; Preserve/Discard ratio 0.985 |
 
----
 
 ## 5. Build / deploy (final)
 
@@ -214,15 +208,14 @@ Packaged shader verified: `assets/fx/fade.xnb` in the APK =
 `targetSdkVersion=35` kept; `MatrixTransform`, technique `PostFade`, pass `P0`
 and every parameter name/type are unchanged.
 
----
 
 ## 6. Before / after evidence (`<dev-notes>/proof/render/`)
 
 | file | what |
 |---|---|
 | `vf-fade-before-after.png` | **before/after side-by-side**, same tutorial room |
-| `vf-BUGGY-gp2.png` | BEFORE — buggy `fade` (opaque blob) |
-| `vf-018-gp.png` | AFTER — corrected `fade` |
+| `vf-BUGGY-gp2.png` | BEFORE: buggy `fade` (opaque blob) |
+| `vf-018-gp.png` | AFTER: corrected `fade` |
 | `vf-ref-vs-port.png` | **reference vs port** side-by-side (post-fix) |
 | `vf-001-resumed.png` | pre-fix cafe gameplay (washed pink, mean L 112) |
 | `vf-031-cafe.png` | post-fix cafe gameplay (mean L 81) |
@@ -239,7 +232,6 @@ Fade-contribution isolation (same scene, interleaved, median of 5):
 | buggy | L 78.6, RGB (115,63,63) | L 55.3, RGB (87,41,43) | **ΔL +23.3**, ΔRGB (+28,+22,+20) |
 | fixed | L 64.0, RGB (99,49,50) | L 55.3, RGB (87,41,43) | **ΔL +8.8**, ΔRGB (+11,+8,+7) |
 
----
 
 ## 7. Residual gaps (ranked)
 
@@ -248,13 +240,13 @@ Fade-contribution isolation (same scene, interleaved, median of 5):
    theme-0 lighting (`rGrad 9 / gGrad 16`) plus the additive theme fade
    `(1, 0.8, 1, 0.8)` are the drivers; both are game data, faithfully applied.
    Tuning should be per-level theme data, not a global shader grade.
-2. **Highlight headroom (medium).** Port has 5–10 % near-white pixels; the
+2. **Highlight headroom (medium).** Port has 5-10 % near-white pixels; the
    reference caps at L 217. The fade fix already reduced the added haze; the
    rest comes from `grad.bright = getBrightVal()+0.2 = 1.1` (game code) and the
    additive bloom, both faithful. Would need tone-mapping / a per-level
    decision.
 3. **Top-of-frame gradient (low).** Port top is brighter than the reference;
-   follows from the café's bright upper wall vs the reference's dark sky —
+   follows from the café's bright upper wall vs the reference's dark sky,
    scene composition, not a shader.
 4. **`lense.fx` refraction approximation (low).** Structural re-author
    (±0.002/×0.6 vs the microcode's ±0.003/×0.15 plus a `G·0.15` term); invisible
@@ -269,7 +261,6 @@ Fade-contribution isolation (same scene, interleaved, median of 5):
    into a 1080×750 band; the aspect is not 16:9. Out of scope for this task
    (geometry was declared correct) but worth a separate look.
 
----
 
 ## 8. Trees touched / revert notes
 

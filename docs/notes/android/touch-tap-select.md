@@ -1,4 +1,4 @@
-# Direct tap-to-activate for menu rows — The Dishwasher MonoGame/Android port
+# Direct tap-to-activate for menu rows: The Dishwasher MonoGame/Android port
 
 **Author:** Touch Menu Specialist (subagent)
 **Date:** 2026-10-02
@@ -7,7 +7,6 @@
 **Scope of edits:** `src/Dishwasher/` and `android/notes/` only.
 **Device interaction:** **none.** No adb/device command was run for this change. The plan in §8 is for a later, supervised session.
 
----
 
 ## 1. What changed (behaviour)
 
@@ -18,10 +17,10 @@ Now:
 
 | Gesture | Effect |
 |---|---|
-| **Tap directly on a menu row** | **The cursor jumps to that row and A is pressed** — i.e. exactly as if the user had moved the cursor there and hit A. A tapped **BACK** row goes back naturally. |
+| **Tap directly on a menu row** | **The cursor jumps to that row and A is pressed**: i.e. exactly as if the user had moved the cursor there and hit A. A tapped **BACK** row goes back naturally. |
 | Tap on empty space (a menu screen that *does* draw rows) | **Nothing** (no wild A press). |
 | Tap on a screen that draws *no* rows (title / intro / message box / device-failed) | Legacy `A` confirm (those screens have no rows to hit). |
-| Swipe up/down/left/right | D-pad up/down/left/right — kept as the secondary cursor-movement mechanism. |
+| Swipe up/down/left/right | D-pad up/down/left/right: kept as the secondary cursor-movement mechanism. |
 | Two-finger tap | `B` (cancel). |
 | Android BACK key/gesture | `B` (cancel), menus only. |
 
@@ -66,15 +65,15 @@ Dishwasher.MenuTouchTargets.Add(i, _rowX - 40, _rowY - 5, _rowW, 46);
 There are **three** spaces, and the row rect and the tap point are not in the
 same one by default:
 
-1. **Physical window pixels** — what `Activity.DispatchTouchEvent` receives.
+1. **Physical window pixels**: what `Activity.DispatchTouchEvent` receives.
    The window spans the full 2400×1080 panel (immersive + cutout). Measured in
    the previous work: `raw = logical × 1.5`.
-2. **Logical backbuffer pixels** — the game's `Globals.screenSize`
+2. **Logical backbuffer pixels**: the game's `Globals.screenSize`
    (e.g. 1600×720). `Activity1.OnCreate` measures the SurfaceView at this
    logical size and applies `WidescreenConfig.Scale` (~1.5×) to fill the panel.
    `TouchControls.Logical(v)` converts physical → logical by dividing by
    `Scale`. **Thresholds and hit-tests are in this space.**
-3. **Menu canvas pixels** — `drawOption` lays rows out in the game's *original*
+3. **Menu canvas pixels**: `drawOption` lays rows out in the game's *original*
    menu canvas (1024×600 when `Globals.wideScreen`, else 800×600). `Game1.Draw`
    case 1 renders the menu into `rTarg` at those canvas coordinates and then
    blits `src=(0,0,1024,600)` → `dest=(0,0,screenSize.X,screenSize.Y)`
@@ -102,10 +101,10 @@ The run's A52 is panel **2400×1080**, `WidescreenConfig.Scale = 1.5`,
 `screenSize = 1600×720`, `Globals.wideScreen = true`.
 
 * The SurfaceView is measured at the logical `1600×720` and scaled by exactly
-  1.5 with pivot `(0,0)` (window frame `[0,0]–[2400,1080]`, no letterbox), so
+  1.5 with pivot `(0,0)` (window frame `[0,0]-[2400,1080]`, no letterbox), so
   `physical = logical × 1.5`.
 * `Game1.Draw` case 1 blits the menu canvas `src=(0,0,1024,600)` to
-  `dst=(0,0,1600,720)` — i.e. it is **stretched**, not centered/letterboxed.
+  `dst=(0,0,1600,720)`: i.e. it is **stretched**, not centered/letterboxed.
   There is no `(0,60)` half-letterbox and no `Globals.border` inset (the
   border-derived dest is overwritten to `(0,0,screenSize)` at
   `Game1.cs:3848-3851`).
@@ -116,7 +115,7 @@ This was cross-checked against the supervised run's own screenshots
 (`/tmp/opencode/v2.png` main menu, `v5.png` Android Settings): the measured
 text-row centres match `canvas × 1.8` to within ~3 physical px (see the table in
 §8). In particular the main menu `HELP & OPTIONS` row (canvas `y=392`) sits at
-physical `y≈735`, and `ANDROID SETTINGS` (canvas `440`) at `y≈822` — i.e. a tap
+physical `y≈735`, and `ANDROID SETTINGS` (canvas `440`) at `y≈822`: i.e. a tap
 at `(500,755)` is genuinely *on* HELP & OPTIONS and `(500,858)` is genuinely *on*
 ANDROID SETTINGS. The earlier "~100 px above" reading was an off-by-one-row
 misidentification of the drawn text, not a mapping error: the physical band of
@@ -177,7 +176,7 @@ Because rects are captured in `drawOption` *after* the layout is final, a
 scrolling list (`raised: true`, used by SELECT LEVEL / ARCADE / LEADERBOARDS /
 server list) gets the real per-frame `selScroll`/`num18`/`num3` offsets that are
 actually on screen. Rows faded out (`num11 <= 0`) return before the recording
-line, so off-screen rows are **not** tappable — the user swipes to bring a row
+line, so off-screen rows are **not** tappable: the user swipes to bring a row
 into view, then taps it. Nothing is hard-coded: no per-screen layout table.
 
 ### 2.5 No-hit behaviour (chosen)
@@ -192,31 +191,31 @@ into view, then taps it. Nothing is hard-coded: no per-screen layout table.
 
 **New**
 
-* `src/Dishwasher/Platform/MenuTouchTargets.cs` — row list, the blit-derived
+* `src/Dishwasher/Platform/MenuTouchTargets.cs`: row list, the blit-derived
   canvas↔screen mapping (`SetCanvasMapping`/`HitTest`) and the pending-row
   hand-off (`Begin`/`Add`/`SetPendingRow`/`TakePendingRow`).
 
 **Edited (all marked `// PORT (touch)`)**
 
 * `src/Dishwasher/GameSource/projectDish/MainMenu.cs`
-  * `:5063` — `MenuTouchTargets.Begin()` at the top of `DrawOptionButtons`.
-  * `:6013-6023` — record the drawn row rect in the innermost `drawOption`.
-  * `:1143-1170` (`TakePendingRow()` at `:1146`) — consume a hit row in
+  * `:5063`: `MenuTouchTargets.Begin()` at the top of `DrawOptionButtons`.
+  * `:6013-6023`: record the drawn row rect in the innermost `drawOption`.
+  * `:1143-1170` (`TakePendingRow()` at `:1146`): consume a hit row in
     `MainMenu.Update`, set `selOption`. For the **Android Settings** screen
     (`level == ANDROID_SETTINGS_LEVEL`) it now calls `Sound.playCue("sword1")` +
     `AndroidSettingsActivate()` directly (and does **not** raise `keyJump`);
     every other row menu keeps raising `character.keyJump` (see §3.1).
 * `src/Dishwasher/Platform/TouchControls.cs`
-  * `:11-22` — gesture-map comment updated.
-  * `:73-80` — tap-point fields + lock.
-  * `:131` — `ProcessPendingTap()` call at the top of `Tick`.
-  * `:155-191` — `ProcessPendingTap()` (hit-test / no-hit rules); the
+  * `:11-22`: gesture-map comment updated.
+  * `:73-80`: tap-point fields + lock.
+  * `:131`: `ProcessPendingTap()` call at the top of `Tick`.
+  * `:155-191`: `ProcessPendingTap()` (hit-test / no-hit rules); the
     `tap -> select row` log now also prints the logical and physical points.
-  * `:194-201` — `QueueTap()` (UI thread → game thread hand-off).
-  * `:286-291` — tap branch now calls `QueueTap(...)` instead of
+  * `:194-201`: `QueueTap()` (UI thread → game thread hand-off).
+  * `:286-291`: tap branch now calls `QueueTap(...)` instead of
     `Pulse(Buttons.A)`.
 * `src/Dishwasher/GameSource/projectDish/Game1.cs`
-  * `:3852-3855` — `MenuTouchTargets.SetCanvasMapping(value, destinationRectangle)`
+  * `:3852-3855`: `MenuTouchTargets.SetCanvasMapping(value, destinationRectangle)`
     immediately before the menu blit in `Draw` case 1, so the hit-test uses the
     renderer's exact canvas→screen transform.
 
@@ -224,7 +223,7 @@ No other file was touched. In particular `Activity1.cs`, `AndroidInputBridge.cs`
 `WidescreenConfig.cs`, the frame-limiter/perf hooks and `AndroidSettings.cs` are
 unchanged.
 
-### 3.1 Bug 2 — why the custom screen now activates (and the game's menus are unchanged)
+### 3.1 Bug 2: why the custom screen now activates (and the game's menus are unchanged)
 
 The tap is consumed in the per-character loop of `MainMenu.Update` (same place
 for every screen). For the game's own `case`-based menus the row's activation
@@ -240,7 +239,7 @@ The touch path now handles `level == ANDROID_SETTINGS_LEVEL` explicitly:
 it sets `selOption` and calls `AndroidSettingsActivate()` immediately (the same
 call a controller A press reaches through the switch), then does **not** raise
 `keyJump`, so case 42 cannot double-fire. `AndroidSettingsActivate()` already
-implements exactly the controller-A semantics — cycle FPS LOCK
+implements exactly the controller-A semantics: cycle FPS LOCK
 (`Unlimited→30→60→120`, `FrameLimiter.Apply()`), toggle SHOW FPS COUNTER, or
 `hitButton`+`Save`+transition for BACK. Because the controller path is untouched,
 a physical A press still activates via the switch; because the game's own menus
@@ -260,7 +259,7 @@ dotnet build -f net8.0-android \
 
 **Build succeeded. 0 Error(s).** Only pre-existing, unrelated warnings:
 `SYSLIB0006` (`Thread.Abort` obsolete), `CA1422` (`Activity.OnBackPressed`
-obsolete — untouched `Activity1.cs`), `XA1008` (API34 vs targetSdk35).
+obsolete: untouched `Activity1.cs`), `XA1008` (API34 vs targetSdk35).
 
 APK: `src/Dishwasher/bin/Debug/net8.0-android/com.recomp.dishwasher-Signed.apk`.
 
@@ -281,7 +280,7 @@ BACK→B are retained.
 * **Level transitions:** the recorded rows always belong to the last drawn
   frame, and the hit row is computed on the game thread the frame before the
   existing `keyJump` switch. A row index that is out of range for the (new)
-  screen simply falls through the existing `switch`/clamps — no crash.
+  screen simply falls through the existing `switch`/clamps: no crash.
 * **Paused gameplay:** `gameMode == 0`, so row hit-testing is skipped and tap =
   A, matching the previous build (the pause overlay is not drawn through
   `drawOption`).
@@ -297,7 +296,7 @@ Delete `Platform/MenuTouchTargets.cs`; remove the `// PORT (touch)` edits in
 `QueueTap`/`ProcessPendingTap` and the `_tap*` fields and restore
 `Pulse(Buttons.A)` in the tap branch. Swipe/BACK/gate code is otherwise unchanged.
 
-## 8. On-device verification plan (DO NOT RUN unattended — for a later, supervised session)
+## 8. On-device verification plan (DO NOT RUN unattended: for a later, supervised session)
 
 No device command has been run for this task. When a supervised verification is
 approved, tap the **physical panel** points below (`input tap X Y`). The model is
@@ -305,28 +304,28 @@ approved, tap the **physical panel** points below (`input tap X Y`). The model i
 the band and `(rowY+18)·1.8` for its centre. `x` is chosen well inside each
 row's padded rect (and on the text).
 
-### Main menu — physical tap points (non-trial; the run's v2.png state)
+### Main menu: physical tap points (non-trial; the run's v2.png state)
 
 | # | row (index) | canvas `rowY` | band (physical y) | **tap (X, Y)** |
 |---|---|---|---|---|
-| 1 | SINGLE PLAYER GAME (0) | 176 | 308–391 | **(450, 349)** |
-| 2 | MULTIPLAYER GAME (1) | 224 | 394–477 | **(450, 436)** |
-| 3 | ACHIEVEMENTS (2) | 296 | 524–607 | **(450, 565)** |
-| 4 | LEADERBOARDS (3) | 344 | 610–693 | **(450, 652)** |
-| 5 | HELP & OPTIONS (4) | 392 | 697–779 | **(450, 738)** |
-| 6 | ANDROID SETTINGS (5) | 440 | 783–866 | **(450, 824)** |
-| 7 | RETURN TO GAME LIBRARY (6) | 488 | 869–952 | **(450, 911)** |
+| 1 | SINGLE PLAYER GAME (0) | 176 | 308-391 | **(450, 349)** |
+| 2 | MULTIPLAYER GAME (1) | 224 | 394-477 | **(450, 436)** |
+| 3 | ACHIEVEMENTS (2) | 296 | 524-607 | **(450, 565)** |
+| 4 | LEADERBOARDS (3) | 344 | 610-693 | **(450, 652)** |
+| 5 | HELP & OPTIONS (4) | 392 | 697-779 | **(450, 738)** |
+| 6 | ANDROID SETTINGS (5) | 440 | 783-866 | **(450, 824)** |
+| 7 | RETURN TO GAME LIBRARY (6) | 488 | 869-952 | **(450, 911)** |
 
 (If `Globals.trial` were true, an `UNLOCK FULL GAME` row appears at index 2 and
-rows 2–7 shift down one index; the run's screenshot shows the non-trial layout.)
+rows 2-7 shift down one index; the run's screenshot shows the non-trial layout.)
 
-### ANDROID SETTINGS screen — physical tap points (level 42)
+### ANDROID SETTINGS screen: physical tap points (level 42)
 
 | # | row (index) | canvas `rowY` | band (physical y) | **tap (X, Y)** |
 |---|---|---|---|---|
-| 1 | FPS LOCK (0) | 110 | 189–272 | **(700, 230)** |
-| 2 | SHOW FPS COUNTER (1) | 158 | 275–358 | **(700, 317)** |
-| 3 | BACK (2) | 206 | 362–445 | **(700, 403)** |
+| 1 | FPS LOCK (0) | 110 | 189-272 | **(700, 230)** |
+| 2 | SHOW FPS COUNTER (1) | 158 | 275-358 | **(700, 317)** |
+| 3 | BACK (2) | 206 | 362-445 | **(700, 403)** |
 
 These predicted centres match the run's own screenshots: main-menu measured
 `MULTI 433, ACH 563, LEAD 650, HELP 735, ANDROID 822, RETURN 910` (predicted
@@ -342,8 +341,8 @@ Plan:
 3. On the main menu tap **HELP & OPTIONS** at `(450,738)` → the log must read
    `[touch] tap -> select row 4 (logical 300,492 physical 450,738)` and the HELP
    screen opens in one tap. A tap at `(450,824)` must log row 5 and open
-   ANDROID SETTINGS; `(450,911)` must log row 6. Taps on rows 1–3 must log
-   rows 0–2.
+   ANDROID SETTINGS; `(450,911)` must log row 6. Taps on rows 1-3 must log
+   rows 0-2.
 4. On ANDROID SETTINGS: tap `(700,230)` → log row 0 and FPS LOCK cycles
    Unlimited→30→60→120; tap `(700,317)` → log row 1 and SHOW FPS COUNTER
    toggles off/on (perf overlay appears/disappears); tap `(700,403)` → log row 2
@@ -363,7 +362,7 @@ Plan:
 
 ## 9. Honest status
 
-Code + build are complete (0 errors). **On-device verification is pending** —
+Code + build are complete (0 errors). **On-device verification is pending**,
 this change has not been exercised on the phone, by design (no device
 interaction; no `adb` command was run). The geometry is now taken directly from
 the renderer's own canvas→screen blit (`Game1.Draw` case 1 →

@@ -1,4 +1,4 @@
-# XNA / .NET Compact Framework Feasibility — *The Dishwasher: Dead Samurai* (XBLA `58410902`)
+# XNA / .NET Compact Framework Feasibility: *The Dishwasher: Dead Samurai* (XBLA `58410902`)
 
 - **Author:** .NET CF / XNA Feasibility Specialist (subagent)
 - **Date:** 2026-10-01
@@ -9,7 +9,6 @@
   JIT-compiles that IL to PowerPC at runtime, and ReXGlue has no interpreter / JIT / dynamic
   recompiler fallback.
 
----
 
 ## 0. Bottom line (read this first)
 
@@ -22,16 +21,15 @@
 | Can ReXGlue recompile the *native* modules (`default.xex`, `HostLoader.dll`, `RuntimeHost.xex`, `NetCFUserMode.dll`)? | Technically **yes** (they are real PPC; `default.xex` + `HostLoader.dll` already generate + link), but this is useless on its own: the recompiled CLR would still JIT IL → **PPC** and try to execute that on ARM64. |
 | Realistic port path | Extract the managed assemblies and run them on a **host .NET runtime + FNA/MonoGame** (ARM64), reimplementing the XNA platform layer. This is *not* ReXGlue. See §9. |
 
----
 
 ## 1. Method and tooling (all evidence reproducible)
 
 1. **XEX decryption/decompression via the SDK itself.** Every asset module is an `XEX2` container
-   with `file_format.encryption = NORMAL(1)` and `compression = NORMAL(2)` (LZX) — except
+   with `file_format.encryption = NORMAL(1)` and `compression = NORMAL(2)` (LZX): except
    `game.exe.xex` which is `BASIC(1)`. Raw `grep` for `.NET` signatures on the on-disk bytes finds
    nothing because the payload is AES/LZX-encrypted. A probe
    (`/tmp/opencode/xex_dump.cpp`, linked against `librexruntime.so`) was written that calls
-   `Runtime::LoadUserModule()` — the exact path used by `rexglue codegen` — to decrypt, decompress
+   `Runtime::LoadUserModule()`: the exact path used by `rexglue codegen`: to decrypt, decompress
    and load each module, then dumps the guest image + PE sections + XEX import/export tables.
 2. **PE / COR20 / metadata parsing.** `/tmp/opencode/pe_parse.py` walks every `MZ` candidate in each
    decrypted image and parses the PE32 headers, section table, data directories and the
@@ -46,7 +44,6 @@
    `src/codegen/project_recompiler.cpp`, `src/system/{export_resolver,user_module,kernel_module}.cpp`.
 6. **Cross-check against vendor documentation** for the JIT question (§4).
 
----
 
 ## 2. Per-module verdict table
 
@@ -69,11 +66,10 @@
 > `NetCFUserMode.dll`), **7 managed IL** (`game.exe.xex` + 6 framework DLLs), **10 data-only**
 > (`.nlp.xex`).
 
----
 
 ## 3. Hard evidence per module
 
-### 3.1 `game.exe.xex` — a managed executable (IL), not PPC
+### 3.1 `game.exe.xex`: a managed executable (IL), not PPC
 
 Decrypted image (1,179,648 bytes) contains **two** PEs:
 
@@ -119,7 +115,7 @@ native entry stub that hands off to the runtime). The embedded assembly's debug 
 
 **No** `#NativeImage`, **no** `ReadyToRun`, **no** native entry point. → pure IL.
 
-### 3.2 The six framework assemblies — also pure IL
+### 3.2 The six framework assemblies: also pure IL
 
 Same shape: a tiny PowerPC `StubBin` PE at offset 0 and a managed I386 PE at offset `0x20000`.
 
@@ -136,7 +132,7 @@ All metadata roots read `BSJB` + `v2.0.50727`. None contains an executable secti
 (the only outer sections are `.rdata` 0xA7 bytes and a 4-byte `.data`), i.e. **the XEX wrapper has no
 PPC code at all** for these modules.
 
-### 3.3 `RuntimeHost.xex` — the CLR (native PPC)
+### 3.3 `RuntimeHost.xex`: the CLR (native PPC)
 
 - Outer PE `machine=0x01F2`, 18 sections, `.text` = `0x46E49C` bytes plus **9 executable
   `.embsec_` sections** (statically linked native libraries), entry `0x8225C488`.
@@ -151,11 +147,11 @@ PPC code at all** for these modules.
     `CustomAttribute`, `AssemblyName`, `Thread`, `Object`, `String`, `Decimal`, `SZArrayHelper`
   - `RuntimeHost-XdkSubmission-Release.dll`
   - the metadata stream-name literals `#~`, `#Strings`, `#US`, `#GUID`, `#Blob` (found as raw ASCII
-    in the image at offsets 0x40xx) — the CLR's metadata reader constants
+    in the image at offsets 0x40xx): the CLR's metadata reader constants
   - a very large D3DX/HLSL shader-compiler string set (`ID3DXEffectCompiler`, `Microcode Compiler`,
-    `SSMUseTranslator`, `xltconvert.cpp`) — the XNA native graphics layer.
+    `SSMUseTranslator`, `xltconvert.cpp`): the XNA native graphics layer.
 
-### 3.4 `NetCFUserMode.dll` — native PPC
+### 3.4 `NetCFUserMode.dll`: native PPC
 
 - `machine=0x01F2`, `.text` = `0x43C60`, entry `0x827A1A08`, **611 exports** at `0x827A0000`,
   **0 XEX import libraries**.
@@ -164,7 +160,7 @@ PPC code at all** for these modules.
   `RuntimeMethodInfo`, `RuntimeFieldInfo`, `RuntimeEventInfo`, `CustomAttribute`, `AssemblyName`,
   `Thread`, …) plus localized game strings (System.SR resources).
 
-### 3.5 `default.xex` and `HostLoader.dll` — native PPC
+### 3.5 `default.xex` and `HostLoader.dll`: native PPC
 
 - `default.xex`: 8 sections, `.text` `0x39384` @ `0x82010000`, entry `0x82015B70`, imports
   `xam` (18), `xboxkrnl` (76), and **`HostLoader` ordinal 1** (thunk `0x820490D4`). Strings:
@@ -175,7 +171,7 @@ PPC code at all** for these modules.
   `RuntimeHost_CreateInstance`, `RuntimeHost.xex`, PDB `...HostLoader-XdkSubmission-Release.pdb`.
   It is the native loader that loads `RuntimeHost.xex` and creates the CLR instance.
 - The import thunk at `0x820490D4` is a standard 8-byte import descriptor + `mtctr r11; bctr`
-  (`7d 69 03 a6` / `4e 80 04 20`), i.e. a native PPC import stub — not IL.
+  (`7d 69 03 a6` / `4e 80 04 20`), i.e. a native PPC import stub: not IL.
 
 ### 3.6 `.nlp.xex` files
 
@@ -183,9 +179,8 @@ PPC code at all** for these modules.
 `sorttbls_3_5`, `xjis`). Each is a `StubBin` wrapper (outer PE has only `.rdata`/`.data`, no code,
 no COR20), i.e. raw BCL codepage/sort data. Not recompilable code.
 
----
 
-## 4. JIT vs AOT — the decisive question
+## 4. JIT vs AOT: the decisive question
 
 **Answer: the runtime JIT-compiles IL to PowerPC at runtime. There is no AOT/native image in the
 package.**
@@ -193,17 +188,17 @@ package.**
 ### 4.1 Measured facts (from the binaries)
 
 1. Every managed assembly has `IMAGE_COR20_HEADER.Flags = ILONLY` (bit 0). Per ECMA-335 / CorHdr.h,
-   `ILONLY` means *"the image file is pure IL"* — there is **no native code** in the image.
+   `ILONLY` means *"the image file is pure IL"*: there is **no native code** in the image.
 2. No `#NativeImage` signature, no `ReadyToRun`, no `NATIVE_ENTRYPOINT` flag in any module.
 3. The CLR (`RuntimeHost.xex`) probes for `mscorlib.dlx` **and** `mscorlib.dll` (ditto every other
-   framework assembly). A `.dlx` (native/AOT image) **is not present anywhere in the package** —
+   framework assembly). A `.dlx` (native/AOT image) **is not present anywhere in the package**,
    only the `.dll.xex` (IL) files ship. So the runtime takes the IL path.
-4. The CLR itself is present as **native PPC** (`RuntimeHost.xex`, `NetCFUserMode.dll`) — so *some*
+4. The CLR itself is present as **native PPC** (`RuntimeHost.xex`, `NetCFUserMode.dll`): so *some*
    component must turn the IL into runnable code at runtime.
 
 ### 4.2 Inference (stated as inference)
 
-Given (1)–(4), the CLR must translate IL at runtime. The .NET Compact Framework execution engine is
+Given (1)-(4), the CLR must translate IL at runtime. The .NET Compact Framework execution engine is
 documented to contain **a JIT compiler** (not an interpreter):
 
 - Microsoft Learn / .NET CF architecture: *"At the heart of NETCF is the execution engine. This
@@ -232,7 +227,6 @@ address → recompiled host function**. Any of the following is therefore fatal:
   recompilation of a PPC interpreter would still interoperate with runtime-created CLR stubs,
   reflection, P/Invoke and GC handles that the static dispatcher does not know about.
 
----
 
 ## 5. Module dependency / load graph
 
@@ -258,15 +252,14 @@ HostLoader.dll  (XEX_MODULE_DLL; exports 1: ord1 -> 0x820B1048)
                   game.exe.xex  (managed IL exe; mscoree!_CorExeMain)
                      └─ managed refs: mscorlib, System, System.Xml, System.SR,
                                       Microsoft.Xna.Framework[.Game]
-          NetCFUserMode.dll  (native, 611 exports, 0 imports) — .NET CF native support,
+          NetCFUserMode.dll  (native, 611 exports, 0 imports): .NET CF native support,
              resolved by the CLR/HostLoader (no direct XEX import edge)
 ```
 
 Minimal *native* set to even stand up the runtime: `default.xex` + `HostLoader.dll` +
 `RuntimeHost.xex` + `NetCFUserMode.dll`. The **actual game** additionally needs `game.exe.xex` and
-the six framework IL assemblies — all of which ReXGlue cannot recompile.
+the six framework IL assemblies: all of which ReXGlue cannot recompile.
 
----
 
 ## 6. Guest-DLL export resolution (the `sub_820490D4` linker failure)
 
@@ -289,7 +282,7 @@ At **runtime** the story is different and already correct: `KernelModule`/`UserM
 module's own XEX export table (`XexModule::GetProcAddress(ordinal)`) and either return the guest
 address or allocate a dispatcher thunk. So only the **codegen/link** path is broken.
 
-### 6.2 Concrete fix (codegen-side — recommended)
+### 6.2 Concrete fix (codegen-side: recommended)
 
 The target of the import already exists as generated code: `HostLoader` ordinal 1 resolves to guest
 address **`0x820B1048`**, and `rexglue codegen` has already emitted
@@ -300,7 +293,7 @@ in the `hostloader` module. So the fix is purely to point the import at it:
    (`LoadUserModule`), read its XEX export table
    (`xex_module()->xex_security_info()->export_table`, format `src/system/util/xex2_info.h`) and
    derive `ordinal → guest function address`. (The SDK already has the decoder:
-   `XexModule::GetProcAddress(ordinal)` — enumerate `base..base+count-1`.)
+   `XexModule::GetProcAddress(ordinal)`: enumerate `base..base+count-1`.)
 2. **Register it with the `ExportResolver`** under the module base name (`HostLoader`), using a new
    `Export` marker (e.g. `ExportTag::kGuestFunction`, or `Type::kGuestFunction`) so it is
    distinguishable from host/kernel exports. Name the entry `sub_<address>`.
@@ -330,10 +323,9 @@ link but **returns a fake success without ever calling `HostLoader` ordinal 1**,
 (load `RuntimeHost.xex` → create CLR → run `game.exe`) never starts. It is a temporary link fix, not
 a port.
 
-> Note: implementing §6.2 is **necessary but not sufficient** — it only fixes the native
+> Note: implementing §6.2 is **necessary but not sufficient**: it only fixes the native
 > `default.xex → HostLoader` edge. It does nothing for the managed IL (§4).
 
----
 
 ## 7. What would have to be implemented that the SDK does not do
 
@@ -343,21 +335,20 @@ To actually recompile-and-run *this* title on ReXGlue/ARM64, at minimum:
    - a **runtime PPC interpreter/JIT** in the ReXGlue runtime that can execute code the CLR generates
      at runtime (contradicts ReXGlue's static-AOT design), **or**
    - replacing the guest CLR with a **host .NET runtime** and translating the guest CLR's ABI/GC/
-     reflection/loader calls onto it. This is no longer ReXGlue recompilation — it is a full runtime
+     reflection/loader calls onto it. This is no longer ReXGlue recompilation: it is a full runtime
      replacement.
 2. **Replacement of the XNA platform layer.** `Microsoft.Xna.Framework.dll(.Game)` and the native
    XNA graphics/audio/input code are IL + static PPC in `RuntimeHost.xex`; they would need a
    GPU/audio/input backend on ARM64/Vulkan.
 3. **Guest-DLL export resolution** (§6.2) for the native loader edges.
 4. **A working guest loader chain** (the CLR's own loader, `mscoree` semantics, `_CorExeMain`,
-   assembly probing, `.dlx` fallback, strong-name checks, GC, thread affinity, sandbox) — none of
+   assembly probing, `.dlx` fallback, strong-name checks, GC, thread affinity, sandbox): none of
    which ReXGlue models.
 5. Even the *native* portion is hostile to static recompilation: `RuntimeHost.xex` has **9
    `.embsec_` executable sections** that are MSVC/`/clr`-style embedded native libraries; code in
    them may be reached only through runtime-vtable/reflection paths that the static function scanner
    cannot see.
 
----
 
 ## 8. Manifest proposal
 
@@ -372,14 +363,13 @@ therefore must be backslash-escaped in TOML.
 
 See the file for the concrete contents.
 
----
 
 ## 9. Recommendation (realistic port path, for the record)
 
 The package ships a **standard managed assembly** (`game.exe`, .NET CF 3.5 / metadata `v2.0.50727`)
 that references `Microsoft.Xna.Framework`. The established, practical route for XNA titles is:
 
-1. Extract the managed PE at image offset `0x20000` from `game.exe.xex` (and the framework DLLs) —
+1. Extract the managed PE at image offset `0x20000` from `game.exe.xex` (and the framework DLLs),
    it is a normal IL assembly with a CLR header.
 2. Run it on a host CLR and supply the XNA Framework via **FNA** or **MonoGame** (which reimplement
    `Microsoft.Xna.Framework` on SDL/Vulkan/OpenGL and support ARM64/Android).
@@ -388,7 +378,6 @@ that references `Microsoft.Xna.Framework`. The established, practical route for 
 
 This is **not** a ReXGlue recompilation and should be tracked as a separate workstream.
 
----
 
 ## 10. Measured vs inferred (explicit)
 

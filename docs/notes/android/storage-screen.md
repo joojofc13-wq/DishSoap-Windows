@@ -13,7 +13,7 @@ first-run prompt has no sensible way to be answered.
 
 ## What
 
-Two flags in `projectDish/Globals.cs` (GameSource — re-apply in your decompile):
+Two flags in `projectDish/Globals.cs` (GameSource: re-apply in your decompile):
 
 ```csharp
 public static readonly bool SkipStorageCheck = true;   // skip the checking-storage fade
@@ -22,13 +22,13 @@ public static readonly bool SkipNewSavePrompt = true;  // auto-create the profil
 
 Call sites (also GameSource):
 
-- `MainMenu.cs` — when `Globals.SkipStorageCheck`, jump `deviceLoadFrame` straight past the
+- `MainMenu.cs`: when `Globals.SkipStorageCheck`, jump `deviceLoadFrame` straight past the
   fade and land on the menu; when `SkipNewSavePrompt`, call
   `Globals.player.Read(coop: false, overwrite: true)` (the exact call the player's "yes"
   makes) instead of `DoMessageBox(24)`.
-- `Game1.cs` — the same `SkipNewSavePrompt` path in the boot message-box handling, and the
+- `Game1.cs`: the same `SkipNewSavePrompt` path in the boot message-box handling, and the
   boot storage gate becomes `(Globals.SkipStorageCheck || Globals.deviceLoadFrame >= 1f)`.
-- `MainMenu.cs` options list — the **SELECT STORAGE DEVICE** row is removed, and the rows
+- `MainMenu.cs` options list: the **SELECT STORAGE DEVICE** row is removed, and the rows
   after it are renumbered (RESET 6→5, BACK 7→6).
 
 Saves are unaffected: the same shim, the same container, and the same read/write path are

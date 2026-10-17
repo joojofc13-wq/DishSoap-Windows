@@ -1,4 +1,4 @@
-# Content Conversion — XNB v2 (XNA GS 3.0 / Xbox 360) → MonoGame Android
+# Content Conversion: XNB v2 (XNA GS 3.0 / Xbox 360) → MonoGame Android
 
 **Owner:** Content Pipeline Specialist (subagent)
 **Date:** 2026-10-02
@@ -10,7 +10,6 @@ This document separates **measured** results from **assumptions**. Every decode
 decision below was verified against either the decompiled XNA 3.0 framework (which is
 authoritative) or a rendered image.
 
----
 
 ## 0. TL;DR
 
@@ -22,18 +21,17 @@ authoritative) or a rendered image.
 | `EffectReader` | 25 skipped (owned by shader agent) |
 | texture surface formats | **Color(raw 32bpp) 45, DXT1 3, DXT5 77** (sums to 125) |
 | mip levels | **1** for every texture (no mip chains; level 0 == only level) |
-| output | `src/Dishwasher/Content/` — **128 PNGs**, 22 MB |
+| output | `src/Dishwasher/Content/`: **128 PNGs**, 22 MB |
 | tools | `tools/xnb_v2.py`, `tools/export_xnb_textures.py` |
 | manifest | `<dev-notes>/content-export-manifest.json` (per-file, sha256) |
 | reading strategy | **custom `ContentManager` + PNG + public `SpriteFont` ctor** (see §7) |
 
----
 
 ## 1. The XNB v2 reader
 
 Source: [`tools/xnb_v2.py`](../../tools/xnb_v2.py) (pure stdlib).
 
-### 1.1 Header — one correction to the earlier forensics
+### 1.1 Header: one correction to the earlier forensics
 
 `asset-formats.md` described a 1-byte `flags` field at offset 5. The decompiled XNA 3.0
 `ContentReader.ReadHeader()` shows the real v2 layout:
@@ -73,7 +71,7 @@ reason a naive XNB parser fails:
 2. **`List<char>` elements are UTF-8, variable length.**
    `CharReader` calls `BinaryReader.ReadChar()` and `ContentReader : BinaryReader`
    uses the default UTF-8 encoding, so `' '..'\u007F'` cost 1 byte and `'\u0080'..`
-   cost 2–3 bytes. A fixed 2-byte "UTF-16" read is wrong (this was the key to decoding
+   cost 2-3 bytes. A fixed 2-byte "UTF-16" read is wrong (this was the key to decoding
    the SpriteFonts).
 
 ### 1.3 Readers implemented
@@ -87,7 +85,6 @@ the header-only mode and **skipped**, not parsed. Any unknown reader raises
 `Int32 format, Int32 width, Int32 height, Int32 mipCount, per mip: Int32 dataSize + bytes`.
 Integers are **little-endian** (measured on every file).
 
----
 
 ## 2. Measured file counts
 
@@ -116,7 +113,6 @@ future multi-mip asset is flagged. Sample dimensions: `gfx/dish` 640×480 (raw),
 `gfx/sprites` 1024×1024 (DXT5), `gfx/maps/maps1` 1024×1024 (DXT5),
 `gfx/panels/panel1` 1040×213 (raw), `gfx/maps/back1` 512×512 (DXT1).
 
----
 
 ## 3. Export stats and output layout
 
@@ -145,19 +141,18 @@ src/Dishwasher/Content/
 
 Counts: **89 + 6 + 8 + 22 = 125 texture PNGs**, plus 3 `*_atlas.png` = **128 PNGs**
 (22 MB total). Verification: every exported PNG was reopened with Pillow and its size
-compared against the XNB header — **125/125 byte-exact dimensions, 0 failures**.
+compared against the XNB header: **125/125 byte-exact dimensions, 0 failures**.
 The manifest records per-file format, dimensions, mip count and a sha256.
 
 Cross-check against the game's code (`managed/decompiled/game/projectDish`): every one
 of the 38 `Texture2D` load sites (including the dynamic `gfx/head{n}`, `torso{n}`,
 `legs{n}`, `weapon{n}`, `maps/maps{n}`, `maps/back{n}`, `panels/panel{n}`, `credits/c{n}`)
-and both `SpriteFont` sites now resolves to an exported file — **0 misses**.
+and both `SpriteFont` sites now resolves to an exported file: **0 misses**.
 
 The 54 top-level PNGs (`Achievement*.png`, `XlastImages/`, icons) are dashboard/Xbox
 art; the game code contains **no** `.png` or `Texture2D.FromStream` reference, so they
 were not copied.
 
----
 
 ## 4. DXT endianness handling (measured + visually proven)
 
@@ -186,7 +181,7 @@ Why the index bytes are *not* swapped: the DXT colour-index and alpha-index fiel
 consumed as a linear **byte/bit stream** (pixel 0 = low 2 bits of byte 0), so byte order
 is already correct; only the 16-bit *values* (endpoints) need endianness conversion. We
 tested the alternative (byte-reversing the colour-index dword): it changes 18 026/262 144
-pixels on `head1` and 128 928 on `back1` but produces no cleaner result — the natural
+pixels on `head1` and 128 928 on `back1` but produces no cleaner result: the natural
 stream order is correct.
 
 Decoders implement the endpoints swap and leave alpha/index untouched:
@@ -196,11 +191,11 @@ Rendered proof (correct vs wrong) is saved:
 `<dev-notes>/proof/head1_dxt5_endpoints_compare.png` and
 `<dev-notes>/proof/dbp_raw_channelorder_compare.png`.
 
-### Raw 32bpp channel order (measured) — ⚠️ CORRECTED 2026-10-03
+### Raw 32bpp channel order (measured): ⚠️ CORRECTED 2026-10-03
 
 > **CORRECTION.** The order below is **wrong**. The Xbox 360 is **big-endian**, so
 > `D3DFMT_A8R8G8B8` (packed word `0xAARRGGBB`) is stored MSB-first as file bytes
-> **`A,R,G,B`** — byte 0 is the **alpha**. The `B,G,R,A` decode read the alpha byte as
+> **`A,R,G,B`**: byte 0 is the **alpha**. The `B,G,R,A` decode read the alpha byte as
 > blue, which produced the blue cast on the comic panels, the XNA splash (`dbp`) and
 > the control-guide art. The original text claimed `B,G,R,A` was proven by the dbp
 > splash ("periwinkle-blue with a green BUILD"); the real XNA Game Studio 3.0 splash
@@ -226,14 +221,13 @@ payload 64..96      : 01 01 00 00 00 00 01 00 00 00 01 00 00 01 00 00 00 00 00 0
 data @85, file=262229 = 85 + 262144   -> exact EOF
 ```
 
----
 
 ## 5. SpriteFont findings
 
 All 3 SpriteFont XNBs decode **exactly to EOF** with the reader (no trailing garbage).
 XNA Game Studio 3.0's `SpriteFontReader` (decompiled, authoritative) reads
 `texture, glyphs, cropping, charMap, lineSpacing, spacing, kerning` and has **no
-`defaultCharacter`** field — that was added in XNA 4.0. MonoGame's reader *does* read a
+`defaultCharacter`** field: that was added in XNA 4.0. MonoGame's reader *does* read a
 trailing `bool + char`; our sidecar therefore writes `"default_character": null`.
 
 | file | atlas | format | glyphs | kerning | lineSpacing | spacing | default |
@@ -243,12 +237,12 @@ trailing `bool + char`; our sidecar therefore writes `"default_character": null`
 | `gfx/SpriteFont1_CHT.xnb` | 2048×1024 | Color | 1118 | 1118 | 40 | 0.0 | none |
 
 Character coverage:
-* **Arials** — one contiguous run `U+0020–U+0100` (Latin-1 + controls), i.e. the ASCII
+* **Arials**: one contiguous run `U+0020-U+0100` (Latin-1 + controls), i.e. the ASCII
   font used for HUD text; `gfx/arial.xnb` (raw 512×256 Texture2D) is its *separate*
   bitmap atlas used by the game's custom text renderer, not this SpriteFont.
-* **SpriteFont1_JPN** — ASCII + Latin-1 + Cyrillic + kana (`U+3041–U+30FC`) + a
+* **SpriteFont1_JPN**: ASCII + Latin-1 + Cyrillic + kana (`U+3041-U+30FC`) + a
   selected set of ~350 kanji.
-* **SpriteFont1_CHT** — ASCII + Latin-1 + Cyrillic + a selected set of ~750 Traditional
+* **SpriteFont1_CHT**: ASCII + Latin-1 + Cyrillic + a selected set of ~750 Traditional
   Chinese hanzi + full-width punctuation (`U+FF01/0C/1A/1F`).
 
 The atlases were exported as `Content/gfx/<name>_atlas.png` and the per-glyph data as
@@ -265,20 +259,19 @@ would also change the glyph atlas. Instead:
 
 > **MonoGame 3.8.5.1 exposes a `public SpriteFont(...)` constructor**, so the runtime
 > `ContentManager` can rebuild the font straight from `_atlas.png` + `.spritefont.json`
-> with the exact original glyphs, cropping, char map, line spacing and kerning — no TTF,
+> with the exact original glyphs, cropping, char map, line spacing and kerning: no TTF,
 > no re-export, no reflection. (Verified by decompiling
 > `MonoGame.Framework.dll`: `SpriteFont.cs:55705`, ctor is `public`.)
 
 This is what the prototype in §7 / `content-integration.md` does.
 
----
 
-## 6. Runtime loading strategy — options evaluated
+## 6. Runtime loading strategy: options evaluated
 
-The game makes **59–61 `Content.Load<T>` calls** (`38 Texture2D`, `19 Effect`,
+The game makes **59-61 `Content.Load<T>` calls** (`38 Texture2D`, `19 Effect`,
 `2 SpriteFont`, `2 CharDef`) and originally set `Content.RootDirectory = "."`.
 
-### Option A — rebuild everything to MonoGame-native `.xnb` with MGCB
+### Option A: rebuild everything to MonoGame-native `.xnb` with MGCB
 * Textures: MGCB compiles each PNG into a v11 `.xnb`; `Load<Texture2D>` is unchanged.
 * **Blockers/gotchas (measured):**
   * The source art is **straight (non-premultiplied) alpha** and XNA 3.0
@@ -290,19 +283,19 @@ The game makes **59–61 `Content.Load<T>` calls** (`38 Texture2D`, `19 Effect`,
 * Pros: stock `ContentManager`, platform-optimised textures possible, single pipeline.
 * Cons: build step, alpha gotcha, size, still custom for fonts.
 
-### Option B — load PNGs directly at runtime (recommended)
+### Option B: load PNGs directly at runtime (recommended)
 * A `ContentManager` subclass overrides `Load<T>`: `Texture2D` → `Texture2D.FromStream`;
   `SpriteFont` → atlas + JSON via the public ctor; everything else → `base.Load<T>`
   (MGCB `.xnb`, i.e. shaders/CharDef).
 * **Discovered enabler:** MonoGame's stock `ContentManager` *already* falls back to
   `Content/<asset>.png` when the `.xnb` is missing
   (`ReadAsset` → `LoadTexture2DFromImageFile`). **But** it uses
-  `DefaultColorProcessors.PremultiplyAlpha` — wrong for this game's non-premultiplied
+  `DefaultColorProcessors.PremultiplyAlpha`: wrong for this game's non-premultiplied
   blending. The subclass exists to load with `Texture2D.FromStream` (straight alpha)
   instead.
 * Pros: no texture build, exact alpha semantics, 22 MB instead of ~126 MB, fast
   iteration, keeps every `Load<Texture2D>` site.
-* Cons: runtime decode cost (≈140 MB RGBA if all textures resident — fine for the
+* Cons: runtime decode cost (≈140 MB RGBA if all textures resident: fine for the
   Adreno 618 test device), custom cache/disposal, PNGs must be packaged as assets.
 
 **Recommendation: Option B for textures + SpriteFonts, MGCB (Option A) for `Effect`
@@ -330,14 +323,13 @@ the straight-alpha textures render wrong:
 the MGCB `.xnb` output).
 
 ### `CharDef` (2 sites) and Effects (19 sites)
-* `Content.Load<CharDef>("data/chars/...")` — there are **no** CharDef `.xnb`; the
+* `Content.Load<CharDef>("data/chars/...")`: there are **no** CharDef `.xnb`; the
   data lives in `data/chars/*.dqx` (proprietary; separate RE workstream). This needs a
   custom `ContentTypeReader` + pipeline (or the ported game's own `.dqx` reader), which
   is outside this task. Our loader falls through to `base.Load<T>` for it.
 * Effects fall through to `base.Load<Effect>` and consume the shader agent's MGCB
   output.
 
----
 
 ## 7. Deliverables and integration
 
@@ -346,11 +338,10 @@ the MGCB `.xnb` output).
 * Manifest: `<dev-notes>/content-export-manifest.json`
 * C# loading prototype + wiring guide: `<dev-notes>/content-integration.md`
   (reference copy `tools/csharp/DishwasherContentManager.cs`; it **compiles
-  clean** against MonoGame.Framework 3.8.5.1 — verified `Build succeeded, 0 errors`).
+  clean** against MonoGame.Framework 3.8.5.1: verified `Build succeeded, 0 errors`).
 * Content: `src/Dishwasher/Content/` (added additively; another agent is actively
   editing `Content/fx` and the project files, so no project file was modified).
 
----
 
 ## 8. What failed / not handled / assumptions
 
@@ -371,7 +362,6 @@ the MGCB `.xnb` output).
 * The three `SpriteFont`s are rebuilt at runtime in C#; that path was compile-tested
   but **not** run on-device (no MonoGame graphics device was driven in this task).
 
----
 
 ## 9. Reproduce / verify
 

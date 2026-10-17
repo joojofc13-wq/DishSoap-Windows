@@ -1,4 +1,4 @@
-# Comic colour cast — root cause, fix, verification
+# Comic colour cast: root cause, fix, verification
 
 **Date:** 2026-10-03
 **Scope:** decoder fix in `tools/xnb_v2.py`, `tools/export_xnb_textures.py` and
@@ -13,7 +13,6 @@ modified.
 **Status:** diagnosed, fixed, re-exported, rebuilt, and verified on device with
 before/after measurements. Menus verified.
 
----
 
 ## 0. TL;DR
 
@@ -29,10 +28,9 @@ Xbox-360 raw 32bpp `SurfaceFormat.Color` surface in the **wrong byte order**.
   draws the panel with `Color.White` and `BlendState.NonPremultiplied` and applies
   **no shader**; nothing tints the panel at runtime.
 * Fixed in the Python reference (`xnb_v2.py`) **and** the C# port used by the public
-  build (`Platform/Import/XnbV2.cs`) — the two are **byte-identical** on the raw path
+  build (`Platform/Import/XnbV2.cs`): the two are **byte-identical** on the raw path
   (SHA-256 cross-check below). Re-exported all textures and re-staged `Assets/gfx/**`.
 
----
 
 ## 1. Symptom and prior state
 
@@ -41,9 +39,8 @@ Xbox-360 raw 32bpp `SurfaceFormat.Color` surface in the **wrong byte order**.
 * Port: panel art strongly **blue/lavender**.
 * An earlier note recorded this as an unresolved residual and attributed it to the
   backdrop brightness / "source art genuinely contains blue-lavender tones". That
-  conclusion was wrong — see §3.
+  conclusion was wrong: see §3.
 
----
 
 ## 2. Ground truth for one panel texture
 
@@ -65,7 +62,7 @@ Across **every** raw `Color` texture, two independent facts pin the order:
 
 * `gfx/arial` (the game's custom text atlas) has the tuple `(0,255,255,255)` as its
   majority (103,775 px). Under `A,R,G,B` that is a **transparent white** background
-  (A=0) — correct. Under `B,G,R,A` it is an **opaque yellow** background — wrong.
+  (A=0): correct. Under `B,G,R,A` it is an **opaque yellow** background: wrong.
 * `gfx/text` and `gfx/heart` glyph tuples are `(255,209,209,209)`, `(255,155,155,155)`,
   i.e. `b0` = alpha and `b1=b2=b3` = grey. Under `A,R,G,B` these are grey glyphs with
   the correct alpha.
@@ -79,7 +76,7 @@ So byte 0 is the alpha; bytes 1..3 are R,G,B.
   (under `B,G,R,A` it is blue). "Red stays red" is confirmed by the red level-title
   banner in the same clip, which is red only if byte 1 is R.
 * **XNA "DREAM BUILD PLAY" splash** (`gfx/dbp.xnb`, raw `Color`): under `A,R,G,B` it
-  is the real XNA Game Studio splash — neutral DREAM/PLAY and an **orange BUILD**
+  is the real XNA Game Studio splash: neutral DREAM/PLAY and an **orange BUILD**
   (dominant distinct colour `(224,64,0)`) which only makes sense if byte 1 = R. Under
   `B,G,R,A` BUILD is blue.
 * **Control-guide art** (`gfx/controls.xnb`, raw `Color`): under `A,R,G,B` it is the
@@ -103,7 +100,6 @@ hashing the resulting RGBA8888 buffer:
 Byte-identical → the public build's on-device derivation matches the internal bundled
 PNGs.
 
----
 
 ## 3. Why the earlier BGRA conclusion was wrong
 
@@ -115,7 +111,6 @@ RGB565 endpoints are big-endian and the DXT5 alpha block is word-swapped. The **
 `Color` path was the single place that had been decoded little-endian**; the whole
 platform is big-endian, so `A,R,G,B` is the consistent answer.
 
----
 
 ## 4. Fix (files / sites)
 
@@ -130,11 +125,10 @@ platform is big-endian, so `A,R,G,B` is the consistent answer.
 The public build derives textures on-device through `Platform/Import/ContentImporter.cs`
 (`DecodeTexture`, changed) → `PngWriter` (RGBA, unchanged), so it inherits the fix.
 
-**Blast radius (verified by hash):** re-export changed exactly **48 PNGs** — the 45
+**Blast radius (verified by hash):** re-export changed exactly **48 PNGs**: the 45
 raw `Color` Texture2D plus the 3 SpriteFont atlases. All **80 DXT1/DXT5** PNGs are
 **byte-identical** (the DXT5 alpha fix is untouched).
 
----
 
 ## 5. Before / after measurements
 
@@ -150,7 +144,6 @@ every 2 px. `blueFrac` = fraction of pixels with `B > max(R,G) + 20`.
 Key result: the comic's blue-pixel fraction collapses **0.200 → 0.002**, matching the
 reference's **0.001**, and the panel's B−R now equals the reference (−13.0).
 
----
 
 ## 6. Public build inheritance and the re-import requirement
 
@@ -162,12 +155,11 @@ decompiling `DecodeTexture` from the built assembly, or by re-running the cross-
 **A device that already imported with the old decoder must re-import.** The importer
 skips derived content that already exists (it stamps `content.stamp` and does not
 overwrite), so the old, blue-decoded PNGs will persist after an in-place app update.
-To pick up the correction on such a device, re-import — either clear the app's derived
+To pick up the correction on such a device, re-import: either clear the app's derived
 content (settings → app storage, or reinstall) and re-run the first-run import, or
 otherwise force the importer to regenerate. The derived-content stamp path itself was
 not modified.
 
----
 
 ## 7. Menus and non-regression
 
@@ -181,7 +173,6 @@ not modified.
   sampler, landscape/rotation/immersive, widescreen, intro, autosave, Android
   Settings, FPS counter/limiter, LAN co-op, music/SFX.
 
----
 
 ## 8. Residual / follow-ups
 

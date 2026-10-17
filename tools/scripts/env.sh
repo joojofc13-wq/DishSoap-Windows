@@ -95,7 +95,7 @@ export ADB_SERIAL="${ADB_SERIAL:-}"
 
 # A directory holding your own cleaned, extracted game files (data/, gfx/,
 # sfx/, Resources/).  Used by the content tooling; point it at wherever you
-# unpacked your copy — it is never committed.
+# unpacked your copy: it is never committed.
 export DISHWASHER_ASSETS_DIR="${DISHWASHER_ASSETS_DIR:-$HOME/dishwasher-assets-clean}"
 
 # The Android target framework that works with this .NET 8 SDK + net8 API-34 workload.

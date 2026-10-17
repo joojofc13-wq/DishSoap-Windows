@@ -1,15 +1,14 @@
 # Proposed ReXGlue SDK changes for Android arm64
 
-**Status: PROPOSED — NOT APPLIED.** `<rexglue-sdk>` is owned by
+**Status: PROPOSED: NOT APPLIED.** `<rexglue-sdk>` is owned by
 another agent; nothing here has been written to it.
 
 Unified diffs are relative to the SDK root. Each patch lists a rationale and the
 audit finding it closes (see `notes/android-support-audit.md`). Patches are
 ordered so the tree can be configured and compiled incrementally.
 
----
 
-## Patch 01 — Guard desktop X11/Wayland in `src/ui/CMakeLists.txt`  (P0 #1)
+## Patch 01: Guard desktop X11/Wayland in `src/ui/CMakeLists.txt`  (P0 #1)
 
 **Rationale.** `if(UNIX AND NOT APPLE)` also matches Android. It hard-requires
 `x11-xcb` + `wayland-client` via pkg-config and compiles `surface_gnulinux.cpp`
@@ -52,12 +51,11 @@ surface source and only enable X11/Wayland on desktop Linux.
 ```
 
 Companion: add `src/ui/surface_android.cpp` (see Patch 03b). If you prefer not
-to add a .cpp, keep `REXUI_PLATFORM_SOURCES` empty for Android — the header is
+to add a .cpp, keep `REXUI_PLATFORM_SOURCES` empty for Android: the header is
 the only thing the presenter needs.
 
----
 
-## Patch 02 — Don't force SDL3 desktop backends on Android  (P1 #8)
+## Patch 02: Don't force SDL3 desktop backends on Android  (P1 #8)
 
 **Rationale.** `thirdparty/CMakeLists.txt:293-302` sets `SDL_X11`,
 `SDL_WAYLAND`, `SDL_ALSA`, `SDL_PULSEAUDIO`, `SDL_PIPEWIRE` to `ON` for any
@@ -77,9 +75,8 @@ SDL3 already has full Android support; leave the backend selection to SDL.
      set(SDL_ALSA              ON  CACHE BOOL "" FORCE)
 ```
 
----
 
-## Patch 03 — Add `include/rex/ui/surface_android.h`  (P0 #3)
+## Patch 03: Add `include/rex/ui/surface_android.h`  (P0 #3)
 
 **Rationale.** `src/ui/vulkan/vulkan_presenter.cpp:37` includes this header and
 `:800-810` constructs/uses `AndroidNativeWindowSurface`, but the file does not
@@ -139,7 +136,7 @@ exist. It mirrors `surface_mac.h`/`surface_win.h` using `ANativeWindow`.
 +}  // namespace rex
 ```
 
-### Patch 03b — Add `src/ui/surface_android.cpp` (only if CMake lists it)
+### Patch 03b: Add `src/ui/surface_android.cpp` (only if CMake lists it)
 
 `GetSizeImpl` above is inline, so a .cpp is optional. If Patch 01 lists
 `surface_android.cpp`, add:
@@ -154,9 +151,8 @@ exist. It mirrors `surface_mac.h`/`surface_win.h` using `ANativeWindow`.
 +#include <rex/ui/surface_android.h>
 ```
 
----
 
-## Patch 04 — Android branch in `src/ui/window_sdl.cpp`  (P0 #2)
+## Patch 04: Android branch in `src/ui/window_sdl.cpp`  (P0 #2)
 
 **Rationale.** The Android path currently falls into the `#else` X11/Wayland
 branch. Add an `ANativeWindow` branch for both includes, native-handle
@@ -231,9 +227,8 @@ retrieval, and surface creation. SDL3 exposes the window via
 changing it to `#elif REX_PLATFORM_GNU_LINUX` for symmetry with
 `include/rex/ui/vulkan/api.h:35`, so Android can never fall through to X11 again.
 
----
 
-## Patch 05 — Add `include/rex/main_android.h` (helpers referenced by core)  (P0 #4)
+## Patch 05: Add `include/rex/main_android.h` (helpers referenced by core)  (P0 #4)
 
 **Rationale.** `src/core/threading_posix.cpp:48` includes this header; it and
 `src/core/memory_posix.cpp:94` call `rex::GetAndroidApiLevel()`, and
@@ -279,9 +274,8 @@ and `SYS_gettid` (`<sys/syscall.h>`).
 +#endif  // REX_PLATFORM_ANDROID
 ```
 
----
 
-## Patch 06 — Implement the declared Android filesystem/system entry points  (P0 #5, P1 #10)
+## Patch 06: Implement the declared Android filesystem/system entry points  (P0 #5, P1 #10)
 
 **Rationale.** `include/rex/filesystem.h:129-134` and `include/rex/system.h:22-24`
 declare symbols that are never defined, while
@@ -459,9 +453,8 @@ Then register the new source in `src/core/CMakeLists.txt`:
          clock_posix.cpp
 ```
 
----
 
-## Patch 07 — Android app entry in `src/ui/windowed_app_main_sdl.cpp`  (P0 #7)
+## Patch 07: Android app entry in `src/ui/windowed_app_main_sdl.cpp`  (P0 #7)
 
 **Rationale.** On Android `XE_UI_WINDOWED_APPS_IN_LIBRARY` is 1
 (`include/rex/ui/windowed_app.h:27-30`), so `rex::ui::GetWindowedAppCreator()`
@@ -518,9 +511,8 @@ The port must (a) provide `#include <SDL3/SDL_main.h>` in its own entry TU, and
 (b) either register a single `REX_DEFINE_APP("dishwasher", ...)` app or set
 `REXGLUE_APP`. (`GetCreator` lives in `windowed_app.h:153`.)
 
----
 
-## Patch 08 — Load the GPU plugin by soname on Android  (P1 #9)
+## Patch 08: Load the GPU plugin by soname on Android  (P1 #9)
 
 **Rationale.** `src/system/gpu_plugin_loader.cpp:48` builds the plugin path from
 `GetExecutableFolder()` (`/proc/self/exe`) and `:57` `dlopen`s it by absolute
@@ -563,9 +555,8 @@ path. On Android the plugin lives inside the APK
 (`src/system/gpu_plugin_loader.cpp:34-45`), and the OS `dlopen` search path
 includes the app's `lib/arm64-v8a` directory.
 
----
 
-## Patch 09 — Android-aware executable/user directories in `src/core/filesystem_posix.cpp`  (P1 #10)
+## Patch 09: Android-aware executable/user directories in `src/core/filesystem_posix.cpp`  (P1 #10)
 
 **Rationale.** `/proc/self/exe` is `/system/bin/app_process*` on Android, and
 `XDG_DATA_HOME`/`HOME`/`getpwuid_r` do not point at the app's private storage.
@@ -617,9 +608,8 @@ fallback is not meaningful, so this patch relies on the context.)
 > (`context.getFilesDir()` / `getExternalFilesDir()`), which `ReXApp` already
 > supports (`src/ui/rex_app.cpp:108-137`).
 
----
 
-## Patch 10 — Make the root platform name explicit for Android  (P2 #11)
+## Patch 10: Make the root platform name explicit for Android  (P2 #11)
 
 **Rationale.** Purely cosmetic/correctness: Android currently reports as
 `linux-arm64` (`CMakeLists.txt:161-169`); output paths and logs should say
@@ -643,9 +633,8 @@ fallback is not meaningful, so this patch relies on the context.)
          set(REX_PLATFORM "linux-amd64")
 ```
 
----
 
-## Patch 11 — Fiber backend for Bionic (largest work item)  (P0 #6)
+## Patch 11: Fiber backend for Bionic (largest work item)  (P0 #6)
 
 **Rationale.** `src/core/fiber_posix.cpp` uses `getcontext`/`makecontext`/
 `swapcontext`, which do not exist anywhere in the NDK (verified: absent from the
@@ -657,7 +646,7 @@ There is no single-line fix. Proposed minimal approach: keep the POSIX backend
 for desktop and add an aarch64 `src/core/fiber_android.cpp` that switches stacks
 with a tiny `setjmp`-based trampoline (setjmp only stores the callee-saved
 registers; the custom stack is installed by switching `sp` in a `naked`-style
-shim). Sketch of the shape (not complete — needs validation on-device):
+shim). Sketch of the shape (not complete: needs validation on-device):
 
 ```diff
 --- a/src/core/CMakeLists.txt
@@ -719,7 +708,6 @@ Alternatives considered and rejected:
 - Switch the guest scheduler from fibers to real OS threads (much larger
   behavioral change; the runtime relies on cooperative switching semantics).
 
----
 
 ## Patch ordering / expected result
 

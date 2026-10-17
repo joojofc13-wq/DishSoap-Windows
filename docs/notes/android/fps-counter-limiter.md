@@ -11,11 +11,10 @@ notes tree. Read-only trees (`managed/decompiled`, `assets-clean`, `port`,
 
 **One line:** the Android **SHOW FPS COUNTER** setting is added (default **off**, persisted in
 `android_settings.sav`, old saves load as off), draws a real sliding-window frame rate using
-the game's own comic font, and **FPS LOCK now genuinely caps the presented frame rate** —
-measured on-device **30 → 29–31**, **60 → 59–60**, **120 → 60**, **Unlimited → 61** — while
+the game's own comic font, and **FPS LOCK now genuinely caps the presented frame rate**,
+measured on-device **30 → 29-31**, **60 → 59-60**, **120 → 60**, **Unlimited → 61**: while
 `playSeconds` advances at the same wall-clock rate at 30 as at 60 (capped, not slow-motion).
 
----
 
 ## 0. TL;DR
 
@@ -27,19 +26,18 @@ measured on-device **30 → 29–31**, **60 → 59–60**, **120 → 60**, **Unl
 | counter visibility | main menu + all in-game screens (gameplay, pause, shop, comic strip). **Not** on the loader / fatal-error screens (see §3.3) |
 | limiter | `Platform/FrameLimiter.cs` → `IsFixedTimeStep=true; TargetElapsedTime=1/fps` for 30/60/120, `IsFixedTimeStep=false` for Unlimited |
 | applied | startup (`Game1.Initialize`) **and immediately** on menu change (`AndroidSettingsActivate`) |
-| game-speed assumption | game delta **is** loop-derived; MonoGame default was already fixed 60 Hz — no hard-coded 1/60 constant, so retargeting preserves speed |
+| game-speed assumption | game delta **is** loop-derived; MonoGame default was already fixed 60 Hz: no hard-coded 1/60 constant, so retargeting preserves speed |
 | measured 30 | **FPS 30/31** (settings screen), **FPS 29/30** (gameplay) |
 | measured 60 | **FPS 60** (settings), **FPS 59/60** (gameplay / comic) |
 | measured 120 | **FPS 60** (vsync/panel cap) |
 | measured Unlimited | **FPS 61** (vsync/panel cap) |
 | game speed @60 | ΔplaySeconds **66** over Δwall **68.4 s** (0.965) |
-| game speed @30 | ΔplaySeconds **93** over Δwall **96.0 s** (0.969) — *same rate*, not half |
+| game speed @30 | ΔplaySeconds **93** over Δwall **96.0 s** (0.969): *same rate*, not half |
 | old-save compat | XML test + **on-device**: old file (`version`+`fpsLock`, **no** `<showFps>`) loaded as `FPS LOCK: 30`, `SHOW FPS COUNTER: OFF` |
 | build | `Build succeeded. 0 Error(s)` (5 pre-existing warnings); APK 181,435,960 B, md5 `d15ad1a49faf9e530af0161085a7448c` |
 | device saves | backed up, then **restored exactly** (profile/settings md5 match; `android_settings.sav` removed as before) |
 | non-regression | `BlendState.AlphaBlend` = 0; `RenderDiagnostics.Enabled=false`, `InputDiagnostics.Enabled=false`; only 5 source files touched |
 
----
 
 ## 1. Delta-time / game-loop investigation (file:line)
 
@@ -96,9 +94,8 @@ cap, but presentation is still vsync-bound by the EGL swap. On this **60 Hz** A5
 presented frame (`ElapsedGameTime` split correctly), so game speed is right but presentation
 stays ~60. On a 120 Hz device the same code would present at 120.
 
----
 
-## 2. FPS LOCK — the limiter
+## 2. FPS LOCK: the limiter
 
 ### 2.1 New file `Platform/FrameLimiter.cs`
 
@@ -145,9 +142,8 @@ Log lines (logcat tag `Dishwasher`), observed on device:
 [fpslimit] unlimited (IsFixedTimeStep=false, target=8.33ms)
 ```
 
----
 
-## 3. SHOW FPS COUNTER — setting, row, counter
+## 3. SHOW FPS COUNTER: setting, row, counter
 
 ### 3.1 Storage (`Platform/AndroidSettings.cs`)
 
@@ -171,8 +167,8 @@ upper-cases them. A toggles and persists on change.
   `Stopwatch` timestamp; the value shown is `(framesInWindow-1) / span` over a **0.75 s**
   trailing window (a real measured presented-frames-per-second, post-limiter and post-vsync).
 * It draws with the game's own text path `Text.drawCText(int x,int y,string,
-  SpriteBatch,Texture2D comicTex,bool)` — the same comic font the HUD exp/score readouts use
-  — at the **bottom-left** (`x = border.X+12`, `y = screenSize.Y-border.Y-44`), with a 2 px
+  SpriteBatch,Texture2D comicTex,bool)`: the same comic font the HUD exp/score readouts use
+ : at the **bottom-left** (`x = border.X+12`, `y = screenSize.Y-border.Y-44`), with a 2 px
   drop shadow. The HUD occupies top-left (health) and top-right (score/combo); bottom-right
   holds buttons. Verified by screenshot that the counter clears the health bar and score
   (`13/13c`, `17`).
@@ -184,14 +180,13 @@ upper-cases them. A toggles and persists on change.
 Hook: `Dishwasher.PerfOverlay.Frame(sprite, text, comicTex);` at `Game1.cs:4422`
 (marked `// PORT (fps overlay)`).
 
----
 
 ## 4. Old-save compatibility
 
 `XmlSerializer` leaves a **missing** `bool` element at its default (`false`), ignores unknown
 elements, and the new field is written going forward.
 
-Standalone test (`notes/proof/perf/xmltest/`, exact new struct) — output:
+Standalone test (`notes/proof/perf/xmltest/`, exact new struct): output:
 
 ```
 [Shape A: old file, no <showFps>]  fpsLock=1 showFps=False
@@ -216,7 +211,6 @@ was placed at `android_settings.sav`. The settings screen showed **`FPS LOCK: 30
 `[fpslimit] fixed 30 fps`. After toggling the counter on and changing the lock, the file was
 rewritten with `<showFps>true</showFps>` and survived a cold restart (`14-…`).
 
----
 
 ## 5. Measured FPS on device (screenshots in `<dev-notes>/proof/perf/`)
 
@@ -235,13 +229,12 @@ rewritten with `<showFps>true</showFps>` and survived a cold restart (`14-…`).
 | **60** | Android Settings, counter OFF | `18-show-fps-off-settings.png` | `SHOW FPS COUNTER: OFF` |
 
 The counter is a real measurement, not a report of the setting: 120 reads **60** and
-Unlimited reads **61**, because both are vsync-bound to the 60 Hz panel — exactly the
+Unlimited reads **61**, because both are vsync-bound to the 60 Hz panel: exactly the
 independent behaviour expected if the number comes from presented frames.
 
 **Limitation:** 120 fps is not reachable on this 60 Hz panel (and "Unlimited" is likewise
 capped at ~60 by EGL vsync). On a 120 Hz device the same code would present 120.
 
----
 
 ## 6. Game speed is unaffected (capped, not slowed)
 
@@ -257,7 +250,7 @@ Measured with the game's own `playSeconds` counter (incremented in `Game1.Update
 Both settings advance `playSeconds` at essentially **1.0 per wall-clock second** (the ~3 %
 shortfall is the activity-resume latency before the game loop restarts, present in both
 runs). At 30 fps, if the limiter were slowing the game down, ΔplaySeconds would have been
-about **47**, not 93. Therefore **30 fps is choppy at correct speed — capped, not slowed.**
+about **47**, not 93. Therefore **30 fps is choppy at correct speed: capped, not slowed.**
 This matches the code path: fixed step sets `ElapsedGameTime = TargetElapsedTime`, so each
 update advances `1/30 s` and the world covers the same ground per second.
 
@@ -270,7 +263,6 @@ Logcat evidence:
 10-02 20:58:23.852  I Dishwasher: [autosave] saved on OnPause playSeconds=1777   # 30 fps: +93
 ```
 
----
 
 ## 7. Build / device
 
@@ -303,7 +295,6 @@ dotnet build -f net8.0-android \
 
   The test-created `android_settings.sav` was removed (it did not exist before this task).
 
----
 
 ## 8. Non-regression
 
@@ -322,7 +313,6 @@ dotnet build -f net8.0-android \
   autosave, or the pristine original OPTIONS screen (`Settings.cs`/`MainText.cs` untouched).
 * `SynchronizeWithVerticalRetrace` (`Game1.cs:375`) was **not** modified.
 
----
 
 ## 9. Limitations
 
@@ -334,10 +324,9 @@ dotnet build -f net8.0-android \
    shown.
 3. The counter is **not drawn** on the loader / fatal-error screens because those paths
    return before the shared `Game1.Draw` tail (they are transient/system screens).
-4. The measured integer can jitter by ±1 frame/s (29–31 at 30; 59–61 at 60) because it is a
+4. The measured integer can jitter by ±1 frame/s (29-31 at 30; 59-61 at 60) because it is a
    genuine sliding-window average, not a fixed report.
 
----
 
 ## 10. Revert instructions
 
@@ -346,7 +335,7 @@ dotnet build -f net8.0-android \
    (`PORT FRAME LIMITER` at `:401-405` and `PORT (fps overlay)` at `:4419-4423`).
 3. Revert `Platform/AndroidSettingsMenu.cs` to the two-row screen and remove the
    `Dishwasher.FrameLimiter.Apply()` call; remove `showFps` from
-   `Platform/AndroidSettings.cs` (or leave it — it is backward/forward compatible).
+   `Platform/AndroidSettings.cs` (or leave it: it is backward/forward compatible).
 4. Optionally delete `files/Documents/TheDishwasher/android_settings.sav` on device.
 5. Rebuild / reinstall. Nothing else is affected.
 

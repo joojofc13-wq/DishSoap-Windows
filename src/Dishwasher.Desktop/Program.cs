@@ -17,7 +17,7 @@ namespace Dishwasher
                     int index = Array.IndexOf(args, name);
                     if (index < 0) return null;
                     if (index + 1 == args.Length || args[index + 1].StartsWith("--"))
-                        throw new ArgumentException("Falta valor para " + name);
+                        throw new ArgumentException("Missing value for " + name);
                     return args[index + 1];
                 }
                 DesktopPaths.Initialize(option("--data-root"));
@@ -31,7 +31,7 @@ namespace Dishwasher
                         DesktopLocale.PreviewLanguage = System.Globalization.CultureInfo.GetCultureInfo(culture).TwoLetterISOLanguageName;
                     Application.EnableVisualStyles();
                     using var launcher = new ConfigurationWindow();
-                    if (!launcher.CheckControls()) throw new InvalidDataException("Iniciador incompleto.");
+                    if (!launcher.CheckControls()) throw new InvalidDataException("Incomplete settings editor.");
                     launcher.SavePreview(preview);
                     Console.WriteLine("Launcher controls/preview PASS"); return 0;
                 }
@@ -45,21 +45,21 @@ namespace Dishwasher
                 }
                 if (Array.IndexOf(args, "--help") >= 0)
                 {
-                    Console.WriteLine("DishSoap Windows\n--import <ZIP/pacote/pasta>  --data-root <pasta>  --ffmpeg <exe>\n" +
+                    Console.WriteLine("DishSoap Windows\n--import <ZIP/package/folder>  --data-root <folder>  --ffmpeg <exe>\n" +
                         "--diagnose  --graphics-check  --setup  --help\n" +
-                        "Sem GameSource, este executável é somente o instalador/diagnóstico.");
+                        "Without GameSource, this executable only provides setup and diagnostics.");
                     return 0;
                 }
                 if (Array.IndexOf(args, "--diagnose") >= 0)
                 {
 #if DISHWASHER_GAME
-                    Console.WriteLine("GameSource: incluído (execução ainda requer recursos e validação).");
+                    Console.WriteLine("GameSource: included (running still requires assets and validation).");
 #else
-                    Console.WriteLine("GameSource: ausente — este build NÃO executa o jogo.");
+                    Console.WriteLine("GameSource: missing: this build DOES NOT run the game.");
 #endif
-                    Console.WriteLine("Recursos: " + (DesktopImporter.TryGetActive(out var active) ? active : "não importados"));
+                    Console.WriteLine("Assets: " + (DesktopImporter.TryGetActive(out var active) ? active : "not imported"));
                     Console.WriteLine("FFmpeg XMA2/Vorbis: " + NativeXma.Probe());
-                    Console.WriteLine("Dados: " + DesktopPaths.Root + "\nLog: " + Log.FilePath);
+                    Console.WriteLine("Data: " + DesktopPaths.Root + "\nLog: " + Log.FilePath);
                     return 0;
                 }
                 if (Array.IndexOf(args, "--graphics-check") >= 0)
@@ -89,15 +89,15 @@ namespace Dishwasher
                 DesktopGame.CaptureDirectory = option("--capture-dir");
                 return DesktopBootstrap.Run();
 #else
-                Console.Error.WriteLine("Recursos instalados. Este build contém somente o instalador. " +
-                    "Compile Dishwasher.exe com seu GameSource real; veja docs/WINDOWS_BUILD.md.");
+                Console.Error.WriteLine("Assets installed. This build only contains the setup tool. " +
+                    "Build Dishwasher.exe with your real GameSource; see docs/WINDOWS_BUILD.md.");
                 return 3;
 #endif
             }
             catch (Exception ex)
             {
                 Log.Exception("fatal", ex);
-                Console.Error.WriteLine("Falha: " + ex.Message + "\nLog: " + Log.FilePath);
+                Console.Error.WriteLine("Failure: " + ex.Message + "\nLog: " + Log.FilePath);
                 return 1;
             }
         }

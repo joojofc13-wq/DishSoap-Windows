@@ -11,7 +11,6 @@ The exported content itself is already in place: `Content/gfx/**` (125 texture P
 `Content/gfx/*_atlas.png` and `Content/gfx/*.spritefont.json` (3 fonts). See
 `<dev-workspace>/android/notes/content-conversion.md` for the decode details.
 
----
 
 ## 1. What this buys you
 
@@ -175,7 +174,7 @@ public sealed class DishwasherContentManager : ContentManager
    `Content/gfx/text.png`; `Load<SpriteFont>("gfx/SpriteFont1_JPN")` hits the atlas +
    sidecar.
 
-3. **Translate the blend modes** (XNA 3.0 → MonoGame) — required, independently of the
+3. **Translate the blend modes** (XNA 3.0 → MonoGame): required, independently of the
    loader, or straight-alpha art renders wrong:
 
    | XNA 3.0 | MonoGame |
@@ -185,7 +184,7 @@ public sealed class DishwasherContentManager : ContentManager
    | `SpriteBlendMode.None` | `BlendState.Opaque` |
 
    XNA 3.0 source: `SpriteBatch.cs:626` sets `SourceBlend=SourceAlpha,
-   DestinationBlend=InverseSourceAlpha` for `AlphaBlend` — i.e. non-premultiplied.
+   DestinationBlend=InverseSourceAlpha` for `AlphaBlend`: i.e. non-premultiplied.
 
 4. **Do not set `PremultiplyAlpha` on textures.** The PNGs are straight alpha and match
    the original 360 art.
@@ -216,14 +215,14 @@ Atlas PNGs: `Arials` 256×256, `SpriteFont1_JPN` 1024×2048, `SpriteFont1_CHT` 2
   bytecode is unusable and was skipped by the exporter.
 * **`CharDef`** (`data/chars/*`): no `.xnb` exist; the data is `data/chars/*.dqx`
   (proprietary). Needs a custom `ContentTypeReader`/pipeline (or the ported game's own
-  reader) — separate workstream. It falls through to `base.Load<T>` for now.
+  reader): separate workstream. It falls through to `base.Load<T>` for now.
 
 ## 7. Testing status
 
 * C# prototype: **compiles** against `MonoGame.Framework 3.8.5.1` (net8.0 reference
   from the MGCB tool package): `Build succeeded, 0 errors`.
 * Exported PNGs: 125/125 dimension-verified; fonts 3/3 decode to EOF.
-* **Not yet run on a device** — no MonoGame `GraphicsDevice` was driven in this task.
+* **Not yet run on a device**: no MonoGame `GraphicsDevice` was driven in this task.
   First on-device check should (a) load `gfx/sprites`, `gfx/dish`, `gfx/panels/panel1`
   and confirm alpha edges, and (b) load `gfx/SpriteFont1_JPN` and draw a mixed
   ASCII/kana string.

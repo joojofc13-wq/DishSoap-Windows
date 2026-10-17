@@ -1,4 +1,4 @@
-# xma-decoder — on-device Xbox 360 XMA decode for the public build
+# xma-decoder: on-device Xbox 360 XMA decode for the public build
 
 This directory builds the small native library the **public** build uses to decode
 the owner's original `sfx/*.xwb` XMA audio into playable WAV/OGG.  The internal
@@ -18,8 +18,8 @@ build does not ship or use it.
 `libdishaudio.so` exports:
 
 * `dw_version()`
-* `dw_xma_to_file(data,size,ch,rate,num_samples,out_path,fmt)` — `fmt 0` PCM16 WAV, `fmt 1` OGG Vorbis
-* `dw_pcm16be_to_wav(data,size,ch,rate,out_path)` — X360 big-endian PCM waves
+* `dw_xma_to_file(data,size,ch,rate,num_samples,out_path,fmt)`: `fmt 0` PCM16 WAV, `fmt 1` OGG Vorbis
+* `dw_pcm16be_to_wav(data,size,ch,rate,out_path)`: X360 big-endian PCM waves
 * `dw_free(ptr)`
 
 The C# side (`Platform/Audio/NativeXma.cs`) P/Invokes these; the container parsing
@@ -35,7 +35,7 @@ The C# side (`Platform/Audio/NativeXma.cs`) P/Invokes these; the container parsi
 * The FFmpeg source is available from <https://ffmpeg.org/releases/ffmpeg-7.1.tar.xz>
   and a copy is kept next to this README; the full command to rebuild the exact
   binaries is `build-xma-decoder.sh`.
-* libvorbis/libogg are BSD-3-Clause (permissive), statically linked — see
+* libvorbis/libogg are BSD-3-Clause (permissive), statically linked: see
   <https://www.xiph.org/licenses/>.
 
 ## Rebuild

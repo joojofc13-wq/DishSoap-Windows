@@ -1,16 +1,15 @@
-# The Dishwasher: Dead Samurai — Android (ReXGlue) Packaging Plan
+# The Dishwasher: Dead Samurai: Android (ReXGlue) Packaging Plan
 
 Toolchain / packaging notes for the Xbox 360 → Android ARM64 recompilation port.
 This document is the hand-off contract between the Android packaging workstream
 and the native (ReXGlue port) workstream.
 
----
 
 ## 1. Host toolchain (installed & verified)
 
 | Component | Version | Path |
 |---|---|---|
-| OS | Ubuntu 26.04.1 LTS x86_64 | — |
+| OS | Ubuntu 26.04.1 LTS x86_64 |: |
 | JDK | OpenJDK **21.0.12.1** (Temurin/Ubuntu, headless + keytool) | `/usr/bin/java`, `/usr/lib/jvm/java-21-openjdk-amd64` |
 | Android SDK root | cmdline-tools 12.0 | `$ANDROID_SDK_DIR` |
 | sdkmanager | 12.0 | `$ANDROID_SDK_DIR/cmdline-tools/latest/bin/sdkmanager` |
@@ -20,7 +19,7 @@ and the native (ReXGlue port) workstream.
 | aapt2 | 2.19-11948202 | `.../build-tools/35.0.0/aapt2` |
 | apksigner | 0.9 | `.../build-tools/35.0.0/apksigner` |
 | d8 | 8.6.2-dev | `.../build-tools/35.0.0/d8` |
-| zipalign | — | `.../build-tools/35.0.0/zipalign` |
+| zipalign |: | `.../build-tools/35.0.0/zipalign` |
 | NDK | **r28b** (28.1.13356709) | `$HOME/android-ndk-r28b` |
 | CMake (SDK) | 3.22.1 | `$ANDROID_SDK_DIR/cmake/3.22.1` |
 | Gradle (wrapper) | **8.12** | downloaded by `./gradlew` |
@@ -32,10 +31,9 @@ but ... version 4 was encountered`) because the pre-existing cmdline-tools 12.0
 predates android-35 metadata. It does not affect installs or builds.
 
 ### Built-in-but-unused
-* `$ANDROID_SDK_DIR/jdk17` (Temurin 17.0.20.1) — retained as fallback if
+* `$ANDROID_SDK_DIR/jdk17` (Temurin 17.0.20.1): retained as fallback if
   AGP/Gradle ever rejects JDK 21. Not needed today (JDK 21 builds fine).
 
----
 
 ## 2. Target device (queried via adb)
 
@@ -58,7 +56,6 @@ GPU (dumpsys SurfaceFlinger): Qualcomm Adreno 618, OpenGL ES 3.2
   android-35 and runs on the API 34 device.
 * Device ABI is a hard match for the recompiled native library.
 
----
 
 ## 3. Signing keystore
 
@@ -78,7 +75,6 @@ Debug builds are signed by the standard Android debug key.
 > These credentials are development-only and must be replaced before any real
 > distribution.
 
----
 
 ## 4. Project layout
 
@@ -114,7 +110,7 @@ Debug builds are signed by the standard Android debug key.
 ```
 
 Derived from SDL3's `android-project` template
-(`rexglue-sdk/thirdparty/sdl3/android-project`), copied — never modified in place.
+(`rexglue-sdk/thirdparty/sdl3/android-project`), copied: never modified in place.
 
 ### App configuration
 * applicationId / namespace: **`com.recomp.dishwasher`**
@@ -127,7 +123,6 @@ Derived from SDL3's `android-project` template
 * `android:extractNativeLibs="false"` (libs loaded directly from APK)
 * SDL3 Java glue kept in `org.libsdl.app`; only the activity lives in our package.
 
----
 
 ## 5. Build / sign / install / log commands
 
@@ -172,7 +167,6 @@ $SDK/build-tools/35.0.0/aapt2 dump badging app/build/outputs/apk/debug/app-debug
 $ADB logcat -s ReXGlue:V Dishwasher:V AndroidRuntime:E DEBUG:V
 ```
 
----
 
 ## 6. Native library integration (contract for the port workstream)
 
@@ -206,7 +200,6 @@ for Android 26, built by NDK r28b`.
 > (ship `libSDL3.so`, keep `"SDL3"` in `getLibraries()`) or **static**
 > (ship only `libdishwasher.so`, drop `"SDL3"` from `getLibraries()`).
 
----
 
 ## 7. Game data / asset strategy
 
@@ -215,9 +208,9 @@ Source data (extracted Xbox 360 package):
 * Contains one ~**125,685,760 byte (≈120 MiB)** file named
   `BF12F19032010E0A01D658FDBD4D49505327249858` (the title's `default.xex`
   payload; rename/alias to `default.xex` if the VFS expects that name).
-* Nothing is pushed to the device yet — per workstream instructions.
+* Nothing is pushed to the device yet: per workstream instructions.
 
-### Option 1 — Push to app-private external files dir (RECOMMENDED)
+### Option 1: Push to app-private external files dir (RECOMMENDED)
 ```bash
 scripts/push-game-data.sh            # -> /sdcard/Android/data/com.recomp.dishwasher/files/game/
 scripts/push-game-data.sh --dry-run  # preview
@@ -239,7 +232,7 @@ The ReXGlue VFS maps `.../files/game/` as the game's root (or `game/` prefix).
 * Data is not covered by APK signature / Play install; needs a bootstrap/copy
   step for real distribution.
 
-### Option 2 — Embed as APK assets (`AAssetManager`)
+### Option 2: Embed as APK assets (`AAssetManager`)
 ```bash
 scripts/extract-to-assets.sh         # copies into app/src/main/assets/game/
 ./build-apk.sh --release
@@ -268,12 +261,11 @@ with the ReXGlue VFS rooted at
 `/sdcard/Android/data/com.recomp.dishwasher/files/game/`.
 If/when a Play-ready build is needed, move the data behind **Play Asset
 Delivery** (install-time or fast-follow asset packs) so the base APK stays
-small while assets are still distributed through the store — the on-disk layout
+small while assets are still distributed through the store: the on-disk layout
 is the same as Option 1, so no VFS change is required.
 Option 2 is kept only as a fallback and is explicitly **not** the default
 (`app/src/main/assets/` ships empty).
 
----
 
 ## 8. Validation performed
 
@@ -288,7 +280,7 @@ Option 2 is kept only as a fallback and is explicitly **not** the default
 | `./build-apk.sh --native --clean` (stub .so) | **BUILD SUCCESSFUL**, `app-debug.apk` ~1.37 MB, ARM64 `libdishwasher.so` ✓ |
 | APK badging | `com.recomp.dishwasher`, minSdk 26, targetSdk 35, native-code `arm64-v8a`, landscape ✓ |
 | `adb install -r app-debug.apk` | **Success** (installed package verified, then uninstalled) ✓ |
-| Device data push | NOT performed (intentional) — scripts ready ✓ |
+| Device data push | NOT performed (intentional): scripts ready ✓ |
 
 ## 9. Open items / next steps
 1. Native workstream delivers `libdishwasher.so` (+ `libSDL3.so` if dynamic) →

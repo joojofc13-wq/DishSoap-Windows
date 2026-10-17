@@ -1,4 +1,4 @@
-# Rendering diagnosis — black gameplay + unreadable menu
+# Rendering diagnosis: black gameplay + unreadable menu
 
 **Author:** Rendering Diagnostics Specialist (subagent)
 **Date:** 2026-10-02
@@ -10,7 +10,6 @@
 The root cause was a **single systemic shader bug**, not the render-target or
 sampler theory. Evidence is in `<dev-notes>/proof/render/`.
 
----
 
 ## 0. TL;DR
 
@@ -30,10 +29,9 @@ sampler theory. Evidence is in `<dev-notes>/proof/render/`.
 >
 > **Fix:** give every effect a `float4x4 MatrixTransform` and
 > `o.Position = mul(input.Position, MatrixTransform)`, and set it from the
-> current viewport in the one hook every XNA-3.0 effect block calls —
+> current viewport in the one hook every XNA-3.0 effect block calls,
 > `Effect.Begin()` (see `Platform/Shim_EffectCompat.cs`).
 
----
 
 ## 1. Render pipeline map (`GameSource/projectDish/`, READ-ONLY original at `managed/decompiled/game/projectDish/`)
 
@@ -41,47 +39,47 @@ sampler theory. Evidence is in `<dev-notes>/proof/render/`.
 * Render targets created in `Game1.LoadContent` / the loader:
   `rTarg[2]` (screen), `lenseTarg`, `refractTarg` (screen), `bloomTarg` (128²),
   `fadeTarg` (128²), `waterTarg` (256²), `bloodTarg`, `camSplatTarg` (½),
-  `mapTarg` (½), `greenMapTarg` (720²) — `Game1.cs:577–582`, `Game1.cs:870–877`.
+  `mapTarg` (½), `greenMapTarg` (720²): `Game1.cs:577-582`, `Game1.cs:870-877`.
   All are `SurfaceFormat.Color`, `DepthFormat.None`, `RenderTargetUsage.DiscardContents`,
   `MultiSampleCount = PresentationParameters.MultiSampleCount` and
   `graphics.PreferMultiSampling = false` (`Game1.cs:357`) ⇒ **msaa = 0** (verified at runtime).
-* Effects loaded at `Game1.cs:551–571` (`fx/poster`, `fx/lense`, `fx/grad`,
+* Effects loaded at `Game1.cs:551-571` (`fx/poster`, `fx/lense`, `fx/grad`,
   `fx/blur`, `fx/bloom`, `fx/redhaze`, `fx/fade`, `fx/water`, `fx/trainblur`,
   `fx/trainover`, `fx/bubble`, `fx/burnblur`, `fx/comicblur`, `fx/color`,
   `fx/trail`, `fx/newblood`, `fx/camsplat`, `fx/ink`, `fx/wallblood`).
 
-### 1.2 `Draw()` sequence — `Game1.Draw`, `Game1.cs:3539`
+### 1.2 `Draw()` sequence: `Game1.Draw`, `Game1.cs:3539`
 `gameMode` selects the branch; `curRTarg` is reset to 0 at the end of every
-frame (`Game1.cs:4264–4265`, so it is always 0).
+frame (`Game1.cs:4264-4265`, so it is always 0).
 
-**Menu (`case 1`, `Game1.cs:3667–3842`)**
-1. `SetRenderTarget(lenseTarg)`, clear White, `mainMenu.DrawOptions` (:3670–3683)
-2. `SetRenderTarget(refractTarg)`, clear White, `mainMenu.drawBlobs` (:3684–3686)
-3. `SetRenderTarget(rTarg[0])`, clear beige, `dishTex` + rings (:3687–3702)
-4. `inkEffect` over **lenseTarg** → `rTarg` (AlphaBlend, colour `(0.5,0,0,1)`) (:3719–3727)
-5. `mainMenu.Draw` (text) → `rTarg` (:3729–3743)
-6. `SetRenderTarget(null)`, plain `sprite.Draw(rTarg[0])` (Opaque) (:3744–3761)
-7. `inkEffect` over **refractTarg** → backbuffer (colour `(0.5,0,0,1)`) (:3764–3784)
+**Menu (`case 1`, `Game1.cs:3667-3842`)**
+1. `SetRenderTarget(lenseTarg)`, clear White, `mainMenu.DrawOptions` (:3670-3683)
+2. `SetRenderTarget(refractTarg)`, clear White, `mainMenu.drawBlobs` (:3684-3686)
+3. `SetRenderTarget(rTarg[0])`, clear beige, `dishTex` + rings (:3687-3702)
+4. `inkEffect` over **lenseTarg** → `rTarg` (AlphaBlend, colour `(0.5,0,0,1)`) (:3719-3727)
+5. `mainMenu.Draw` (text) → `rTarg` (:3729-3743)
+6. `SetRenderTarget(null)`, plain `sprite.Draw(rTarg[0])` (Opaque) (:3744-3761)
+7. `inkEffect` over **refractTarg** → backbuffer (colour `(0.5,0,0,1)`) (:3764-3784)
 8. cursor / frame / buttons / text overlays (plain)
 
-**Gameplay (`case 0`, `Game1.cs:3844–4180`)**
-1. `greenMapTarg` → `mapTarg` (wall blood), `map.Draw` → `mapTarg` (:3847–3868)
+**Gameplay (`case 0`, `Game1.cs:3844-4180`)**
+1. `greenMapTarg` → `mapTarg` (wall blood), `map.Draw` → `mapTarg` (:3847-3868)
 2. `SetRenderTarget(rTarg[0])`: `map.Draw`, wallBlood composite of `mapTarg`,
-   characters, trails, sprite layers, fore-effects (:3869–3967)
+   characters, trails, sprite layers, fore-effects (:3869-3967)
 3. `camSplatTarg` (via `GameRender.drawCamSplats`, `GameRender.cs:74`) (:3970)
-4. `bloodTarg` when `bloodTargMode` (:3982–3987)
-5. `bloomTarg` ← `drawBloom()` (effect pass) (:3988–3990)
-6. `fadeTarg` ← `drawFade(0.015,0)` (effect pass) (:3991–3993)
-7. `refractTarg` ← `GameRender.drawRefract` (`GameRender.cs:132`) (:3994–3997)
-8. `waterTarg` ← `drawWater()` when water (:3998–4003)
+4. `bloodTarg` when `bloodTargMode` (:3982-3987)
+5. `bloomTarg` ← `drawBloom()` (effect pass) (:3988-3990)
+6. `fadeTarg` ← `drawFade(0.015,0)` (effect pass) (:3991-3993)
+7. `refractTarg` ← `GameRender.drawRefract` (`GameRender.cs:132`) (:3994-3997)
+8. `waterTarg` ← `drawWater()` when water (:3998-4003)
 9. `SetRenderTarget(rTarg[1])`; `drawMinimalTarg` (`GameRender.cs:81`) **or**
-   `drawLenseTarg` (`GameRender.cs:91`) — the latter binds `GraphicsDevice.Textures[1]`
-   (:4005–4013)
-10. additive bloom/fade/foreLights + `drawFadeOverLay` (`GameRender.cs:52`) (:4014–4098)
-11. `SetRenderTarget(null)`; final **`gradEffect`** full-screen composite (:4099–4133)
-12. cam-splat overlay, pickups, overlay, HUD (plain/`camSplatEffect`) (:4140–4179)
+   `drawLenseTarg` (`GameRender.cs:91`): the latter binds `GraphicsDevice.Textures[1]`
+   (:4005-4013)
+10. additive bloom/fade/foreLights + `drawFadeOverLay` (`GameRender.cs:52`) (:4014-4098)
+11. `SetRenderTarget(null)`; final **`gradEffect`** full-screen composite (:4099-4133)
+12. cam-splat overlay, pickups, overlay, HUD (plain/`camSplatEffect`) (:4140-4179)
 
-**Comic strip (`case 2`, `Game1.cs:4182–4192`)** `rTarg[0]` ← `strip.Draw` with
+**Comic strip (`case 2`, `Game1.cs:4182-4192`)** `rTarg[0]` ← `strip.Draw` with
 `comicBlurEffect`, then plain blit to backbuffer.
 
 ### 1.3 The one place the old code used `GraphicsDevice.Textures[1]`
@@ -91,7 +89,6 @@ binds s1 via `GraphicsDevice.Textures[1]` (old port line 97), not via
 `Effect.Parameters`. MGFX sampler reflection (parsed from `lense.xnb`):
 `ps_s0`→textureSlot 0 (`refractSampler`), `ps_s1`→textureSlot 1 (`backBuffer`).
 
----
 
 ## 2. Experiments (all behind `Dishwasher.RenderDiagnostics`, toggled live with
 the **volume keys**; the game ignores them). Modes and results:
@@ -110,7 +107,7 @@ the **volume keys**; the game ignores them). Modes and results:
 | 10/11/12 | menu: skip refract / lense / both `ink` overlays | isolates the menu overlay tint |
 | 90 | lense with the **original** bind order (before Apply) | **dark purple / mostly black** vs mode 0's full scene → A/B evidence for fix #2 (see `93` vs `94`) |
 
-### 2.1 Measured readbacks (mode 9, pre-`MatrixTransform` build — the decisive data)
+### 2.1 Measured readbacks (mode 9, pre-`MatrixTransform` build: the decisive data)
 ```
 rt rTarg[cur]   1280x720 msaa=0 center=(139,136,132,255)   <- scene present
 rt rTarg[other] 1280x720 msaa=0 center=(5,5,4,255)          <- lense output ~black
@@ -126,17 +123,16 @@ custom-effect passes.
 
 **The smoking gun:** MonoGame's own `SpriteEffect` projects pixel-space vertices:
 `Matrix.CreateOrthographicOffCenter(0, viewport.Width, viewport.Height, 0, 0, -1)`
-(decompiled `SpriteEffect.cs:61`), and `posFixup` (decompiled `GraphicsDevice.cs:2493–2516`)
+(decompiled `SpriteEffect.cs:61`), and `posFixup` (decompiled `GraphicsDevice.cs:2493-2516`)
 is only the D3D→GL Y-flip / half-texel offset, **not** a viewport scale. The
 re-authored `.fx` VS did `o.Position = input.Position;` with no projection, so a
 full-screen quad at pixel coords 0…1280 was interpreted as clip space and was
 off-screen. Pixel-only effects + MonoGame's SpriteBatch need the projection.
 
----
 
 ## 3. Root causes
 
-### RC1 (primary) — pass-through VS missing the SpriteBatch ortho transform
+### RC1 (primary): pass-through VS missing the SpriteBatch ortho transform
 * **Where:** every re-authored `Content/fx/*.fx` `MainVS`.
 * **Effect:** all 19 post-process passes (`lense`, `grad`, `bloom`, `fade`,
   `wallblood`, `ink`, `brawblood`, `camsplat`, …) rendered nothing. Gameplay's
@@ -145,7 +141,7 @@ off-screen. Pixel-only effects + MonoGame's SpriteBatch need the projection.
   mode 16 (`46-mode16-rt-to-rt.png`) showing the intact world.
 * **Fix:** see §4.
 
-### RC2 — `GraphicsDevice.Textures[1]` clobbered by `EffectPass.Apply()`
+### RC2: `GraphicsDevice.Textures[1]` clobbered by `EffectPass.Apply()`
 `EffectPass.Apply()` calls `SetShaderSamplers`, which does
 `graphicsDevice.Textures[samplerInfo.textureSlot] = effect.Parameters[sampler].Data as Texture`.
 For a combined `sampler2D backBuffer`, `Data` is not a `Texture`, so it writes
@@ -154,24 +150,23 @@ For a combined `sampler2D backBuffer`, `Data` is not a `Texture`, so it writes
 black. Fixed by binding s1 **after** `Apply()` (mode 90 keeps the old order for
 A/B). This is required for `lense` to see the scene.
 
-### RC3 (contributing, not the black cause) — `drawMinimalTarg`/RT chain exonerated
+### RC3 (contributing, not the black cause): `drawMinimalTarg`/RT chain exonerated
 Not a bug; recorded here because the earlier hypothesis (render-target / viewport /
 MSAA) was disproved by modes 1/3/16 and `msaa=0` readbacks.
 
----
 
 ## 4. Fixes applied
 
-1. **`Platform/Shim_EffectCompat.cs`** — `Effect.Begin()` now sets the effect's
+1. **`Platform/Shim_EffectCompat.cs`**: `Effect.Begin()` now sets the effect's
    `MatrixTransform` parameter to `Matrix.CreateOrthographicOffCenter(0,
    Viewport.Width, Viewport.Height, 0, 0, -1)`, matching MonoGame's `SpriteEffect`.
    This is the single hook every XNA-3.0 `effect.Begin()…Pass.Begin()…` block uses,
    so no game call site changed.
-2. **`Content/fx/*.fx` (19 runtime effects)** — added
+2. **`Content/fx/*.fx` (19 runtime effects)**: added
    `float4x4 MatrixTransform;` and `o.Position = mul(input.Position, MatrixTransform);`.
    Originals preserved at
    `<dev-notes>/shaders/pre-matrixtransform-fx/` (byte-for-byte copies).
-3. **`GameSource/projectDish/GameRender.cs`** — `drawLenseTarg` binds
+3. **`GameSource/projectDish/GameRender.cs`**: `drawLenseTarg` binds
    `GraphicsDevice.Textures[1]` **after** `effectPass.Begin()` (RC2).
 4. Recompiled all 19 for Android: `mgcb Content.mgcb /platform:Android
    /outputDir:bin/Android` → `Build 21 succeeded, 0 failed`; staged
@@ -180,7 +175,6 @@ MSAA) was disproved by modes 1/3/16 and `msaa=0` readbacks.
    volume-key hook in `Activity1.cs`, and mode switches in `Game1.cs` /
    `GameRender.cs` (all marked `TEMP RENDER DIAGNOSTICS`).
 
----
 
 ## 5. Before / after evidence (`<dev-notes>/proof/render/`)
 
@@ -192,15 +186,14 @@ MSAA) was disproved by modes 1/3/16 and `msaa=0` readbacks.
 | proof: post-lense | `48-mode2-postlense-alive.png` (near-black) | `66-new-mode2.png` (scene) |
 | proof: minimal copy | `47-mode3-minimal-alive.png` | `67-new-mode3.png` |
 | proof: lense bind order (same level) | `93-mode90-oldbindorder.png` (dark purple) | `94-mode0-fixed-samelevel.png` (full scene) |
-| readback | — | §2.1 (mode 9 logcat) |
+| readback |: | §2.1 (mode 9 logcat) |
 
 **What is now visible in gameplay:** the Foghorn Café diner interior (walls,
 tables, neon, the player character), plus the full HUD (health bar, score,
-money, comic banners) — the same level that was previously a pure-black screen.
+money, comic banners): the same level that was previously a pure-black screen.
 **In the menu:** the "PRESS A TO START" and main-menu item text is now legible
 (white/green with outline) instead of the ghosted/dim pre-fix rendering.
 
----
 
 ## 6. Remaining rendering issues (ranked by impact)
 
@@ -221,7 +214,7 @@ money, comic banners) — the same level that was previously a pure-black screen
    expose a `Texture2D`+`SamplerState` pair and set it via
    `Effect.Parameters[...].SetValue(...)`, which `SetShaderSamplers` would then
    honour.
-3. **Menu background composition (medium).** Modes 10–12 (`70–73`) show the
+3. **Menu background composition (medium).** Modes 10-12 (`70-73`) show the
    green wash originates in the `ink`/`refract`/`lense` overlays; verifying the
    intended menu art requires an original capture.
 4. **`MSAA`/`DiscardContents`** were checked and are not contributing
@@ -229,7 +222,6 @@ money, comic banners) — the same level that was previously a pure-black screen
 5. `DrawFailDie` / `DrawLoader` / credits paths were not re-verified end-to-end,
    but they use the same fixed effect set.
 
----
 
 ## 7. Reproduce
 

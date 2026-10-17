@@ -10,7 +10,7 @@ namespace Dishwasher
     {
         public static int Run()
         {
-            if (!DesktopImporter.TryGetActive(out string root)) throw new InvalidOperationException("Importe seus recursos primeiro.");
+            if (!DesktopImporter.TryGetActive(out string root)) throw new InvalidOperationException("Import your assets first.");
             PublicBuild.ContentRoot = root;
             System.IO.Directory.SetCurrentDirectory(root);
             var settings = DesktopSettings.Load();
@@ -25,7 +25,7 @@ namespace Dishwasher
             settings.NativeResolution = false; settings.Width = 1280; settings.Height = 720;
             settings.Save();
             var manager = game.Services.GetService(typeof(IGraphicsDeviceManager)) as GraphicsDeviceManager
-                ?? throw new InvalidOperationException("Game1 não registrou GraphicsDeviceManager.");
+                ?? throw new InvalidOperationException("Game1 did not register GraphicsDeviceManager.");
             manager.PreferredBackBufferWidth = 1280;
             manager.PreferredBackBufferHeight = 720;
             manager.SynchronizeWithVerticalRetrace = settings.VSync;

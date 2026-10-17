@@ -1,61 +1,81 @@
 # DishSoap Windows
 
-A Windows x64 port of **The Dishwasher: Dead Samurai**, with a builder for your own copy and a separate settings editor.
+Windows x64 port of The Dishwasher: Dead Samurai. Build the game from your own copy, then run it with original or AI-upscaled textures.
 
-This repository contains the port's code, tools, rewritten shaders, and documentation. **It does not include the original game, decompiled game logic, textures, audio, maps, saves, or a ready-to-play game executable.** You must supply your own legitimate copy.
+## Get started
 
-## Build your copy
+1. Download `DishSoap-Builder-v0.1.0-win-x64.zip` from [Releases](https://github.com/joojofc13-wq/DishSoap-Windows/releases).
+2. Extract the entire ZIP to a writable folder.
+3. Open `DishSoap.Builder.exe`.
+4. Select your legitimate game copy and a destination folder. The builder creates a new game subfolder inside it.
+5. Wait for the six build stages to finish. The builder shows a live log, reports completion and opens the output folder.
 
-1. Download this repository using **Code → Download ZIP** and extract it to a writable folder.
-2. Open **Compilar-meu-jogo.cmd**.
-3. Select your local copy: an XBLA package, ZIP archive, or extracted folder.
-4. Choose a destination folder. The builder creates its own subfolder, so the selected folder does not need to be empty.
-5. Follow the build stages and log. When the build finishes, a notification appears and the game folder opens automatically.
+The output includes `Dishwasher.exe` and `DishSoap.Configurator.exe`. Open the configurator to save your preferences. Open `Dishwasher.exe` to play with those settings.
 
-The output folder contains:
+If you downloaded the repository source instead of the release, open `Build-My-Game.bat`. It starts the same builder through Windows PowerShell.
 
-- **Dishwasher.exe**, which launches the game directly using your saved preferences.
-- **DishSoap.Configurator.exe**, which saves preferences through a standard Windows interface without launching the game.
+You need Windows x64, internet access for initial tool setup, your own game copy and a Vulkan-compatible GPU for AI texture preparation. The release includes the builder's .NET runtime. The .NET SDK and other build tools are downloaded separately when needed. No Android SDK or administrator installation is required.
 
-The builder downloads .NET 8, Python, FFmpeg, and Real-ESRGAN from their providers when needed. Initial preparation requires internet access; preparing upscaled textures requires a Vulkan-compatible GPU. No Android SDK, emulator, or administrator privileges are required.
-
-[Builder guide](LEIA-ME-COMPILADOR.md) · [Manual build instructions](docs/WINDOWS_BUILD.md)
-
-The additional guides linked below are currently in Portuguese.
+[Builder guide](BUILDER_GUIDE.md) | [Manual build](docs/WINDOWS_BUILD.md) | [Release details](docs/RELEASE_NOTES.md)
 
 ## Features
 
-- Fixed **720p** output, downsampled from a higher-resolution internal canvas.
-- **Original** or **Upscaled** textures, with restored backgrounds and preserved original colors and masks.
-- Windowed or fullscreen display, FPS limit, VSync, frame counter, and motion smoothing.
-- A 60 Hz simulation independent of the rendering frame rate.
-- Settings editor and builder in Portuguese, English, or Spanish, based on the Windows region.
-- A local player profile, keyboard/controller support, and saves with atomic writes and backup recovery.
+- Fixed 1280 x 720 output, downsampled from a 1920 x 1080 internal canvas.
+- Original or Upscaled textures, including a separate pass for backgrounds.
+- Windowed or fullscreen display, VSync and an optional FPS counter.
+- FPS limits of 60, 90, 120, 144, 165, 180, 240 and 360.
+- Original game simulation at 60 Hz, with optional visual motion interpolation.
+- Keyboard and controller input, a local player profile and save backup recovery.
+- A separate Windows settings editor. The builder, settings editor and Windows tools use English regardless of region.
 
-Preferences are stored in `%LOCALAPPDATA%\DishSoapWindows\Config\desktop.json`; saves are stored in `%LOCALAPPDATA%\DishSoapWindows\Saves`.
+Settings are stored in `%LOCALAPPDATA%\DishSoapWindows\Config\desktop.json`. Saves are stored in `%LOCALAPPDATA%\DishSoapWindows\Saves`.
 
-[Settings and rendering](docs/HD_LAUNCHER.md) · [Color fixes and builder progress](docs/UI_COLOR_FIX.md)
+## AI upscaling
 
-## Status and limitations
+The Upscaled option uses Real-ESRGAN AI models. It is generated locally from the textures in your own copy; no upscaled game artwork is included in this repository or the builder download.
 
-The game has been built and played locally. The full campaign, every stage, co-op, and long-term stability have not been validated. A 180 FPS limit is a preference, not a performance guarantee for every machine or stage. Shader and texture tests do not establish visual fidelity for every effect.
+The current pipeline prepares 128 texture sheets at 2x size: 121 art sheets use the AnimeVideo-v3 model, while seven font sheets use bicubic scaling. Eight background sheets receive an additional Real-ESRGAN x4plus pass at 4x, then are reduced to 2x. Original alpha and channel relationships are preserved to keep transparency and bloom masks intact. Processing happens before playing, with no neural inference during gameplay.
 
-[Verified status and limitations](docs/WINDOWS_PORT_STATUS.md)
+AI can change small details. Choose Original in the configurator if you prefer the original texture treatment. Upscaled textures do not turn the fixed 720p output into native 1080p output.
 
-## Project structure
+[Rendering details](docs/HD_LAUNCHER.md) | [Color and progress fixes](docs/UI_COLOR_FIX.md)
 
-- `src/Dishwasher.Desktop`: Windows adaptation, importer, settings, and rendering.
-- `src/DishSoap.Configurator`: standalone settings editor.
-- `src/Dishwasher`: shared components and rewritten shaders from the base project.
-- `tools/windows`: extraction, local-copy preparation, building, upscaling, and verification tools.
-- `docs`: Windows documentation and historical notes from the base project.
+## Authorship and reused code
 
-The private `GameSource` folder is generated locally from the copy supplied by the user. It and the `work`, `dist`, and `.local-tools` directories are excluded from Git. Publish only the project sources; do not add your game copy, imported data, or builds containing recompiled game logic.
+This Windows port is developed by [joojofc13-wq](https://github.com/joojofc13-wq). Most of the Windows-specific implementation was developed for this project: the own-copy builder, configurator, desktop host, input and audio integration, save handling, rendering and timing adapters, and AI texture workflow.
 
-## Credits and license
+The port also uses code from [Hdmaniak/DishSoap](https://github.com/Hdmaniak/DishSoap), the original Android port. The reused or adapted parts include:
 
-This work is based on **[Hdmaniak/DishSoap](https://github.com/Hdmaniak/DishSoap)**, originally an Android port. Windows support and its builder use components from that project. The preserved Android notes are historical references, not instructions for this Windows build.
+- STFS/LIVE package reading, import sources, import manifest and content import infrastructure.
+- XNB texture and font readers and PNG output. The Windows port adds the DXT index-order and BC3 palette fixes.
+- XWB/XSB audio bank and cue readers, the audio importer and `XactShim`.
+- `DishwasherContentManager`, adapted here for desktop texture packs.
+- XNA compatibility shims for gamer services, networking and effects.
+- Rewritten shaders and the reference extraction, audio and shader tools. Windows also adds a redhaze variant and scene-edge filtering.
 
-The project's original code is covered by the [MIT license, within the scope described in LICENSE](LICENSE). Dependencies and third-party code retain their own licenses: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+The LZX decoder is separately credited to Xenia Manager. The game logic is generated from the user's game copy; it is not original port code and is not published here. Licenses and notices from reused components remain in the repository.
 
-The Dishwasher: Dead Samurai and its assets belong to their respective rights holders. This project is not affiliated with Ska Studios, Microsoft, or Xbox.
+## Status
+
+The game has been built and played locally. The full campaign, all stages, co-op and long sessions have not been validated. Selecting 180 FPS sets a cap; performance depends on the scene, hardware, VSync and monitor. The local graphics tests cover specific shader and texture regressions, not every frame of the campaign.
+
+[Validation and limitations](docs/WINDOWS_PORT_STATUS.md)
+
+## Source layout
+
+| Path | Contents |
+| --- | --- |
+| `src/DishSoap.Builder` | Compiled Windows entry point for the builder |
+| `src/Dishwasher.Desktop` | Desktop runtime, input, settings and rendering |
+| `src/DishSoap.Configurator` | Standalone settings editor |
+| `src/Dishwasher` | Shared components and shaders from the Android project |
+| `tools/windows` | Preparation, compilation, AI upscaling and verification |
+| `docs` | Windows guides and historical upstream notes |
+
+`GameSource`, `work`, `dist` and `.local-tools` are local generated directories excluded from Git. The repository and builder release contain no original game package, decompiled game logic, imported artwork, audio, maps, saves or ready-to-play game executable.
+
+## License
+
+Project code is covered by the [MIT license within the scope stated in LICENSE](LICENSE). Dependencies and reused code retain their own licenses; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+The Dishwasher: Dead Samurai belongs to its respective rights holders. This project is not affiliated with Ska Studios, Microsoft or Xbox.

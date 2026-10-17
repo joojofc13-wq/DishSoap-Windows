@@ -1,4 +1,4 @@
-# Dishwasher MonoGame/Android port — build notes
+# Dishwasher MonoGame/Android port: build notes
 
 This project builds the decompiled `projectDish` game against MonoGame 3.8.5.1 for
 `net8.0-android`. Sources are in `GameSource/` (copied from
@@ -52,16 +52,16 @@ single-player path references `Globals.netPlay`/`Globals.leader`/`Achievements`
 in ~300+ places, plus `Gamer`/`Guide`/`SignedInGamer` in UI flow. They now compile
 against local shims in `Platform/`:
 
-* `Shim_GamerServices.cs` — one hardcoded signed-in local gamer ("Player",
+* `Shim_GamerServices.cs`: one hardcoded signed-in local gamer ("Player",
   `PlayerIndex.One`); achievements/leaderboards/presence are no-ops.
-* `Shim_Net.cs` — real `PacketReader`/`PacketWriter`; `NetworkSession` create/
+* `Shim_Net.cs`: real `PacketReader`/`PacketWriter`; `NetworkSession` create/
   find/join throw `NotSupportedException`; leaderboards return empty results.
-* `Shim_Storage.cs` — `StorageDevice`/`StorageContainer` mapped to the app
+* `Shim_Storage.cs`: `StorageDevice`/`StorageContainer` mapped to the app
   private directory; `StorageContainer.TitleLocation` provided.
-* `Shim_EffectCompat.cs` — `Effect.Begin/End`, `EffectPass.Begin/End` extensions
+* `Shim_EffectCompat.cs`: `Effect.Begin/End`, `EffectPass.Begin/End` extensions
   (`Begin` → `Apply()`), so existing effect blocks compile until shaders are
   re-authored.
-* `AndroidContentBootstrap.cs` — extracts APK assets into
+* `AndroidContentBootstrap.cs`: extracts APK assets into
   `files/content` and sets the process CWD there so the game's relative
   `File.Open("data/…")`/`StreamReader` calls work on Android.
 
@@ -82,11 +82,10 @@ System.IO.DirectoryNotFoundException: Could not find a part of the path
 relative path now resolves under the extracted-content root), but no raw
 `.zdx/.dqx/.dgx` or texture data is packaged yet. This is owned by the
 asset-conversion workstream. Remaining graphics work: XNB v2 → MonoGame
-conversion and the 19–25 shader re-authoring.
+conversion and the 19-25 shader re-authoring.
 
----
 
-## Raw-data packaging + boot iteration (2026-10-02) — see `../../android/notes/boot-iteration.md`
+## Raw-data packaging + boot iteration (2026-10-02): see `../../android/notes/boot-iteration.md`
 
 Raw data is now packaged and the boot is verified on device `<device-serial>`.
 
@@ -103,10 +102,10 @@ Raw data is now packaged and the boot is verified on device `<device-serial>`.
   catch (phase number + exception), and `FatalErrorDie`. Previously loader failures
   were swallowed by the no-op `Guide` shim.
 * **Boot result:** passes `MainMenu..ctor` (was the `levels.zdx` crash), `Initialize`,
-  `LoadContent` (`gfx/xbla`), and loader phases 0–3; stops at **phase 4** on
-  `Content.Load<Effect>("fx/poster")` — expected, no `fx/*.xnb` exist yet.
+  `LoadContent` (`gfx/xbla`), and loader phases 0-3; stops at **phase 4** on
+  `Content.Load<Effect>("fx/poster")`: expected, no `fx/*.xnb` exist yet.
 * **Verified one-past-the-shader-wall:** with effects temporarily skipped, phases
-  0–18 all pass and the loader stops at **phase 19** on
+  0-18 all pass and the loader stops at **phase 19** on
   `Sound.Initialize()` → `AudioEngine("sfx/sfxproj.xgs")`.
 * **APK:** `bin/Debug/net8.0-android/com.recomp.dishwasher-Signed.apk`, 135.7 MB,
   installs and launches.
@@ -118,20 +117,18 @@ Note: changed `GameSource/` files are logging-only; `Shim_Storage`, `Log`,
 `AndroidContentBootstrap`, and `Activity1` are in `Platform/`. No shader/audio code
 was authored.
 
----
 
-## Boot config — landscape lock + intro cut (2026-10-02)
+## Boot config: landscape lock + intro cut (2026-10-02)
 
 `Activity1.cs` now locks `ScreenOrientation.Landscape` (merged manifest emits
 `android:screenOrientation="landscape"`) and hides the system bars. A single
 revertable switch `Globals.SkipIntro` (`GameSource/projectDish/Globals.cs:28`,
 default `true`) skips the boot logo carousel and the `Intro`/comic strip and
-lands in the main menu. Measured time-to-interactive is unchanged (~23–24 s)
+lands in the main menu. Measured time-to-interactive is unchanged (~23-24 s)
 because the ~20 s content decode dominates; the logo gate was coincident with
 it. Full details, screenshots and revert steps:
 `android/notes/boot-config.md`.
 
----
 
 ## FPS counter + working FPS LOCK (2026-10-02)
 
@@ -139,7 +136,7 @@ The Android Settings menu gained **SHOW FPS COUNTER** (persisted `showFps`, defa
 off; real ~0.75 s sliding-window presented FPS drawn bottom-left with the game's
 comic font), and **FPS LOCK** now genuinely caps presentation
 (`IsFixedTimeStep`/`TargetElapsedTime` via `Platform/FrameLimiter.cs`, applied at
-startup and on change). Measured on device: 30→29–31, 60→59–60, 120→60,
+startup and on change). Measured on device: 30→29-31, 60→59-60, 120→60,
 Unlimited→61 (EGL vsync caps at the 60 Hz panel); `playSeconds` advances at the
 same wall-clock rate at 30 as at 60, so it is capped, not slow-motion. Old
 `android_settings.sav` files without `<showFps>` load as off. New files:

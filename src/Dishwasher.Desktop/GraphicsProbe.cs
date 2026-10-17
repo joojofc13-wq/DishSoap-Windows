@@ -23,7 +23,7 @@ namespace Dishwasher
         public GraphicsProbe()
         {
             _graphics = new GraphicsDeviceManager(this) { PreferredBackBufferWidth = 320, PreferredBackBufferHeight = 180 };
-            Window.Title = "DishSoap — diagnóstico DesktopGL (não é o jogo)";
+            Window.Title = "DishSoap: DesktopGL diagnostics (not the game)";
             Content.RootDirectory = AppContext.BaseDirectory;
         }
         protected override void LoadContent()
@@ -53,7 +53,7 @@ namespace Dishwasher
                     using var shaderBatch = new SpriteBatch(GraphicsDevice);
                     Effect effect = Content.Load<Effect>("fx/" + name);
                     if (effect.Parameters["MatrixTransform"] == null && name != "Sprite" && name != "SpriteShadow")
-                        throw new InvalidDataException("MatrixTransform ausente");
+                        throw new InvalidDataException("Missing MatrixTransform");
                     GraphicsDevice.SetRenderTarget(target);
                     GraphicsDevice.Clear(Color.Black);
                     effect.Begin();
@@ -110,12 +110,12 @@ namespace Dishwasher
             DesktopSceneFilter.Dispose();
             DesktopPresentation.Dispose();
             Failed += HdGraphicsChecks.Run(GraphicsDevice, Services, TextureAuditRoot);
-            Log.Info("[graphics] Falhas=" + Failed + "; teste não valida composição visual do jogo.");
+            Log.Info("[graphics] Failures=" + Failed + "; this test does not validate the visual composition of the game.");
             if (Benchmark && Failed == 0)
             {
                 IsFixedTimeStep = false;
                 _graphics.SynchronizeWithVerticalRetrace = false; _graphics.ApplyChanges();
-                Window.Title = "DishSoap — teste técnico 180 FPS (sem partida ou comandos)";
+                Window.Title = "DishSoap: technical 180 FPS test (no gameplay or input)";
                 _benchmarkPixel = new Texture2D(GraphicsDevice, 1, 1); _benchmarkPixel.SetData(new[] { Color.White });
                 _benchmarkBatch = new DesktopSpriteBatch(GraphicsDevice);
                 DesktopPresentation.Initialize(GraphicsDevice);

@@ -313,7 +313,7 @@ def mark_silhouette(img, S):
     alpha_composite(img, dots, m)
     d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=PAPER + (255,),
               width=int(S * 0.016))
-    # standing blade silhouette (our own abstract mark — no figure likeness)
+    # standing blade silhouette (our own abstract mark: no figure likeness)
     tip = (cx, S * 0.105)
     d.polygon([tip, (cx + S * 0.072, S * 0.600), (cx - S * 0.072, S * 0.600)],
               fill=INK + (255,))

@@ -7,7 +7,7 @@ site (not shipped) is listed below.
 
 The main-menu EXIT row (the game's `"return to arcade"` row, relabelled **EXIT**) mapped to
 `Exit()`. MonoGame's Android platform implements `Game.Exit()` as
-`MoveTaskToBack(true)` — it only sends the task to the background. Because `Activity1` is
+`MoveTaskToBack(true)`: it only sends the task to the background. Because `Activity1` is
 `LaunchMode.SingleInstance` with `AlwaysRetainTaskState`, relaunching returned to that same
 live task: the **stale "already loaded" screen** instead of a cold start.
 
@@ -15,9 +15,9 @@ live task: the **stale "already loaded" screen** instead of a cold start.
 
 `Platform/PortExit.cs::Quit()`:
 
-1. `SaveAutosave.Save("Exit")` — persists through the game's own save routines
+1. `SaveAutosave.Save("Exit")`: persists through the game's own save routines
    (`Player.Write()` / `Settings.Write()`), synchronously.
-2. `AndroidRumble.StopAll()` — never leave a motor held.
+2. `AndroidRumble.StopAll()`: never leave a motor held.
 3. `FinishAndRemoveTask()` (API ≥ 21; plain `Finish()` below), then `Process.KillProcess`,
    on the UI thread, so the task cannot be resumed from a cached state.
 

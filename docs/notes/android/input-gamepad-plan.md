@@ -1,4 +1,4 @@
-# Input / Gamepad Plan — SDL3 -> XInput on Android ARM64
+# Input / Gamepad Plan: SDL3 -> XInput on Android ARM64
 
 Target: **The Dishwasher: Dead Samurai** (Xbox 360, ReXGlue recompilation) on
 `aarch64-linux-android`, min API 26.
@@ -18,13 +18,12 @@ integration and exact event->state path, (3) the Android SDL3 backend, and
 > `SDL_main` / in-library app-creator entry points (its P0 #7), which this
 > document addresses in §3.4 and G1/G11.
 
----
 
 ## 0. TL;DR
 
 * The guest reads/writes a byte-exact `X_INPUT_GAMEPAD` / `X_INPUT_STATE`
   (`include/rex/input/input.h:61-76`). Nothing about that struct changes on
-  Android — the whole job is to keep feeding the existing `SDLInputDriver`
+  Android: the whole job is to keep feeding the existing `SDLInputDriver`
   from Android's input stack.
 * The existing `SDLInputDriver` (`src/input/sdl/sdl_input_driver.cpp`) is
   platform-neutral and **already compiles on Android** (`src/input/CMakeLists.txt:32-36`).
@@ -42,7 +41,6 @@ integration and exact event->state path, (3) the Android SDL3 backend, and
   (`SDLControllerManager.java:244-249`). XInput vibration is "hold until
   changed", so a held rumble must be periodically re-armed (patch included).
 
----
 
 ## 1. SDK input model (host)
 
@@ -67,14 +65,14 @@ swap on access.
 
 `src/kernel/xam/xam_input.cpp`:
 
-* `XamInputGetCapabilities_entry` — `xam_input.cpp:50`
-* `XamInputGetCapabilitiesEx_entry` — `xam_input.cpp:72`
-* `XamInputGetState_entry` — `xam_input.cpp:95` (the hot path)
-* `XamInputSetState_entry` — `xam_input.cpp:119` (rumble)
-* `XamInputGetKeystroke_entry` — `xam_input.cpp:136`
-* Exports registered via `REX_EXPORT` — `xam_input.cpp:205-211`
+* `XamInputGetCapabilities_entry`: `xam_input.cpp:50`
+* `XamInputGetCapabilitiesEx_entry`: `xam_input.cpp:72`
+* `XamInputGetState_entry`: `xam_input.cpp:95` (the hot path)
+* `XamInputSetState_entry`: `xam_input.cpp:119` (rumble)
+* `XamInputGetKeystroke_entry`: `xam_input.cpp:136`
+* Exports registered via `REX_EXPORT`: `xam_input.cpp:205-211`
 * Stubbed XAM variants (`XamInputControl`, `XamInputGetUserVibrationLevel`,
-  `XamInputRawState`, …) — `xam_input.cpp:213-234`
+  `XamInputRawState`, …): `xam_input.cpp:213-234`
 
 User-index normalisation (`xam_input.cpp:108-112`, `:124-128`, `:150-154`):
 any `user_index & 0xFF == 0xFF`, or `XINPUT_FLAG_ANY_USER` (bit 30), is pinned
@@ -85,11 +83,11 @@ to **user 0**. This is what lets "press Start on any pad" screens work.
 `src/kernel/xboxkrnl/xboxkrnl_hid.cpp`:
 
 * `HidReadKeys` (`:24`), `HidGetCapabilities` (`:38`),
-  `HidGetLastInputTime` (`:45`), `HidReadMouseChanges` (`:54`) — all return
+  `HidGetLastInputTime` (`:45`), `HidReadMouseChanges` (`:54`): all return
   unsupported/degenerate results; Xbox 360 titles generally use the XAM
   surface instead.
 * `__imp__XInputd*` (the raw driver stack: `XInputdGetCapabilities`,
-  `XInputdReadState`, `XInputdFFSetRumble`, …) — **all `REX_EXPORT_STUB`**,
+  `XInputdReadState`, `XInputdFFSetRumble`, …): **all `REX_EXPORT_STUB`**,
   `xboxkrnl_hid.cpp:68-99`. If the title ever falls back to the kernel HID
   driver it will get nothing. (Dead Samurai uses XInput, so this is a
   low-priority gap.)
@@ -121,7 +119,6 @@ State fold and deadzones: `src/input/state_merge.cpp:31-55` and
 `include/rex/input/state_merge.h:21-22` (`kThumbDeadzone = 7849`,
 `kTriggerThreshold = 30`).
 
----
 
 ## 2. Desktop SDL3 integration and the exact event→state path
 
@@ -129,17 +126,17 @@ State fold and deadzones: `src/input/state_merge.cpp:31-55` and
 
 Two separate SDL lifecycles exist:
 
-1. **Windowing/UI** — `src/ui/windowed_app_context_sdl.cpp`
-   * `SDL_InitSubSystem(SDL_INIT_VIDEO)` — `:53`
-   * top-level event watch — `:66`
-   * main loop `SDL_WaitEvent` → `ProcessEvent` — `:87-97`, `:99-181`
-2. **Gamepad/input** — `src/input/sdl/sdl_input_driver.cpp`
+1. **Windowing/UI**: `src/ui/windowed_app_context_sdl.cpp`
+   * `SDL_InitSubSystem(SDL_INIT_VIDEO)`: `:53`
+   * top-level event watch: `:66`
+   * main loop `SDL_WaitEvent` → `ProcessEvent`: `:87-97`, `:99-181`
+2. **Gamepad/input**: `src/input/sdl/sdl_input_driver.cpp`
    * driven from `SDLInputDriver::OnWindowAvailable` (`:54-118`) which runs on
      the UI thread via `CallInUIThreadSynchronous`:
-     * `SDL_InitSubSystem(SDL_INIT_EVENTS)` — `:60`
-     * `SDL_AddEventWatch(WatchEvent, this)` — `:69-89`
-     * `SDL_InitSubSystem(SDL_INIT_GAMEPAD)` — `:92`
-     * `SDL_AddGamepadMappingsFromFile` (`hid_mappings_file` cvar) — `:99-113`
+     * `SDL_InitSubSystem(SDL_INIT_EVENTS)`: `:60`
+     * `SDL_AddEventWatch(WatchEvent, this)`: `:69-89`
+     * `SDL_InitSubSystem(SDL_INIT_GAMEPAD)`: `:92`
+     * `SDL_AddGamepadMappingsFromFile` (`hid_mappings_file` cvar): `:99-113`
 
 `CreateDefaultInputSystem` uses `input_backend = "sdl"` by default
 (`input_system.cpp:27-28`).
@@ -175,12 +172,11 @@ Key detail: the event watch accepts any event in
 
 ### 2.3 Where the raw button/axis mapping lives
 
-* Axis → `X_INPUT_GAMEPAD` — `sdl_input_driver.cpp:494-525`
-* Button bitfield — `sdl_input_driver.cpp:527-589` (lookup table `:530-559`)
-* Capabilities/guide handling — `sdl_input_driver.cpp:628-669`
-* Rumble → SDL — `sdl_input_driver.cpp:227-246`
+* Axis → `X_INPUT_GAMEPAD`: `sdl_input_driver.cpp:494-525`
+* Button bitfield: `sdl_input_driver.cpp:527-589` (lookup table `:530-559`)
+* Capabilities/guide handling: `sdl_input_driver.cpp:628-669`
+* Rumble → SDL: `sdl_input_driver.cpp:227-246`
 
----
 
 ## 3. Android specifics (thirdparty/sdl3)
 
@@ -194,38 +190,38 @@ any case be blocked by SELinux for a normal app).
 
 Native entry points (called from Java through JNI):
 
-* `Android_OnPadDown/Up` — `SDL_sysjoystick.c:198-236`
-* `Android_OnJoy` — `SDL_sysjoystick.c:238-252`
-* `Android_OnHat` — `SDL_sysjoystick.c:254-307`
-* `Android_AddJoystick` / `Android_RemoveJoystick` — `SDL_sysjoystick.c:309-454`
-* `ANDROID_JoystickRumble` — `SDL_sysjoystick.c:593-607`
+* `Android_OnPadDown/Up`: `SDL_sysjoystick.c:198-236`
+* `Android_OnJoy`: `SDL_sysjoystick.c:238-252`
+* `Android_OnHat`: `SDL_sysjoystick.c:254-307`
+* `Android_AddJoystick` / `Android_RemoveJoystick`: `SDL_sysjoystick.c:309-454`
+* `ANDROID_JoystickRumble`: `SDL_sysjoystick.c:593-607`
 
 JNI registration happens only when `SDLActivity` loads the SDL library and
 calls `nativeSetupJNI`:
 
-* `SDLActivity_tab[]` / `SDLControllerManager_tab[]` —
+* `SDLActivity_tab[]` / `SDLControllerManager_tab[]`,
   `thirdparty/sdl3/src/core/android/SDL_android.c:215-260`, `:294-341`
-* `nativeSetupJNI` registers them — `SDL_android.c:563-581`
-* `Android_JNI_PollInputDevices` calls the Java poller — `SDL_android.c:2186-2190`
-* `Android_JNI_HapticRumble` — `SDL_android.c:2210-2214`
+* `nativeSetupJNI` registers them: `SDL_android.c:563-581`
+* `Android_JNI_PollInputDevices` calls the Java poller: `SDL_android.c:2186-2190`
+* `Android_JNI_HapticRumble`: `SDL_android.c:2210-2214`
 
 Java side:
 
-* `SDLActivity extends Activity` (not NativeActivity) — `SDLActivity.java:60`
-* `main()` → `nativeRunMain(library, function, arguments)` —
+* `SDLActivity extends Activity` (not NativeActivity): `SDLActivity.java:60`
+* `main()` → `nativeRunMain(library, function, arguments)`,
   `SDLActivity.java:254-262`
-* `getMainFunction()` returns the literal string **`"SDL_main"`** —
+* `getMainFunction()` returns the literal string **`"SDL_main"`**,
   `SDLActivity.java:283-285`; `getMainSharedObject()` defaults to `libmain.so`
-  when no libraries are declared — `SDLActivity.java:268-277`
-* Gamepad key events routed to `onNativePadDown/Up` —
+  when no libraries are declared: `SDLActivity.java:268-277`
+* Gamepad key events routed to `onNativePadDown/Up`,
   `SDLActivity.java:1481-1492`
-* `SDLControllerManager` native decls — `SDLControllerManager.java:30-41`
-* Device enumeration `pollInputDevices()` — `SDLControllerManager.java:214-268`
-* Axis/hat dispatch `handleMotionEvent()` — `SDLControllerManager.java:324-339`
-* Button mask uses standard `KeyEvent.KEYCODE_BUTTON_*` —
+* `SDLControllerManager` native decls: `SDLControllerManager.java:30-41`
+* Device enumeration `pollInputDevices()`: `SDLControllerManager.java:214-268`
+* Axis/hat dispatch `handleMotionEvent()`: `SDLControllerManager.java:324-339`
+* Button mask uses standard `KeyEvent.KEYCODE_BUTTON_*`,
   `SDLControllerManager.java:400-442`
 
-### 3.2 Is `SDLActivity` (or a subclass) required? — **Yes.**
+### 3.2 Is `SDLActivity` (or a subclass) required?: **Yes.**
 
 There is no fallback:
 
@@ -253,10 +249,10 @@ There is no fallback:
 Yes, generically:
 
 * Android exposes controllers as `InputDevice`s with sources `SOURCE_GAMEPAD`
-  and/or `SOURCE_JOYSTICK`; `isDeviceSDLJoystick` accepts those —
+  and/or `SOURCE_JOYSTICK`; `isDeviceSDLJoystick` accepts those,
   `SDLControllerManager.java:111-138`.
 * Buttons arrive as `KeyEvent.KEYCODE_BUTTON_A/B/X/Y/L1/R1/L2/R2/THUMBL/THUMBR/
-  START/SELECT/MODE/DPAD_*` — mapped 1:1 by `keycode_to_SDL`
+  START/SELECT/MODE/DPAD_*`: mapped 1:1 by `keycode_to_SDL`
   (`SDL_sysjoystick.c:67-171`) onto `SDL_GAMEPAD_BUTTON_*`.
 * Sticks/triggers arrive as `MotionEvent` axes; `RangeComparator` normalises the
   messy `AXIS_Z/AXIS_RZ/AXIS_GAS/AXIS_BRAKE/LTRIGGER/RTRIGGER` ordering
@@ -267,7 +263,7 @@ Yes, generically:
   `Android_AddJoystick` (`SDL_sysjoystick.c:309`), which builds a GUID and lets
   SDL's gamepad mapper pick the X360 layout. So official Xbox 360/One pads
   (VID `0x045E`) work without custom VID/PID tables, *provided the Android
-  build actually contains SDL's gamecontroller DB* — see gaps.
+  build actually contains SDL's gamecontroller DB*: see gaps.
 * Triggers: if the pad reports `AXIS_LTRIGGER/AXIS_RTRIGGER` or
   `AXIS_GAS/AXIS_BRAKE` the mapping still lands on the SDL trigger axes; if a
   pad only reports digital L2/R2 as `KEYCODE_BUTTON_L2/R2`, SDL maps L2 to
@@ -296,7 +292,6 @@ compile. In-library builds must instead resolve the app from the registry via
 (`windowed_app.h:166-175`). The patch adds an Android branch that reads a
 consumer-supplied `REX_APP_ID` macro. (Confirmed by the sibling audit, P0 #7.)
 
----
 
 ## 4. End-to-end Android data path (proposed)
 
@@ -349,11 +344,10 @@ Guest XamInputSetState                         xam_input.cpp:119
                         SDL_android.c:2210 / SDLControllerManager.java:523
 ```
 
----
 
 ## 5. Mapping table
 
-### 5.1 Buttons — `SDL_GamepadButton` → `X_INPUT_GAMEPAD.buttons`
+### 5.1 Buttons: `SDL_GamepadButton` → `X_INPUT_GAMEPAD.buttons`
 
 Index order is the SDL enum order (`SDL_gamepad.h:155-180`), matching the
 lookup array at `sdl_input_driver.cpp:530-559`.
@@ -386,7 +380,7 @@ lookup array at `sdl_input_driver.cpp:530-559`.
 (`sdl_input_driver.cpp:580-582`; cvar declared `input_system.cpp:30`,
 default `false`).
 
-### 5.2 Axes — `SDL_GamepadAxis` → `X_INPUT_GAMEPAD`
+### 5.2 Axes: `SDL_GamepadAxis` → `X_INPUT_GAMEPAD`
 
 `SDL_GAMEPAD_AXIS_*` order: `SDL_gamepad.h:224-231`.
 
@@ -426,7 +420,6 @@ sees `int16` and the shifts above are correct.
   (`sdl_input_driver.cpp:210-217`), matching XInput's "changes since last
   call" contract.
 
----
 
 ## 6. Deadzone / rumble / multi-controller handling
 
@@ -471,7 +464,6 @@ angle) plus a 30/255 trigger threshold, mirroring XInput, applied in
   keyboard/mouse emulation merges into player 1 only; it cannot steal a pad
   slot (`input_system.cpp:113-138`, `:119-123`).
 
----
 
 ## 7. Missing SDK pieces / gaps to implement
 
@@ -491,9 +483,8 @@ angle) plus a 30/255 trigger threshold, mirroring XInput, applied in
 
 Note: `src/input/xinput/xinput_input_driver.cpp` is Windows-only
 (`CMakeLists.txt:32-36`) and includes `<xinput.h>`; it must stay excluded on
-Android — it already is.
+Android: it already is.
 
----
 
 ## 8. Top risks
 
@@ -502,7 +493,7 @@ Android — it already is.
    gamepads. Mitigation: start from `thirdparty/sdl3/android-project/`, keep
    `SDLActivity`/`SDLControllerManager`, subclass `SDLActivity`, and log
    `SDL_GetNumGamepads()` at startup.
-2. **`SDL_main` symbol mismatch** (G1) — SDLActivity fails to find the entry
+2. **`SDL_main` symbol mismatch** (G1): SDLActivity fails to find the entry
    point; looks like an instant crash-to-black. Related: the entry file will
    not even compile on Android because `GetWindowedAppCreator()` is unavailable
    in the in-library app model (G11).
@@ -529,7 +520,6 @@ Android — it already is.
    not double-map; verify no `KEYCODE_BUTTON_*` leaks into `WindowSDL::
    HandleKeyEvent` (`window_sdl.cpp:511`).
 
----
 
 ## 9. Recommended order of work
 
@@ -544,7 +534,6 @@ Android — it already is.
 6. G7: apply XInput deadzones if drift is observed.
 7. G9: enable `guide_button` only if the title needs the Guide button.
 
----
 
 ## 10. File:line index (quick reference)
 

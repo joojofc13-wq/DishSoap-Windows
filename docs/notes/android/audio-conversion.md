@@ -1,4 +1,4 @@
-# Audio conversion & XACT replacement — results
+# Audio conversion & XACT replacement: results
 
 Scope: recover the XACT cue→wave mapping from the 7 Xbox 360 `.xsb` sound banks,
 transcode the 7 `.xwb` wave banks, produce runnable audio assets, and design a
@@ -10,10 +10,9 @@ Target: MonoGame for Android (`MonoGame.Framework.Android 3.8.5.1`).
 * **216 cue names recovered** across 7 sound banks (0 collisions).
 * **222/222 waves decoded**, 200 XMA + 22 PCM, **0 failures**.
 * Output: **222 OGG (30 MB)** + **214 MS-ADPCM WAV (25 MB)** + cue map, **55 MB total**.
-* Shim: `<dev-notes>/audio/shim/XactShim.cs` — compiles clean against
+* Shim: `<dev-notes>/audio/shim/XactShim.cs`: compiles clean against
   MonoGame 3.8.5.1 (validated both with and without the optional OGG path).
 
----
 
 ## 1. Tooling (exact versions and commands)
 
@@ -35,7 +34,6 @@ ffmpeg -i <wav> -c:a adpcm_ms          <bank>_w<idx>.wav           # zero-dep se
 decodes two loops plus a 10 s fade, which doubled the music/solo output and
 appended a fade. Verification log: `<dev-notes>/audio/decode-verification.log`.
 
----
 
 ## 2. Bank inventory (measured from the parsers)
 
@@ -58,9 +56,8 @@ tool/format v**43/43**, platform byte **0x03** (X360), big-endian.
 XGS category ids (order in `sfxproj.xgs`):
 `0 Global, 1 Default, 2 Music, 3 solo_bg, 4 solo_fg, 5 halper`.
 
----
 
-## 3. Cue mapping — evidence and location
+## 3. Cue mapping: evidence and location
 
 The 360 `.xsb` layout was reverse-engineered and ported (big-endian) from
 MonoGame's own `SoundBank.cs`/`XactSound.cs`/`XactClip.cs`. **Two 360-specific
@@ -71,16 +68,16 @@ deviations** from MonoGame's PC layout were found by inspecting the bytes:
    filter fields.
 2. Standalone **variation tables** are
    `u16 marker(0x000b), u16 count, u32 0xffffffff, count × (u32 soundOffset, u8 wMin, u8 wMax)`
-   — a different header from the PC inline-Wave layout.
+  : a different header from the PC inline-Wave layout.
 
 Everything else (sound header, event ids 1/3/4/6, cue tables) matched the
 MonoGame algorithm once byte-swapped. The parser is `tools/parse_xsb.py`.
 
 **Recovered data lives as data (all 216 cues, 308 cue→wave refs):**
 
-* `Content-sfx/cue_map.json` — runtime map consumed by the shim.
-* `Content-sfx/cue_map.csv` — same as a table (`bank,cue,type,variation,wave_bank,wave_index,file,kind,loop`).
-* `Content-sfx/cue_map_raw.json` — full per-bank parse (header, categories, cue defs).
+* `Content-sfx/cue_map.json`: runtime map consumed by the shim.
+* `Content-sfx/cue_map.csv`: same as a table (`bank,cue,type,variation,wave_bank,wave_index,file,kind,loop`).
+* `Content-sfx/cue_map_raw.json`: full per-bank parse (header, categories, cue defs).
 
 Cross-checks (all pass, 0 mismatches):
 
@@ -106,7 +103,6 @@ Representative rows (full table in `Content-sfx/cue_map.csv`):
 | `solo_crux_bg` | solo_crux | simple | solo_bg | `solo_crux_w000` (loop) |
 | `solo_crux_fg` | solo_crux | simple | solo_fg | `solo_crux_w001` (loop) |
 
----
 
 ## 4. Decode results
 
@@ -120,7 +116,6 @@ Representative rows (full table in `Content-sfx/cue_map.csv`):
   one-shot SFX from music, so looping is assigned by bank
   (`music` + `solo_*` = 14 looping cues).
 
----
 
 ## 5. Output assets
 
@@ -143,7 +138,6 @@ Packaging note: MonoGame Android's `TitleContainer.OpenStream("sfx/...")` calls
 `Application.Context.Assets.Open("sfx/...")` directly, so the files must land at
 APK `assets/sfx/...`. See `notes/audio/README.md §2` for the `AndroidAsset` item.
 
----
 
 ## 6. Shim design
 
@@ -175,17 +169,16 @@ is clean.
 API mapping table: see `notes/audio/README.md §4`.
 
 **Compile evidence:** shim built against `MonoGame.Framework.DesktopGL 3.8.5.1`
-(net8.0) — `Build succeeded. 0 Warning(s) 0 Error(s)` — both with and without
+(net8.0): `Build succeeded. 0 Warning(s) 0 Error(s)`: both with and without
 `DISHWASHER_OGG` + `NVorbis 0.10.5`. (The Android target could not be built on
 this host: the installed SDK has only `platforms/android-35`, while the .NET 8
 Android workload requires `android-34`, which is absent. The managed API surface
 is identical; this is a host SDK gap, not a shim issue.)
 
----
 
 ## 7. Known gaps / blockers
 
-* **XMA is not decodable by MonoGame** — all 200 XMA waves are pre-decoded here;
+* **XMA is not decodable by MonoGame**: all 200 XMA waves are pre-decoded here;
   this conversion is mandatory, not optional.
 * **`music` has no WAV set** (8 tracks, OGG-only). Playback needs
   `DISHWASHER_OGG` + NVorbis, or run `decode_banks.sh` with `music` added to

@@ -1,4 +1,4 @@
-# Boot iteration — raw data packaging (Integration & Boot-Iteration Lead)
+# Boot iteration: raw data packaging (Integration & Boot-Iteration Lead)
 
 **Date:** 2026-10-02
 **Device:** `<device-serial>` (Android; culture `en-GB`)
@@ -6,9 +6,8 @@
 **APK:** `src/Dishwasher/bin/Debug/net8.0-android/com.recomp.dishwasher-Signed.apk`
 **Size:** 135,720,169 bytes (~135 MB), `EmbedAssembliesIntoApk=true`
 **Result:** installs, launches, boots to the loader, and stops at the **first compiled
-`Effect`** — a shader-agent blocker. Raw/`.resources` packaging is done and verified.
+`Effect`**: a shader-agent blocker. Raw/`.resources` packaging is done and verified.
 
----
 
 ## 1. Expected layout vs delivered
 
@@ -34,7 +33,7 @@ Two consumers therefore have to agree with the APK asset paths:
 | `GameResourceManager` file-based `ResourceManager` | `StorageContainer.TitleLocation + "/Resources"` | `assets/Resources/*.resources` |
 
 So the **APK asset layout is identical to the in-game relative paths** (`data/…`,
-`gfx/…`, `Resources/…`) — this was confirmed on-device, not assumed.
+`gfx/…`, `Resources/…`): this was confirmed on-device, not assumed.
 
 Exactly what the game reads (from `GameSource/`):
 
@@ -51,14 +50,13 @@ Case was checked: every `levels.zdx` map path is already lowercase and matches t
 `data/maps/*.zdx` file names; the device filesystem is case-sensitive, so this
 mattered and is correct.
 
----
 
 ## 2. What was packaged, and how
 
 The .NET 8 Android SDK auto-includes `Assets\**\*` as `AndroidAsset`
 (`Microsoft.Android.Sdk.Linux/34.0.154/Sdk/AutoImport.props`), and the `Assets`
 prefix is stripped when computing the in-APK asset path. So the packaging is a
-staging copy into `src/Dishwasher/Assets/` — **no csproj change needed**:
+staging copy into `src/Dishwasher/Assets/`: **no csproj change needed**:
 
 | staged path | source | files | note |
 |---|---|---:|---|
@@ -96,7 +94,6 @@ At first launch the bootstrap logs `extracted 459 file(s), 0 failure(s)`.
 output. If that output changes, re-run the `cp` above (or switch to `AndroidAsset`
 `Link` items). `Assets/data` and `Assets/Resources` are stable read-only source.
 
----
 
 ## 3. Code changes (all additive / diagnostic; no game logic re-authored)
 
@@ -113,7 +110,6 @@ No shader and no audio code was authored or changed. The one temporary diagnosti
 (effect loads wrapped in a try/catch to see past the shader wall) was **reverted**;
 the checked-in build fails at the real first `Effect`.
 
----
 
 ## 4. Build / install / launch commands
 
@@ -134,7 +130,6 @@ $adb -s $serial shell am start -n com.recomp.dishwasher/crc641d1cdd92eb70a339.Ac
 $adb -s $serial logcat -d -v time -s Dishwasher:V MonoGame:V AndroidRuntime:E
 ```
 
----
 
 ## 5. Results
 
@@ -152,7 +147,7 @@ resolved it: `loadPhase=8` now passes.
 > Note: the shader wall (phase 4) is *before* this, so the resource fix was proven with
 > the temporary effect-skip described above.
 
-### 5.2 FINAL logcat — current wall = first `Effect` (shader agent)
+### 5.2 FINAL logcat: current wall = first `Effect` (shader agent)
 
 ```
 10-02 08:37:55.971 I/Dishwasher(26160): bootstrap: extracted 459 file(s), 0 failure(s) into /data/user/0/com.recomp.dishwasher/files/content
@@ -190,16 +185,16 @@ resolved it: `loadPhase=8` now passes.
 
 This is progressive: `MainMenu..ctor` (the previous `levels.zdx` crash) no longer appears,
 `Point 7` is reached, `GraphicsDevice`/`LoadContent` run, and the `Loader` executes
-phases 0–3 (raw data, `.dqx`, `maps.zdx`, and `Content.Load<Texture2D>` for
+phases 0-3 (raw data, `.dqx`, `maps.zdx`, and `Content.Load<Texture2D>` for
 `gfx/text|skastudios|dbp|dish|release|bubbles|controls|controlsh|howtoplay|dishbuy|achievement`) before stopping at `fx/poster`.
 
-App state after failure: process alive, activity resumed (black fail-die frame — the
+App state after failure: process alive, activity resumed (black fail-die frame: the
 `Guide` shim message box is a no-op). Screenshot:
 `<dev-notes>/proof/boot-effects-wall.png`.
 
 ### 5.3 One-past-the-shader-wall run (TEMP diagnostic effect-skip, now reverted)
 
-Wrapping phases 4–5 in a try/catch produced the **next** blocker exactly:
+Wrapping phases 4-5 in a try/catch produced the **next** blocker exactly:
 
 ```
 10-02 08:36:20.221 I/Dishwasher(25961): bootstrap: extracted 459 file(s), 0 failure(s) ...
@@ -212,20 +207,19 @@ Wrapping phases 4–5 in a try/catch produced the **next** blocker exactly:
 10-02 08:36:41.253 E/Dishwasher(25961):    at projectDish.Sound.Initialize()
 ```
 
-So phases **0–18** (data, textures, `.dqx` chars, `MainText`/localization, map, head/torso/
+So phases **0-18** (data, textures, `.dqx` chars, `MainText`/localization, map, head/torso/
 legs/weapon/maps atlases) all pass once the effects are skipped, and the loader then
 stops at **phase 19 audio** (`Sound.Initialize`).
 
----
 
 ## 6. Blocker attribution / next steps
 
 | phase | blocker | owner | fix needed |
 |---|---|---|---|
-| 4–5 | `fx/poster`, `fx/bubble`, … `.xnb` missing | **shader agent** | compile the re-authored `.fx` (only 6 `Content/fx/*.fx` exist today; ~19 effect names are requested: poster, lense, grad, blur, bloom, redhaze, fade, water, trainblur, trainover, bubble, burnblur, comicblur, color, trail, newblood, camsplat, ink, wallblood) through MGCB into `Content/fx/*.xnb`, then package/link them as assets at `fx/**` |
-| 19–21 | `Sound/MusicSound/VoxSound.Initialize` — Xbox-360 XACT (`sfx/sfxproj.xgs`, big-endian XMA) | **audio agent** | integrate `notes/audio/shim/XactShim.cs` (`using Dishwasher.Audio` in the 10 audio files), build `sfx/cue_map.json`, and package transcoded wav/ogg. Note `<dev-workspace>/Content-sfx/` already has transcoded `ogg/` outputs |
+| 4-5 | `fx/poster`, `fx/bubble`, … `.xnb` missing | **shader agent** | compile the re-authored `.fx` (only 6 `Content/fx/*.fx` exist today; ~19 effect names are requested: poster, lense, grad, blur, bloom, redhaze, fade, water, trainblur, trainover, bubble, burnblur, comicblur, color, trail, newblood, camsplat, ink, wallblood) through MGCB into `Content/fx/*.xnb`, then package/link them as assets at `fx/**` |
+| 19-21 | `Sound/MusicSound/VoxSound.Initialize`: Xbox-360 XACT (`sfx/sfxproj.xgs`, big-endian XMA) | **audio agent** | integrate `notes/audio/shim/XactShim.cs` (`using Dishwasher.Audio` in the 10 audio files), build `sfx/cue_map.json`, and package transcoded wav/ogg. Note `<dev-workspace>/Content-sfx/` already has transcoded `ogg/` outputs |
 | 8 | `dishX.Resources.Strings` file-based resources | ✅ **fixed here** | `TitleLocation` → extraction root + `assets/Resources/*.resources` |
-| — | `XNB v2` textures | ✅ handled by texture agent | `Content/gfx/**` PNGs packaged at `assets/gfx/**`; stock ContentManager PNG fallback loaded `gfx/xbla` and phases 0–3 textures |
+|: | `XNB v2` textures | ✅ handled by texture agent | `Content/gfx/**` PNGs packaged at `assets/gfx/**`; stock ContentManager PNG fallback loaded `gfx/xbla` and phases 0-3 textures |
 
 **Single next blocker to attack: compiled shaders.** The shader agent should produce
 `Content/fx/<name>.xnb` for the 19 `Content.Load<Effect>("fx/<name>")` sites and ensure

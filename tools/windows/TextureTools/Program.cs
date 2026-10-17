@@ -230,8 +230,8 @@ try
         g.DrawImage(original, new Rectangle(10, 45, w * 2, h * 2), new Rectangle(x, y, w, h), GraphicsUnit.Pixel);
         g.DrawImage(hd, new Rectangle(w * 2 + 30, 45, w * 2, h * 2), new Rectangle(x * 2, y * 2, w * 2, h * 2), GraphicsUnit.Pixel);
         using var font = new Font("Segoe UI", 13);
-        g.DrawString(args.Length > 8 ? args[8] : "Original ampliado", font, Brushes.White, 10, 10);
-        g.DrawString(args.Length > 9 ? args[9] : "Upscale 2x", font, Brushes.White, w * 2 + 30, 10);
+        g.DrawString(args.Length > 8 ? args[8] : "Enlarged original", font, Brushes.White, 10, 10);
+        g.DrawString(args.Length > 9 ? args[9] : "Upscaled 2x", font, Brushes.White, w * 2 + 30, 10);
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(args[3]))!); result.Save(args[3], ImageFormat.Png);
     }
     else throw new ArgumentException("Unknown operation.");

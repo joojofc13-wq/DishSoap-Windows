@@ -1,4 +1,4 @@
-# Shader completion — Android MGFX build
+# Shader completion: Android MGFX build
 
 **Author:** Shader Completion Lead (subagent)
 **Date:** 2026-10-02
@@ -9,7 +9,6 @@
 **Result:** ✅ **Build 21 succeeded, 0 failed.** All 19 runtime effects compiled
 and are staged at `Dishwasher/Assets/fx/<name>.xnb`.
 
----
 
 ## 0. Build recipe (exact)
 
@@ -26,7 +25,7 @@ Build 21 succeeded, 0 failed.
 ```
 
 First full run reported `Build 20 succeeded, 1 failed`; the single failure was
-`newblood.fx(78,15-18): error X3000: syntax error: unexpected token 'line'` —
+`newblood.fx(78,15-18): error X3000: syntax error: unexpected token 'line'`,
 `line` is a reserved HLSL keyword. The local variable was renamed to `scan`
 and the incremental rebuild produced the final `21 succeeded, 0 failed`.
 
@@ -79,9 +78,9 @@ Where the game never writes a parameter, the original Xbox constant-table
 default was embedded in the HLSL so the effect behaves as authored rather than
 as an all-zero uniform:
 
-* `bloom.offsets[12]`, `fade.offsets[12]` — the full 12×float2 normal-distribution
+* `bloom.offsets[12]`, `fade.offsets[12]`: the full 12×float2 normal-distribution
   offsets.
-* `lense.offsets[6]`, `wallblood.offsets[6]` — the 6 unit-circle offsets.
+* `lense.offsets[6]`, `wallblood.offsets[6]`: the 6 unit-circle offsets.
 * `poster` levels/alpha/fore, `grad` (bright=1.1 etc.), `bubble`, `burnblur`,
   `trainover`, `trail`, `color`, `ink`, `camsplat`, `newblood`.
 
@@ -92,7 +91,7 @@ Source of truth: `managed/decompiled/game/projectDish/{Game1,GameRender,Strip}.c
 
 | effect variable | game-loaded name | parameters the game writes | pass(es) used | .fx match |
 |---|---|---|---|---|
-| posterEffect | fx/poster | *(none)* | — | ✅ |
+| posterEffect | fx/poster | *(none)* |: | ✅ |
 | lenseEffect | fx/lense | edgeBlur | Passes[0] | ✅ |
 | gradEffect | fx/grad | gradFlip, rgrad, ggrad, bgrad, bright, burnmag, levs, xcenter, ycenter, width | Passes[0] | ✅ |
 | effect | fx/blur | blackblood, xcenter, ycenter, levs, width | **Passes[0] and Passes[1]** | ✅ (2 passes) |
@@ -105,15 +104,15 @@ Source of truth: `managed/decompiled/game/projectDish/{Game1,GameRender,Strip}.c
 | bubbleEffect | fx/bubble | reddish, xcenter, ycenter, width, mag | Passes[0] | ✅ |
 | burnEffect | fx/burnblur | mag, xcenter, ycenter, levs, width | Passes[0] | ✅ |
 | comicBlurEffect | fx/comicblur | a, speed | Passes[0] | ✅ |
-| colorEffect | fx/color | *(none)* | — | ✅ |
-| trailEffect | fx/trail | *(none — passed to Character.Draw, never written)* | — | ✅ |
+| colorEffect | fx/color | *(none)* |: | ✅ |
+| trailEffect | fx/trail | *(none: passed to Character.Draw, never written)* |: | ✅ |
 | bloodEffect | fx/newblood | bright, statik, lineStatik | Passes[0] | ✅ |
 | camSplatEffect | fx/camsplat | red | Passes[0] | ✅ |
 | inkEffect | fx/ink | bright | Passes[0] | ✅ |
 | wallBloodEffect | fx/wallblood | red | Passes[0] | ✅ |
 
 **Mismatches found and fixed in the pre-existing sketches** (these were silent
-runtime failures — `Parameters["x"]` returns null for a name/type that does not
+runtime failures: `Parameters["x"]` returns null for a name/type that does not
 exist):
 
 1. `Blur.fx` declared `float2 Center` and had no `xcenter`/`ycenter`/`levs`/pass P1.
@@ -141,7 +140,7 @@ Staged (copied) to: `Dishwasher/Assets/fx/<name>.xnb`
 
 `Assets/**` is auto-included as `AndroidAsset` (prefix stripped), and
 `AndroidContentBootstrap.CopyAssetTree` extracts it to `files/content`, which is
-the process CWD — so `ContentManager.Load<Effect>("fx/<name>")` resolves
+the process CWD: so `ContentManager.Load<Effect>("fx/<name>")` resolves
 `fx/<name>.xnb`. No `.csproj` change needed.
 
 Staged files (verified: `XNBa` header, `MGFX` magic at offset 141):
@@ -171,16 +170,16 @@ branchy/predicate-heavy shaders were re-authored to the **observable** behaviour
 of the XenosRecomp output and the game's inputs rather than a predicate-for-
 predicate transcription; each carries a header comment noting this:
 
-* `poster.fx` — the original folds a 5-tap cross through four thresholds; this
+* `poster.fx`: the original folds a 5-tap cross through four thresholds; this
   uses a luminance posterize with the same level parameters. `poster` is
   **loaded but never driven** by the game, so there is no call site to match.
-* `color.fx` — original branch ladder on `x`/`y`; this is a tint overlay. Also
+* `color.fx`: original branch ladder on `x`/`y`; this is a tint overlay. Also
   **loaded but never driven**.
-* `ink.fx`, `camsplat.fx`, `newblood.fx`, `wallblood.fx` — original predicate
+* `ink.fx`, `camsplat.fx`, `newblood.fx`, `wallblood.fx`: original predicate
   chains reduced to threshold/edge masks with the same inputs; the red/alpha
   structure is preserved.
 * `redhaze.fx`, `water.fx`, `grad.fx` (burn term), `trainover.fx`, `blur.fx`
-  pass P1 (black-blood) — simplified but faithful accumulation/threshold.
+  pass P1 (black-blood): simplified but faithful accumulation/threshold.
 
 No shader was left uncompiled or unassigned. The only thing not attempted is a
 pixel-exact reproduction of the Xenos ALU predicate chains (they are not needed

@@ -1,4 +1,4 @@
-# Xenia Canary reference attempt — The Dishwasher: Dead Samurai (58410902)
+# Xenia Canary reference attempt: The Dishwasher: Dead Samurai (58410902)
 
 **Date:** 2026-10-02
 **Goal:** boot the original Xbox 360 XBLA title under Xenia Canary on Linux to capture
@@ -8,7 +8,7 @@ colour/contrast fidelity work on the Android MonoGame port.
 ## Verdict (TL;DR)
 
 **Xenia Canary cannot render this title on Linux. This is a genuine emulator limitation,
-not a configuration problem — no reference frame can be captured from Xenia.**
+not a configuration problem: no reference frame can be captured from Xenia.**
 
 - Xenia **does** install, start on Vulkan, mount the STFS/LIVE package, identify the title,
   and boot the guest as far as the XNA/.NET Compact Framework runtime.
@@ -21,7 +21,6 @@ not a configuration problem — no reference frame can be captured from Xenia.**
 This matches the project's own finding (`HANDOFF.md`): the game ships as managed IL and the
 console CLR JITs it; Xenia stubs the user-mode CLR, so there is nothing Xenia can execute.
 
----
 
 ## 1. Install method / version
 
@@ -36,7 +35,7 @@ console CLR JITs it; Xenia stubs the user-mode CLR, so there is nothing Xenia ca
 | GPU | Vulkan / RADV, **AMD Radeon RX 7900 XTX (NAVI31)**, device index **1** |
 | Data roots | `XDG_DATA_HOME=/tmp/opencode/xenia-data/Xenia` (content / cache_host kept off the full `/`) |
 
-The GitHub tar release was **not needed** — the snap installed cleanly. The snap's own
+The GitHub tar release was **not needed**: the snap installed cleanly. The snap's own
 launcher is broken on this host (see §6), so the snap's binary is invoked directly.
 
 ## 2. Configuration used
@@ -67,7 +66,7 @@ window_size_x = 1280
 window_size_y = 720
 ```
 
-`GDK_BACKEND=x11` is set in the launcher (required — see §6).
+`GDK_BACKEND=x11` is set in the launcher (required: see §6).
 
 ## 3. Exact launch command
 
@@ -132,7 +131,7 @@ All under `<dev-workspace>/android/notes/reference/xenia/`:
 | `xenia_window_with_title.png` | Decorated Xenia window; **title bar proves the mounted title** (`[58410902 v0.0.1.3] The Dishwasher <Vulkan - FBO - ALSA>`); guest client area is **black**. |
 | `xenia_window_boot_black.png` | Client-area capture of the STFS run: black guest surface + Xenia menu bar. |
 | `xenia_window_license1_black.png` | Same with `license_mask=1`: still black. |
-| `xwininfo_xenia_window.txt` | `xwininfo` tree — window ID/title/size evidence. |
+| `xwininfo_xenia_window.txt` | `xwininfo` tree: window ID/title/size evidence. |
 | `xenia_game2_boot_hang.log` | Full STFS boot log: Vulkan OK → mount → CLR → hang. |
 | `xenia_license1_boot_hang.log` | Same with `license_mask=1`. |
 | `xenia_extractedxex_boot_hang.log` | Extracted-XEX route: same hang + `Failed to initialize device` (content packages). |
@@ -144,22 +143,22 @@ All under `<dev-workspace>/android/notes/reference/xenia/`:
 
 ## 6. Host-specific gotchas found (worth keeping)
 
-1. **Snap wrapper is broken** — `snap run xenia-canary` fails with
+1. **Snap wrapper is broken**: `snap run xenia-canary` fails with
    `error while loading shared libraries: libpulsecommon-16.1.so: cannot open shared object file`.
    The snap *ships* that file, but at `.../usr/lib/x86_64-linux-gnu/pulseaudio/`, which snapd's
    sanitised `LD_LIBRARY_PATH` does not include. Workaround: run the snap binary directly against
    host libraries.
-2. **Do NOT prepend the snap's lib dir** — doing so puts the snap's older `libwayland-client`
+2. **Do NOT prepend the snap's lib dir**: doing so puts the snap's older `libwayland-client`
    ahead of the host's, so Mesa 26's `libvulkan_radeon.so` fails with
    `undefined symbol: wl_fixes_interface`, the loader drops every ICD, and Xenia reports
    `Failed to create a Vulkan instance: ErrorIncompatibleDriver`. Running the binary with a clean
    (host) environment fixes Vulkan.
-3. **Wayland session needs `GDK_BACKEND=x11`** — otherwise
+3. **Wayland session needs `GDK_BACKEND=x11`**: otherwise
    `GTKWindow: The window system of the GTK window is not supported by Xenia` (no presentation).
 4. **Default Vulkan device is the iGPU** (index 0 = RADV `RAPHAEL_MENDOCINO`). Set
    `vulkan_device = 1` to use the RX 7900 XTX.
 5. **`/dev/shm` is not `noexec`** on this host (`rw,nosuid,nodev,...`), and the
-   `Unable to allocate code cache generated code storage` (#549) error was **never hit** — the
+   `Unable to allocate code cache generated code storage` (#549) error was **never hit**: the
    `[Linux] use_shm_open` workaround was not required.
 6. **Disk hygiene:** everything stayed under `$HOME/xenia`, `/tmp/opencode`, and the notes dir;
    archives were not downloaded; Xenia's cache/content were redirected to `/tmp` (tmpfs).
@@ -173,11 +172,11 @@ technical signal and the public compatibility record are unambiguous:
 
 - Local signal: `!! KeCreateUserMode` (unimplemented kernel export) →
   `undefined extern call to 8264D8DC KeCreateUserMode` → load `NetCFUserMode.dll` → hang.
-- Xenia game-compatibility **Issue #642 — `58410902 - The Dishwasher: Dead Samurai`**:
+- Xenia game-compatibility **Issue #642: `58410902 - The Dishwasher: Dead Samurai`**:
   labels **`state-crash-xna-WONTFIX`** + **`tech-engine-xna`**,
   *"Title crashes because it is using XNA. For the time being, this is WONTFIX."*
   (and the issue body notes *"Crashes because Xenia isn't implicitly loading HostLoader.dll -
-  but after that this becomes the same as #199."* — our STFS run **does** load `HostLoader.dll`,
+  but after that this becomes the same as #199."*: our STFS run **does** load `HostLoader.dll`,
   so only the #199 wall remains).
 - Xenia **Issue #199** (XNA/Terraria): *"This game is trying to create a user-mode environment,
   which we barely support. We're probably not going to see this game working on Xenia..."*
@@ -189,7 +188,7 @@ console CLR, and Xenia supplies no working user-mode CLR.
 
 ## 8. Recommendation for the port
 
-Do **not** budget further time on Xenia for visual ground truth — the outcome is a documented
+Do **not** budget further time on Xenia for visual ground truth: the outcome is a documented
 WONTFIX and there is no configuration/patch path on Linux. For colour/contrast fidelity, rely on:
 - the game's own assets already converted under `port/assets` / `assets-clean` (textures, `.fx`),
 - the existing `android/notes/reference/dishwasher-reference.jpg`,

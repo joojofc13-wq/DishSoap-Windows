@@ -1,4 +1,4 @@
-# Input diagnosis — controller "A" does nothing on the title screen
+# Input diagnosis: controller "A" does nothing on the title screen
 
 **Date:** 2026-10-02
 **Device:** `<device-serial>` (Samsung SM-A525F / Galaxy A52, Android, API 34/35)
@@ -8,7 +8,6 @@ Android device id `9`, `ControllerNumber: 1`,
 `Sources: KEYBOARD | GAMEPAD | JOYSTICK` (numeric `0x1000511`).
 **Owner:** Input Diagnostics Specialist.
 
----
 
 ## 0. TL;DR
 
@@ -40,7 +39,6 @@ Android device id `9`, `ControllerNumber: 1`,
   takes the same path. The Activity's event stream is device-agnostic, so the bridge captures
   physical events identically, but only a physical press can prove that end-to-end.
 
----
 
 ## 1. MonoGame.Framework.Android 3.8.5.1 input implementation
 
@@ -54,12 +52,12 @@ lib/net8.0-android34.0/MonoGame.Framework.dll
 Decompiled with `ilspycmd` (dump retained in `/tmp/opencode/mgfull/`). All line numbers below
 are lines in that decompiled dump / the documented constants.
 
-### 1.1 Enumeration — `GamePad` (`Microsoft.Xna.Framework.Input.GamePad`)
+### 1.1 Enumeration: `GamePad` (`Microsoft.Xna.Framework.Input.GamePad`)
 
 | Item | Decompiled file / line |
 |---|---|
 | storage: `private static readonly AndroidGamePad[] GamePads = new AndroidGamePad[4];` | `Input/GamePad.cs:13` |
-| `internal static void Initialize()` — `InputDevice.GetDeviceIds()` loop calling `GetGamePad` | `Input/GamePad.cs:421-428` |
+| `internal static void Initialize()`: `InputDevice.GetDeviceIds()` loop calling `GetGamePad` | `Input/GamePad.cs:421-428` |
 | `internal static AndroidGamePad GetGamePad(InputDevice device)` | `Input/GamePad.cs:240-284` |
 | `private static GamePadState PlatformGetState(int index, …)` | `Input/GamePad.cs:190-215` |
 | `internal static bool OnKeyDown(Keycode, KeyEvent)` | `Input/GamePad.cs:286-305` |
@@ -102,12 +100,12 @@ return new GamePadState(..., new GamePadButtons(androidGamePad._buttons), ...); 
 ```
 
 (`GamePadState(GamePadThumbSticks, GamePadTriggers, GamePadButtons, GamePadDPad)` sets
-`IsConnected = true` — `Input/GamePadState.cs:68`.)
+`IsConnected = true`: `Input/GamePadState.cs:68`.)
 
 ### 1.2 `GamePad.Initialize()` is never called (root defect)
 
 `ilspycmd -il` over the whole assembly shows exactly **one** occurrence of
-`GamePad::Initialize` — its own method definition. `AndroidGamePlatform.cs` contains **no**
+`GamePad::Initialize`: its own method definition. `AndroidGamePlatform.cs` contains **no**
 `GamePad` reference at all. Therefore `GamePads[]` stays all-null at startup and
 `IsConnected` is false for all four indices until the game view happens to deliver a key or
 motion event. Confirmed on-device (pre-fix), see §4.1.
@@ -143,7 +141,7 @@ public override bool OnGenericMotionEvent(MotionEvent)   // GamePad.OnGenericMot
 So a device is only bridged to `GamePad`/`Keyboard` when the event's `InputDevice` has
 `SOURCE_GAMEPAD` or `SOURCE_JOYSTICK` **and non-zero `VendorId`/`ProductId`**. Events that
 fail this test are silently dropped by MonoGame (neither `GamePad` nor `Keyboard` sees them).
-This is what makes `adb shell input` (a vendor-0 "Virtual" device) invisible to MonoGame —
+This is what makes `adb shell input` (a vendor-0 "Virtual" device) invisible to MonoGame,
 demonstrated in §4.2.
 
 ### 1.4 Key / axis translation
@@ -167,14 +165,13 @@ demonstrated in §4.2.
 `Buttons.LeftTrigger`/`RightTrigger`.
 
 The installed keylayout is `/system/usr/keylayout/Vendor_045e_Product_02fd.kl` and maps
-`key 304 BUTTON_A`, so a physical `A` press is delivered as keycode 96 — i.e. MonoGame's
+`key 304 BUTTON_A`, so a physical `A` press is delivered as keycode 96: i.e. MonoGame's
 translation table covers it.
 
-**Does MonoGame need an "AndroidGamePad/Joystick enabled" flag?** No — there is no feature
+**Does MonoGame need an "AndroidGamePad/Joystick enabled" flag?** No: there is no feature
 flag. The only gate is the source/vendor/product check above. The controller passes it:
 `sources=0x1000511`, so `sources & 0x401 == 0x401`, `VendorId=0x45E`, `ProductId=0x2FD`.
 
----
 
 ## 2. Where the game actually reads input (title screen)
 
@@ -201,10 +198,9 @@ passed from `Game1.Update` to `mainMenu.Update` (`Game1.cs:1433`).
 Note the coupling to the GamerServices shim: once `mainPlayerIndex = j`, `MainMenu.Update`
 looks up `Gamer.SignedInGamers[(PlayerIndex)j]`. `Platform/Shim_GamerServices.cs:102` only
 seeds a gamer at `PlayerIndex.One`, so a controller that landed on index 1-3 would bounce back
-to `mainPlayerIndex = -1` (title appears to "do nothing"). This is *not* what happens here —
-the pad is at index 0 — but it is worth knowing as a secondary trap.
+to `mainPlayerIndex = -1` (title appears to "do nothing"). This is *not* what happens here,
+the pad is at index 0: but it is worth knowing as a secondary trap.
 
----
 
 ## 3. Instrumentation added (all marks `TEMP INPUT DIAGNOSTICS` / `INPUT FIX`)
 
@@ -218,11 +214,10 @@ the pad is at index 0 — but it is worth knowing as a secondary trap.
 Build/install/launch commands are unchanged from `boot-iteration.md` (`EmbedAssembliesIntoApk=true`,
 `targetSdkVersion=35`).
 
----
 
 ## 4. Verbatim results
 
-### 4.1 Pre-fix, no button press — pad visible, MonoGame blind
+### 4.1 Pre-fix, no button press: pad visible, MonoGame blind
 
 ```
 10-02 09:16:17.340 I/Dishwasher(28766): [input][devices] Activity1.OnCreate: InputDevice.GetDeviceIds() -> 9 device(s)
@@ -234,7 +229,7 @@ Build/install/launch commands are unchanged from `boot-iteration.md` (`EmbedAsse
 Conclusion: the app process sees the pad, the game view is focused, yet `IsConnected` is
 **false for all four player indices**.
 
-### 4.2 Pre-fix, `adb shell input keyevent 96` — Activity gets it, MonoGame drops it
+### 4.2 Pre-fix, `adb shell input keyevent 96`: Activity gets it, MonoGame drops it
 
 ```
 10-02 09:17:08.020 I/Dishwasher(28766): [input][key] action=Down keycode=ButtonA(96) repeat=0 devId=-1 devName='Virtual' sources=0x301 vendor=0x0 product=0x0
@@ -246,7 +241,7 @@ Conclusion: the app process sees the pad, the game view is focused, yet `IsConne
 Conclusion: MonoGame's `IsGamePad`/`IsKeyboard` filters discard vendor-0 devices; `GamePad`
 and `Keyboard` both stay empty.
 
-### 4.3 Post-fix, no button press — `GamePad.Initialize()` works
+### 4.3 Post-fix, no button press: `GamePad.Initialize()` works
 
 ```
 10-02 09:19:12.346 I/Dishwasher(29001): [input][devices]   id=9 name='Xbox Wireless Controller' sources=0x1000511 vendor=0x45E product=0x2FD controllerNumber=1 ...
@@ -254,10 +249,10 @@ and `Keyboard` both stay empty.
 10-02 09:19:33.911 I/Dishwasher(29001): [input] P0=CONN btn=[GamePadButtons: A=0, B=0, Back=0, X=0, Y=0, Start=0, ...] A=0 B=0 Start=0 LT=0.00 RT=0.00 LS=(0.00,0.00) RS=(0.00,0.00) | P1=- | P2=- | P3=- || keys=- || mainPlayerIndex=-1
 ```
 
-**`P0=CONN` — the `ControllerNumber == 1` pad is registered at `PlayerIndex.One`.** Off-by-one
+**`P0=CONN`: the `ControllerNumber == 1` pad is registered at `PlayerIndex.One`.** Off-by-one
 refuted.
 
-### 4.4 Post-fix, injected `A` — focused view receives it, bridge drives the game
+### 4.4 Post-fix, injected `A`: focused view receives it, bridge drives the game
 
 ```
 10-02 09:21:03.607 I/Dishwasher(29217): [input][viewkey] action=Down keycode=ButtonA(96) devId=-1 devName='Virtual' vendor=0x0 product=0x0
@@ -270,17 +265,16 @@ refuted.
 ```
 
 Screenshots (in `input-proof/`):
-* `01-title-before.png` — "PRESS (A) TO START!" with `mainPlayerIndex=-1`
-* `02-after-A-save-dialog.png` — after `A`: "NO GAME SAVE DATA FOUND. CREATE NEW SAVE DATA?"
-* `03-after-A-main-menu.png` — after a further `A`: main menu (`PLAY STORY / PLAY ARCADE / DISH CHALLENGE / PRACTICE ROOM / BACK`)
+* `01-title-before.png`: "PRESS (A) TO START!" with `mainPlayerIndex=-1`
+* `02-after-A-save-dialog.png`: after `A`: "NO GAME SAVE DATA FOUND. CREATE NEW SAVE DATA?"
+* `03-after-A-main-menu.png`: after a further `A`: main menu (`PLAY STORY / PLAY ARCADE / DISH CHALLENGE / PRACTICE ROOM / BACK`)
 
 Note: the very first injected `A` at `09:21:03` did *not* advance
 (`mainPlayerIndex` stayed `-1`) because the title was still in its "CHECKING STORAGE"
-phase; subsequent presses worked. That is normal game behaviour, not an input defect —
+phase; subsequent presses worked. That is normal game behaviour, not an input defect,
 worth telling whoever does the physical-press test: **press A after "CHECKING STORAGE"
 has finished.**
 
----
 
 ## 5. Root cause
 
@@ -290,7 +284,7 @@ has finished.**
    `IsConnected` (e.g. `Globals.FatalErrorDie`, `Game1.cs:1185`, `GuitarHalper.cs:866`) is wrong
    from boot until the first event.
 2. **Best-supported explanation for the physical press doing nothing:** the controller's events
-   were not reaching MonoGame's `GamePad` state (only the vendor-0 case is directly proven —
+   were not reaching MonoGame's `GamePad` state (only the vendor-0 case is directly proven,
    §4.2; the physical device has vendor/product set, so it *should* pass `IsGamePad`, but the
    symptom requires that it did not). Two plausible mechanisms, both fixed by the bridge:
    * Without `Initialize()`, a pad only exists after an event is processed by
@@ -298,23 +292,22 @@ has finished.**
      (e.g. the event being consumed before the view, or a first press during the
      "CHECKING STORAGE" window) leaves `GamePad` permanently disconnected from the game's view.
    * MonoGame's `IsGamePad`/`IsKeyboard` vendor/product filter drops the event stream entirely
-     for some devices — proven for vendor-0.
+     for some devices: proven for vendor-0.
 3. **Refuted hypothesis:** `ControllerNumber == 1` → `PlayerIndex.Two`. MonoGame 3.8.5.1 never
    reads `ControllerNumber`; it uses the first free slot, and on-device the pad is `P0`
    (`PlayerIndex.One`). See §1.1 and §4.3.
 
----
 
 ## 6. Fix implemented
 
 `Platform/AndroidInputBridge.cs` (additive, marked, revertable):
 
-1. **`InitializePads()`** — reflects the internal
+1. **`InitializePads()`**: reflects the internal
    `Microsoft.Xna.Framework.Input.GamePad.Initialize()` and invokes it once at startup, so
    attached controllers are enumerated into `GamePads[]` and report `IsConnected = true`.
    (This alone cannot be the whole fix because of the filter/drop in §5.2, but it is required
    for a correct connected state.)
-2. **`RouteKey(KeyEvent)` / `RouteMotion(MotionEvent)`** — called from `Activity1`'s
+2. **`RouteKey(KeyEvent)` / `RouteMotion(MotionEvent)`**: called from `Activity1`'s
    `DispatchKeyEvent` / `DispatchGenericMotionEvent` (which are proven to receive events, §4.4).
    They map Android keycodes/axes to `Buttons`/sticks/triggers and write directly into the
    framework's own internal `AndroidGamePad` instance (`_buttons`, `_leftStick`, `_rightStick`,
@@ -341,7 +334,6 @@ fire `[input][key]` and `[input][viewkey]`). For the physical device
 slot 0 by `InitializePads()` (device id 9), and `KEYCODE_BUTTON_A` (96) maps to `Buttons.A`.
 Motion events similarly update the sticks/triggers.
 
----
 
 ## 7. How to run / re-verify
 
@@ -368,7 +360,6 @@ To test with the **physical** controller: launch, wait for "CHECKING STORAGE" to
 `A` (or `Start`). Expect `[input] P0=CONN … A=1 …` and `mainPlayerIndex=0` in logcat, then the
 save-data dialog / main menu.
 
----
 
 ## 8. What still needs a human
 
@@ -383,20 +374,19 @@ save-data dialog / main menu.
   * **`P1=CONN` instead of `P0`** → slot assignment changed; then the
     `Shim_GamerServices` single-gamer-at-`PlayerIndex.One` coupling (§2) would reject it.
 
----
 
 ## 9. Files changed / revert
 
 Added (delete to revert):
 
-* `src/Dishwasher/Platform/InputDiagnostics.cs` — TEMP diagnostics
-* `src/Dishwasher/Platform/AndroidInputBridge.cs` — the fix
+* `src/Dishwasher/Platform/InputDiagnostics.cs`: TEMP diagnostics
+* `src/Dishwasher/Platform/AndroidInputBridge.cs`: the fix
 
 Modified (remove the marked blocks to revert):
 
-* `src/Dishwasher/Activity1.cs` — diagnostics + bridge hooks (all inside
+* `src/Dishwasher/Activity1.cs`: diagnostics + bridge hooks (all inside
   `TEMP INPUT DIAGNOSTICS` / `INPUT FIX` comment fences)
-* `src/Dishwasher/GameSource/projectDish/Game1.cs` — one `InputDiagnostics.Tick(gameTime)`
+* `src/Dishwasher/GameSource/projectDish/Game1.cs`: one `InputDiagnostics.Tick(gameTime)`
   call at `Update` entry (line ~1025)
 
 Proof artifacts: `<dev-workspace>/android/notes/input-proof/` (3 screenshots + 4 raw

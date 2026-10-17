@@ -1,113 +1,37 @@
-# Windows HD e iniciador — 2026-10-16
+# Desktop settings and rendering
 
-## Resultado
+`Dishwasher.exe` runs the game directly. `DishSoap.Configurator.exe` is a separate Windows settings editor with DishSoap branding and the window title `dishwasher`. Save configuration writes preferences and closes the editor.
 
-`Dishwasher.exe` abre o jogo diretamente com as preferências salvas.
-`DishSoap.Configurator.exe` é um configurador separado, com controles padrão
-do Windows, marca **DishSoap** e título **dishwasher**. Não inicia o jogo.
-A saída é fixa em **720p (1280×720)**. Configurações: janela/tela cheia, limite de
-60/90/120/144/165/180/240/360 FPS, VSync, contador, interpolação e texturas
-**Original / Upscaled**. O controle de volume e a legenda de teclas foram
-retirados. A região do Windows seleciona português, espanhol ou inglês.
-As escolhas persistem em Config/desktop.json; resoluções antigas são migradas.
+Output is fixed at 1280 x 720. The options are Original or Upscaled textures, fullscreen, FPS limit, VSync, Show FPS and Smooth Motion. FPS caps are 60, 90, 120, 144, 165, 180, 240 and 360. The editor uses English on every region. Old resolution settings are migrated to 720p. Existing saved volume is retained, but no volume control or controls legend appears in the editor.
 
-O canvas interno agora é **1920×1080**. A lógica mantém coordenadas originais
-1280×720. Os render targets são ampliados em 1,5×; o SpriteBatch desktop
-transforma coordenadas, recortes, escalas e pivôs. Não mudamos colisões, mapas,
-velocidade, alcance dos ataques ou o tamanho dos personagens para obter HD.
-O canvas interno maior é reduzido para a saída 720p; não é uma opção do iniciador.
-Correção de cores e alterações do compilador: [UI_COLOR_FIX.md](UI_COLOR_FIX.md).
+## Internal canvas
 
-## Defeito real nos cenários
+Render targets use a 1920 x 1080 canvas, then downsample to 720p. Original game coordinates stay at 1280 x 720. Desktop SpriteBatch adapters transform target coordinates, source rectangles, scale and origin/pivot values. Collision, maps, attack reach and movement speed keep their original coordinates.
 
-As texturas DXT tinham os endpoints RGB565 corrigidos para Xbox, mas os índices
-de cor ainda eram lidos com os bytes das palavras de 16 bits na ordem errada.
-Isso trocava pares de linhas de cor dentro dos blocos 4×4 e criava o aspecto de
-“zíper” nas diagonais. A correção **8-in-16** deixa as travessas das prateleiras
-contínuas antes de qualquer rede neural. Corrigimos também a paleta BC3/DXT5:
-ela sempre tem quatro cores, mesmo quando endpoint0 <= endpoint1.
+## DXT corrections
 
-A correção é opt-in no decoder compartilhado e usada pelo importador desktop;
-o comportamento padrão Android foi preservado. Referência de formato:
-[Xenia — texture dump](https://github.com/xenia-project/xenia/blob/master/src/xenia/gpu/texture_dump.cc).
-As novas importações registram `textureDecoder: xbox-dxt-8in16-v2` no relatório.
-Para a instalação já existente nesta máquina, geramos uma árvore `corrected`
-a partir dos XNB do proprietário. Seus PNG antigos e saves foram preservados.
+The Xbox texture decoder already corrected RGB565 endpoints, but color-index words still needed 8-in-16 byte ordering. Incorrect ordering exchanged pairs of color rows in 4 x 4 blocks and produced zipper-like diagonals. Windows imports enable the corrected decoder before AI processing. BC3/DXT5 always uses a four-color palette, including when endpoint0 is less than or equal to endpoint1.
 
-## Pacote de imagens
+The shared decoder correction is opt-in for desktop use. Imports record `textureDecoder: xbox-dxt-8in16-v2`. The format reference is [Xenia texture_dump.cc](https://github.com/xenia-project/xenia/blob/master/src/xenia/gpu/texture_dump.cc).
 
-- 128/128 PNGs ampliados em 2×: 121 folhas com AnimeVideo-v3 e sete folhas de
-  fontes com bicúbica, para manter as letras fiéis.
-- RGB dilatado no preenchimento transparente antes da inferência; melhoria
-  neural de luminância com cores originais preservadas (receita v2).
-- Alpha independente, derivado da textura original corrigida, com pixels
-  totalmente transparentes zerados; sem premultiplicação no carregamento.
-- Oito folhas de cenário adicionais restauradas com Real-ESRGAN x4plus em 4×,
-  reduzidas para 2× com supersampling. Não aumentam as dimensões do atlas em
-  relação ao pacote HD padrão. A opção Upscaled usa essas folhas quando presentes.
-- Fontes CJK têm atlas, glyph bounds, cropping, kerning e métricas adaptados;
-  recortes e medições continuam corretos em coordenadas lógicas.
+## AI texture packs
 
-Os modelos e executáveis são baixados separadamente do
-[release do autor](https://github.com/xinntao/Real-ESRGAN/releases/tag/v0.2.5.0),
-com SHA256 fixo. A preparação requer GPU compatível com Vulkan e ocorre uma
-vez, antes de jogar. Não há inferência neural a cada frame.
-Imagens derivadas e modelos não entram no ZIP de fontes nem nos commits.
+The pack contains 128 sheets at 2x: 121 art sheets processed with Real-ESRGAN AnimeVideo-v3 and seven bicubic font sheets. A separate Real-ESRGAN x4plus pass restores eight background sheets at 4x before reducing them to 2x. These replace the corresponding standard HD sheets when Upscaled is selected.
 
-## FPS
+RGB padding is dilated before inference. Alpha comes from the corrected source. The final compositor uses neural luminance detail while preserving source channel differences and zeros fully transparent pixels. PNG reading avoids the premultiplication rounding introduced by DrawImage. See [the color fix](UI_COLOR_FIX.md).
 
-O loop externo é variável, com limitador próprio. Um acumulador executa a
-simulação original em passos de **1/60 s**. Personagens e câmera podem ser
-interpolados entre os dois estados, com restauração do estado real após o
-desenho. Teleportes não são interpolados. A interpolação adiciona até um passo
-de atraso visual e pode ser desativada.
+CJK font atlas dimensions, glyph bounds, cropping, kerning and metrics are adapted while measurements remain in logical coordinates. The engine and models come from the [author's release](https://github.com/xinntao/Real-ESRGAN/releases/tag/v0.2.5.0) with a pinned SHA256. They are downloaded separately. A Vulkan-compatible GPU is required for preparation; no AI inference runs during a frame.
 
-Contadores ligados ao desenho, como needsRender e camSplatCatchup, avançam
-somente uma vez por tick da simulação. O RNG visual foi separado do RNG da
-simulação; desenhar mais frames não consome a sequência usada pela lógica.
-Ao perder foco o limite de render cai para 30 para reduzir consumo.
+## Timing
 
-O contador opcional aparece dentro da tela, inclusive em fullscreen, com FPS
-reais de desenho e frequência da lógica. VSync pode limitar o resultado à
-frequência do monitor. “180” é um limite solicitado, não garantia de que todas
-as cenas sustentem 180 FPS em qualquer computador.
+A variable outer loop renders at the selected cap. An accumulator advances game logic at 1/60 second per update, with catch-up capped at 0.25 seconds and 15 steps. Optional interpolation draws character and camera positions between previous and current states, then restores the simulation state. Large discontinuities over 256 units skip interpolation. Interpolation can add up to one simulation step of visual latency.
 
-## Validação realizada
+Draw-related counters advance once per simulation tick. Visual random numbers use a separate stream so extra drawn frames do not consume the simulation sequence. Background rendering is capped at 30 FPS when the game loses focus.
 
-| Verificação | Resultado |
-|---|---|
-| Build/publish x64 da lógica real | Sucesso, sem erros; avisos de campos do decompile |
-| Testes de plataforma | 29 passaram, incluindo novas regressões BC1/BC3 |
-| Movimento sintético por 10 segundos | Mesma distância e 600 ticks em 30/60/120/144/180/240 FPS |
-| Travamento longo | Trabalho de catch-up limitado; não executa centenas de updates de uma vez |
-| RNG | Frames extras não consomem a sequência da simulação |
-| GPU HD | 139 verificações passaram: recortes, pivôs, efeitos, fonte e 128 texturas |
-| Efeitos | 22 load/draw/readback sem falhas |
-| Alpha e dimensões | 128 folhas HD + oito cenas verificadas pixel a pixel |
-| Benchmark técnico 1080p após aquecimento | **180,0 FPS de render e 60,0 Hz de lógica**, cena sintética de três segundos na RX 6650 XT |
-| Iniciador | Controles e renderização offscreen verificados; sem iniciar uma partida |
+The FPS overlay shows actual drawn frames and logic Hz. VSync can restrict presentation to the monitor refresh rate. Selecting 180 does not make a 60 Hz display show 180 distinct frames.
 
-O benchmark técnico não substitui uma partida real: campanha inteira, efeitos
-de todas as fases e estabilidade prolongada em 180 FPS ainda precisam de
-validação manual. Não enviamos mais sequências de controles ao jogo do usuário.
+## Validation scope
 
-## Compilar e preparar na própria máquina
+Local tests cover fixed-step timing at multiple render rates, bounded catch-up, RNG separation, BC1/BC3 decoding, atlas crops and pivots, font drawing, 128 texture loads and the real bloom shader regression. Pixel audits cover alpha and channel relationships for all 128 HD sheets and eight scene overrides.
 
-**Compilar-meu-jogo.cmd** executa o fluxo completo, incluindo a correção DXT,
-128 texturas HD, oito cenas e iniciador. O ZIP contém fontes do port, sem o jogo.
-Para processar uma importação desktop atual manualmente:
-
-```powershell
-./tools/windows/upscale-game.ps1 -ContentRoot 'C:\caminho\da\importacao'
-```
-
-O script recusa ampliar uma importação antiga com índices DXT incorretos; nesse
-caso reimporte com o executável atualizado. Para testar somente a plataforma:
-
-```powershell
-dotnet run --project tools/windows/Tests -c Release -- 'C:\pasta\nova\de\testes'
-Dishwasher.exe --graphics-check --render-benchmark --data-root 'C:\pasta\de\diagnostico'
-```
-
-O jogo abre diretamente por padrão; `--play` continua aceito por compatibilidade.
-O configurador também pode ser aberto explicitamente com `Dishwasher.exe --configure`.
+A short warmed-up synthetic benchmark reached 180 FPS rendering with 60 Hz logic on the local RX 6650 XT. This is a technical benchmark, not a measurement of the entire campaign. Full campaign, co-op and prolonged high-FPS gameplay remain unverified.

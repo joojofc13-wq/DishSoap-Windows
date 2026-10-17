@@ -1,4 +1,4 @@
-# ReXGlue SDK 0.10.0 — Xenos→Vulkan backend: mobile / TBDR (Adreno) audit
+# ReXGlue SDK 0.10.0: Xenos→Vulkan backend: mobile / TBDR (Adreno) audit
 
 Scope: **read-only** audit of `<rexglue-sdk>` (SDK 0.10.0, Xenia/Xenos Vulkan
 translation). Target device: **Samsung Galaxy A52 (SM-A525F), Qualcomm Adreno 618, Android 14
@@ -8,7 +8,7 @@ Method:
 1. Static enumeration of every Vulkan feature/extension/limit/format the backend requests
    (`src/ui/vulkan/`, `src/graphics/vulkan/`, `include/rex/graphics/vulkan/`).
 2. A **Vulkan capability probe** cross‑compiled with NDK r28b and executed on the A52 in two forms
-   — a native arm64 executable and a standalone APK module (`<android-vkprobe>/`).
+  : a native arm64 executable and a standalone APK module (`<android-vkprobe>/`).
    Both produced identical output. Raw captures: `probe-output-a52.txt` and
    `apk-probe-logcat-a52.txt`, reproduced in §8.
 3. All non-measured statements are explicitly labelled **(speculation)**.
@@ -17,19 +17,18 @@ Legend: **REQUIRED** = hard `return nullptr` / init failure; **OPTIONAL** = enab
 graceful fallback otherwise; **UNUSED** = listed because the task asked, but the backend has no
 code path for it.
 
----
 
 ## 0. Headline results
 
 - The A52 exposes **Vulkan 1.1.128** (instance 1.3.0), device `Adreno (TM) 618`, driver
   `Qualcomm Technologies Inc. Adreno Vulkan Driver` (id 8, conformance 1.2.0.1).
-- The backend's **three hard feature requirements** — `independentBlend`,
-  `fragmentStoresAndAtomics`, `vertexPipelineStoresAndAtomics` — are **all TRUE**, plus the two
+- The backend's **three hard feature requirements**: `independentBlend`,
+  `fragmentStoresAndAtomics`, `vertexPipelineStoresAndAtomics`: are **all TRUE**, plus the two
   default‑required ones `geometryShader` and `fillModeNonSolid` are **TRUE**. `vkCreateDevice`
   with the exact required set succeeds (measured).
 - On the measured A52 inputs, the **FBO/host‑render‑target path is the only viable path** and every
   one of its preconditions passes (formats, sample counts, bit‑exact transfers), so the
-  **fragment‑shader‑interlock path is not needed** — and could not be used anyway because
+  **fragment‑shader‑interlock path is not needed**: and could not be used anyway because
   `VK_EXT_fragment_shader_interlock` is absent. There is **no hard capability blocker** for this
   title on Adreno 618. (Path selection itself is a runtime decision; the probe measured its inputs.)
 - The dominant risks are **performance/bandwidth on the TBDR**, not correctness: the EDRAM emulation
@@ -41,7 +40,6 @@ code path for it.
   `VK_EXT_non_seamless_cube_map`, `VK_EXT_shader_stencil_export`, `VK_EXT_memory_budget`,
   `VK_EXT_shader_demote_to_helper_invocation`. Every one of them has a coded fallback in the SDK.
 
----
 
 ## 1. Vulkan extension inventory
 
@@ -91,17 +89,16 @@ instead (`request_promoted_extension`, `vulkan_device.cpp:153-161`).
 
 Counts: **1 REQUIRED** (`swapchain`) + 3 VMA‑required but promoted to 1.1 (satisfied by core);
 **16 OPTIONAL**; **7 of the optionals are present, 9 absent**. **No absent optional extension is a
-correctness blocker** (each has a fallback — see §2/§4).
+correctness blocker** (each has a fallback: see §2/§4).
 
 Not used (verified absent from backend): `VK_KHR_push_descriptor`, `VK_KHR_descriptor_update_template`,
 `VK_EXT_descriptor_indexing`, `VK_EXT_shader_object`, `VK_EXT_line_rasterization` (grep clean; the
 `VK_EXT_shader_object` hit in `vulkan_device.cpp` is a comment only).
 
----
 
 ## 2. Feature requirement matrix
 
-### 2.1 Hard requirements — `VulkanDevice::CreateIfSupported`
+### 2.1 Hard requirements: `VulkanDevice::CreateIfSupported`
 `src/ui/vulkan/vulkan_device.cpp:95-140`:
 
 | Feature | Requirement | A52 | Consequence if false |
@@ -122,14 +119,14 @@ Not used (verified absent from backend): `VK_KHR_push_descriptor`, `VK_KHR_descr
 |---|---|---|
 | `robustBufferAccess` | ✔ | none needed |
 | `fullDrawIndexUint32` | ✔ | primitive processor |
-| `tessellationShader` | ✔ | — |
+| `tessellationShader` | ✔ |: |
 | `sampleRateShading` | ✔ | required for FSI only |
 | `depthClamp` | ✔ | `pipeline_cache.cpp:1596` rejects clamped pipelines (parity loss) |
-| `samplerAnisotropy` | ✔ | — |
-| `occlusionQueryPrecise` | ✔ | — |
+| `samplerAnisotropy` | ✔ |: |
+| `occlusionQueryPrecise` | ✔ |: |
 | `shaderClipDistance` / `shaderCullDistance` | ✔ / ✔ | `spirv_translator.cpp:53-54,1726-1740` |
 | `sparseBinding` / `sparseResidencyBuffer` | ✘ | committed fallback `texture_cache.cpp:2122-2136` |
-| `samplerMirrorClampToEdge` | ✔ | — |
+| `samplerMirrorClampToEdge` | ✔ |: |
 | `uniformBufferStandardLayout`, `scalarBlockLayout` (1.2) | feature bits ✔ but **not enabled** on a 1.1 device (see §4 risk R6) | offset decorations emitted explicitly |
 | `dynamicRendering` (1.3) | ✘ | classic `VkRenderPass` path (`command_processor.cpp:3095-3096`) |
 | `shaderDemoteToHelperInvocation` | ✘ | `spirv_translator.cpp:2996-3004` variable/`OpKill` fallback |
@@ -143,17 +140,16 @@ Not used (verified absent from backend): `VK_KHR_push_descriptor`, `VK_KHR_descr
 Measured feature dump: probe output `FEATURES_1_0` (55 flags), `FEATURES_1_2`, `FEATURES_1_3`,
 `FEATURES_EXT`.
 
-### 2.3 Explicitly NOT used (desktop‑only features on many tilers — no risk here)
-- **`wideLines` = false** on A52 — backend never sets `lineWidth != 1.0`
+### 2.3 Explicitly NOT used (desktop‑only features on many tilers: no risk here)
+- **`wideLines` = false** on A52: backend never sets `lineWidth != 1.0`
   (`pipeline_cache.cpp:3264`, `render_target_cache.cpp:4376`). No requirement.
-- **`logicOp` = false** — no `logicOp`/`VkPipelineColorBlendStateCreateInfo::logicOpEnable` usage.
-- **`largePoints` = true** — not needed as a feature (point size via `gl_PointSize`, which
+- **`logicOp` = false**: no `logicOp`/`VkPipelineColorBlendStateCreateInfo::logicOpEnable` usage.
+- **`largePoints` = true**: not needed as a feature (point size via `gl_PointSize`, which
   `shaderTessellationAndGeometryPointSize=false` would gate; the translator has a point‑size path).
-- **`multiViewport` = false** — single‑viewport only.
-- **`shaderFloat64` / `shaderInt64` = false** — no `OpCapability Int64/Float64` emitted by the
+- **`multiViewport` = false**: single‑viewport only.
+- **`shaderFloat64` / `shaderInt64` = false**: no `OpCapability Int64/Float64` emitted by the
   SPIR‑V translator (grep). `shaderInt16` = true, `shaderStorageImageReadWithoutFormat` = true.
 
----
 
 ## 3. Format & sample‑count requirements (measured)
 
@@ -184,16 +180,15 @@ Consequences (measured, all pass):
 Memory: heap 0 = **5494 MB** device‑local (UMA), heap 1 = 256 MB; memory type 2 is
 `DEVICE_LOCAL|HOST_VISIBLE|HOST_COHERENT|HOST_CACHED`. `maxStorageBufferRange = 536870912`
 (512 MB) exactly equals `SharedMemory::kBufferSize = 1<<29` (`include/rex/graphics/shared_memory.h:28-29`)
-— the guest shared‑memory SSBO fits, but with **zero headroom** (see R7).
+,  the guest shared‑memory SSBO fits, but with **zero headroom** (see R7).
 
----
 
 ## 4. TBDR / mobile risk list
 
 Severity is relative to *this* title (2D side‑scroller, 3D‑ish effects) on Adreno 618.
 
-### R1 — EDRAM emulated as persistent host render targets with LOAD/STORE (HIGH, **performance**)
-**Evidence:** `render_target_cache.cpp:1586-1628` — every generated render pass uses
+### R1: EDRAM emulated as persistent host render targets with LOAD/STORE (HIGH, **performance**)
+**Evidence:** `render_target_cache.cpp:1586-1628`: every generated render pass uses
 `loadOp = VK_ATTACHMENT_LOAD_OP_LOAD`, `storeOp = VK_ATTACHMENT_STORE_OP_STORE` for depth and
 color (stencil load/store `DONT_CARE` on color attachments only). `command_processor.cpp:3109-3160`
 ends the current pass and begins a new one whenever the render‑pass key *or* framebuffer changes
@@ -204,10 +199,10 @@ pass begin forces GMEM to be re‑fetched from system memory, and `STORE` writes
 backend splits passes on RT key/framebuffer changes, a frame with many small passes pays that cost
 repeatedly instead of keeping one tile resident. Expect elevated DDR/LPDDR bandwidth and GPU power.
 Not a correctness issue. This is the single most important mobile concern.
-**Mitigation (do NOT apply to the tree — see patches file):**
+**Mitigation (do NOT apply to the tree: see patches file):**
 - For passes where the attachment is known to be fully overwritten by a clear/first draw, use
   `DONT_CARE`/`CLEAR`. The backend already does this for the swapchain present pass
-  (`vulkan_presenter.cpp:903-905`) — the same idea is not applied to guest RTs because they persist.
+  (`vulkan_presenter.cpp:903-905`): the same idea is not applied to guest RTs because they persist.
   **(speculation)** A safe subset is the explicit resolve/clear transfers, which currently reuse the
   draw pass with `LOAD`.
 - Reduce pass breaks: keep `current_render_pass_ == render_pass && current_framebuffer == framebuffer`
@@ -217,7 +212,7 @@ Not a correctness issue. This is the single most important mobile concern.
 Good news: subpass dependencies already use `VK_DEPENDENCY_BY_REGION_BIT`
 (`render_target_cache.cpp:1665,1672`), which is the TBDR‑friendly flag.
 
-### R2 — EDRAM resolve is a compute copy to a 512 MB‑scale buffer (MEDIUM‑HIGH, **performance**)
+### R2: EDRAM resolve is a compute copy to a 512 MB‑scale buffer (MEDIUM‑HIGH, **performance**)
 **Evidence:** `render_target_cache.cpp` includes 26 resolve compute shaders (`:97-122`);
 `DumpRenderTargets` / `TryResolveCopyDirectly` copy host‑RT contents via storage buffers into
 `edram_buffer_` (`:5450-5922`, `:6069-6092`); `kDumpSamplesPerGroupX/Y = 8x16`
@@ -229,16 +224,16 @@ Vulkan, and the maximum number of lanes in a subgroup"). `maxPerStageDescriptorS
 be optimal for Adreno's wave size.
 **Note:** no `VK_EXT_fragment_shader_interlock`, so the direct‑from‑tile path cannot be used anyway.
 
-### R3 — FSI fallback genuinely unavailable; FBO path must keep passing its gates (MEDIUM, **robustness**)
+### R3: FSI fallback genuinely unavailable; FBO path must keep passing its gates (MEDIUM, **robustness**)
 **Evidence:** A52 lacks `VK_EXT_fragment_shader_interlock` (and `fragmentShaderSampleInterlock`/
 `PixelInterlock` are false). `render_target_cache.cpp:203-239` sets `fsi_path_supported=false`, so
 `:300-319` / `:401-415` would `return false` (no GPU) if the FBO gates failed. They pass on this
-device, so it works — but this is a fragile chain: any future Adreno driver that drops
+device, so it works: but this is a fragile chain: any future Adreno driver that drops
 `R16G16_SNORM`/`R16G16B16A16_SNORM` color attachment, integer‑MSAA sampled images, or UINT
 transfer formats has **no fallback**. Keep `render_target_path_vulkan` unset/`fbo`; never set `fsi`.
 **Evidence for the "absent" claim:** probe `HAS dext fragment_shader_interlock=false`.
 
-### R4 — No sparse residency → scaled‑resolve buffer is fully committed (MEDIUM, **memory/OOM**)
+### R4: No sparse residency → scaled‑resolve buffer is fully committed (MEDIUM, **memory/OOM**)
 **Evidence:** `texture_cache.cpp:2072-2140`: without `sparseResidencyBuffer` the buffer is created
 with `VkBufferCreateFlags` 0 and one committed allocation;
 `scaled_resolve_buffer_size_ = SharedMemory::kBufferSize(512 MB) * scale_x * scale_y` (`:2075-2076`).
@@ -249,14 +244,14 @@ memory and other buffers → OOM/jank risk.
 **Recommendation:** keep native resolution on mobile, or gate scale to 1 unless the buffer can be
 allocated; `native_2x_msaa` (already true) is the cheaper AA lever.
 
-### R5 — Optional extensions absent all have fallbacks, but each costs accuracy/perf (LOW–MEDIUM)
+### R5: Optional extensions absent all have fallbacks, but each costs accuracy/perf (LOW-MEDIUM)
 `robustness2`→null images (`texture_cache.cpp:2960`), `custom_border_color`→logged fallback
 (`:910-921`), `non_seamless_cube_map`→flag skipped (`:839`), `shader_stencil_export`→extra
 stencil‑bit draws (`render_target_cache.cpp:4846`), `demote_to_helper_invocation`→variable/`OpKill`
 (`spirv_translator.cpp:2996-3004`), `dynamic_rendering`→classic render passes. These are
 correct‑but‑slower/less‑exact paths. No action required for bring‑up; note for fidelity tuning.
 
-### R6 — `scalarBlockLayout` / `uniformBufferStandardLayout` not enabled on a 1.1 device (LOW, **speculation**)
+### R6: `scalarBlockLayout` / `uniformBufferStandardLayout` not enabled on a 1.1 device (LOW, **speculation**)
 **Evidence:** `vulkan_device.cpp:339-343` links `VkPhysicalDeviceVulkan12Features` **only if
 `apiVersion ≥ 1.2`**. The A52 reports apiVersion **1.1.128**, so those features are never enabled even
 though the driver fills them TRUE in the 1.2 struct and exposes `VK_EXT_scalar_block_layout`. The
@@ -268,12 +263,12 @@ for its blocks (`spirv_translator.cpp:354,412,437,2834`; `render_target_cache.cp
 and storage buffers default to std430, which needs no feature. Verify by running the real pipeline on
 device; if descriptor‑layout validation errors appear, add the two extensions as fallbacks.
 
-### R7 — `maxStorageBufferRange` exactly equals the 512 MB guest shared buffer (LOW, **brittle**)
+### R7: `maxStorageBufferRange` exactly equals the 512 MB guest shared buffer (LOW, **brittle**)
 Measured `maxStorageBufferRange = 536870912`, `SharedMemory::kBufferSize = 536870912`. The SSBO
 fits exactly; any increase of `kBufferSize` (or a driver reporting a smaller range) would break
 `vkBindBufferMemory`/descriptor updates. No action now; a guard/clamp would harden it.
 
-### R8 — WSI/swapchain details (LOW)
+### R8: WSI/swapchain details (LOW)
 `vulkan_presenter.cpp:1224-1291` prefers `VK_FORMAT_R8G8B8A8_UNORM` (secondary `B8G8R8A8_UNORM`) with
 `VK_COLOR_SPACE_SRGB_NONLINEAR_KHR`; present modes tried IMMEDIATE→MAILBOX→FIFO_RELAXED→FIFO
 (`:1384-1405`); `compositeAlpha` prefers OPAQUE then INHERIT (`:1362-1378`); transform prefers
@@ -282,7 +277,7 @@ always available, so no blocker. `minImageCount = max(kSubmissionCount, minImage
 **(speculation)** IMMEDIATE/MAILBOX on Android can add latency/power cost; FIFO is the safe default
 for thermal stability.
 
-### R9 — Nothing desktop‑only in the shader path (INFO)
+### R9: Nothing desktop‑only in the shader path (INFO)
 Capabilities emitted (grep of `spirv_translator*.cpp`): `Shader`, `Tessellation`,
 `ClipDistance`/`CullDistance`, `SampleRateShading`, `DerivativeControl`,
 `DenormFlushToZero`/`SignedZeroInfNanPreserve`/`RoundingModeRTE` (from `shader_float_controls`,
@@ -291,7 +286,6 @@ present), `FragmentShaderSample/PixelInterlockEXT` (FSI only), `DemoteToHelperIn
 `VK_EXT_shader_object` is **not** used. On this device the only capability that is added
 conditionally and unavailable is demote, and the fallback is present.
 
----
 
 ## 5. Shader translation path
 
@@ -304,23 +298,21 @@ conditionally and unavailable is demote, and the fallback is present.
   `kRectangleList`/`kQuadList` (`pipeline_cache.cpp:1446-1453`); `ArePipelineRequirementsMet`
   (`:1585-1588`) filters those if `geometryShader` is absent. On A52 it is present.
 - **Conclusion:** generated SPIR‑V needs no desktop‑only capability for this title's likely
-  feature set. (Speculation on "likely" — a shader dump + offline `spirv-val` with
+  feature set. (Speculation on "likely": a shader dump + offline `spirv-val` with
   `SPV_ENV_VULKAN_1_1` would prove it; `dump_shaders` cvar exists, `flags.cpp:26`.)
 
----
 
 ## 6. Synchronization
 
 - Barriers are batched/deferred (`command_processor.cpp:3080-3088 SubmitBarriers`), and render‑pass
   transitions are only emitted when the RT key/framebuffer changes (`:3104`,`:3178`). This is
   broadly TBDR‑friendly.
-- Subpass dependencies use `VK_DEPENDENCY_BY_REGION_BIT` (`render_target_cache.cpp:1665,1672`) —
+- Subpass dependencies use `VK_DEPENDENCY_BY_REGION_BIT` (`render_target_cache.cpp:1665,1672`),
   correct and tile‑friendly.
 - Render targets are tracked manually (`VulkanRenderTarget::current_stage_mask/access_mask/layout`,
   `render_target_cache.h:351-359`), so no hidden whole‑frame barriers were found.
 - No correctness concern identified for TBDR. (Performance caveat is R1/R2, not sync.)
 
----
 
 ## 7. Android surface integration interface (for the platform agent)
 
@@ -376,7 +368,7 @@ class AndroidNativeWindowSurface final : public Surface {
 1. `src/ui/window_sdl.cpp` must gain an Android branch in `CreateSurfaceImpl` returning
    `AndroidNativeWindowSurface(SDL_GetAndroidWindow(...))` / the SDL3 `ANativeWindow*`, and
    `GetNativeWindowHandle` must return it (currently only Win32, `window_sdl.cpp:231-241`).
-   (The desktop `#else` currently includes `<X11/Xlib-xcb.h>` — the P0 blocker in
+   (The desktop `#else` currently includes `<X11/Xlib-xcb.h>`: the P0 blocker in
    `android-support-audit.md`.)
 2. Before `vkCreateSwapchainKHR`, the `ANativeWindow` geometry/format must be set
    (`ANativeWindow_setBuffersGeometry(w, h, WINDOW_FORMAT_RGBA_8888)`); SDL3 normally does this, but
@@ -392,7 +384,6 @@ class AndroidNativeWindowSurface final : public Surface {
    (`vulkan_presenter.cpp:420-431`); the Android type is only advertised when the instance extension
    is enabled, which the probe confirms is available.
 
----
 
 ## 8. Probe: build, run, and verbatim output
 
@@ -629,7 +620,6 @@ Format mask decode (SAMPLED_IMAGE=0x1, COLOR_ATTACHMENT=0x80, DEPTH_STENCIL_ATTA
 `D24_UNORM_S8_UINT` has both sampled + depth‑stencil; all `R16G16*`/`R16G16B16A16*` and UINT
 transfer formats have both sampled + color‑attachment; `sampledInteger = 7` (1x/2x/4x).
 
----
 
 ## 9. Labeled speculation (not measured)
 
@@ -638,17 +628,16 @@ transfer formats have both sampled + color‑attachment; `sampledInteger = 7` (1
   architecture but not measured. A future step is a GPU trace (Adreno Profiler / `simpleperf` +
   vendor counters) on the real title.
 - **(speculation)** R2's subgroup‑shape efficiency (8×16 workgroups) on Adreno's wave size.
-- **(speculation)** R6 (scalar/uniform std layout) — believed harmless because offsets are explicit;
+- **(speculation)** R6 (scalar/uniform std layout): believed harmless because offsets are explicit;
   not validated by running a real pipeline.
 - **(speculation)** R8 (IMMEDIATE/MAILBOX latency/power on Android).
 - **(speculation)** `vulkan_require_geometry_shader`/`fillModeNonSolid` being irrelevant because the
   title may not use rectangle/quad or wireframe primitives; both features are TRUE anyway.
 
----
 
 ## 10. Recommended actions (audit conclusion)
 
-1. **Do not set `render_target_path_vulkan=fsi`** — the FSI path cannot work on Adreno 618. Leave it
+1. **Do not set `render_target_path_vulkan=fsi`**: the FSI path cannot work on Adreno 618. Leave it
    at the default (FBO).
 2. **Keep `draw_resolution_scale_x/y = 1`** on mobile (avoid the 2 GB committed resolve buffer, R4).
    Use `native_2x_msaa=true` (default) for AA instead.

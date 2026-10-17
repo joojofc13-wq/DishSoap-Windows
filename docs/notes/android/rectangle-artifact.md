@@ -1,4 +1,4 @@
-# Rectangle artifact — DXT5 alpha byte-order bug
+# Rectangle artifact: DXT5 alpha byte-order bug
 
 **Author:** Sprite Artifact Specialist (subagent)
 **Date:** 2026-10-02
@@ -15,7 +15,6 @@ blood/effects, HUD, maps) therefore carried a translucent **rectangular halo**.
 Corrected by word-swapping the 8-byte alpha block in the exporter and
 re-exporting all 77 DXT5 textures.
 
----
 
 ## 0. TL;DR
 
@@ -35,19 +34,18 @@ re-exporting all 77 DXT5 textures.
 > changes (verified 0 differing RGB pixels, 233 125 corrected alpha pixels on
 > `head1` alone). Fully-transparent fraction on `head1` goes `0.11 → 0.75`.
 
----
 
 ## 1. What the artifact is and where it appears
 
 Rectangular, axis-aligned translucent patches that sit **behind** (and around)
 sprites. They appear:
 
-* **Gameplay** — a dark rectangle around the player: the character is a clean
+* **Gameplay**: a dark rectangle around the player: the character is a clean
   black silhouette but is boxed in a dithered rectangle; the wall/floor have
   rectangular noise patches; the HUD health bar has a dithered rectangular
   halo. Visible on every moving frame (the cell changes as the animation
   advances).
-* **Menu** — the whole background is a heavy dithered noise with rectangular
+* **Menu**: the whole background is a heavy dithered noise with rectangular
   patches behind the skull art, the "dish" ring and the option text; the
   `ink` post-overlay turns the dark dither patches into **red rectangles**.
 
@@ -59,17 +57,16 @@ drawn) rather than a separate world-space shadow quad.
 
 | file | scene |
 |---|---|
-| `rect-082-moveR.png` | **BEFORE** — café bench, player boxed in a dithered rectangle |
-| `rect-095-lvlsel2.png` | **BEFORE** — SELECT LEVEL menu, full-screen dither + red patches |
-| `rect-210-gp.png` … `rect-215-moveL.png` | **AFTER** — same café, idle + moving (clean) |
-| `rect-204-lvlsel.png`, `rect-201-main.png` | **AFTER** — SELECT LEVEL / main menu (clean art) |
+| `rect-082-moveR.png` | **BEFORE**: café bench, player boxed in a dithered rectangle |
+| `rect-095-lvlsel2.png` | **BEFORE**: SELECT LEVEL menu, full-screen dither + red patches |
+| `rect-210-gp.png` … `rect-215-moveL.png` | **AFTER**: same café, idle + moving (clean) |
+| `rect-204-lvlsel.png`, `rect-201-main.png` | **AFTER**: SELECT LEVEL / main menu (clean art) |
 | `cmp-gameplay-beforeafter.png` | full-band before/after (same room) |
 | `cmp-char-beforeafter.png` | character zoom before/after |
 | `cmp-menu-beforeafter.png` | menu before/after |
 | `cmp-moving-frames.png` | five AFTER moving frames, camera scrolls, no rectangles |
 | `rect-proof-head1-alpha-BEFORE.png` / `-AFTER.png` | the `head1` atlas alpha over magenta |
 
----
 
 ## 2. Isolation experiments
 
@@ -87,7 +84,7 @@ drawn) rather than a separate world-space shadow quad.
   / `SamplerState` override exists anywhere in `GameSource/` (grep = 0 hits);
   MonoGame's `SpriteBatch` default is `LinearClamp`. Bleed from a neighbouring
   atlas cell would be a 1-pixel fringe, not a full-cell rectangle, and it would
-  rotate with the sprite — the artefact is axis-aligned and cell-sized. The
+  rotate with the sprite: the artefact is axis-aligned and cell-sized. The
   exported PNGs preserve the atlas layout (dimensions verified 125/125).
 * **Shadow / tint / silhouette quads (suspect #2).** `Sprite.fx`/`SpriteShadow.fx`
   are not among the 19 `Content.Load<Effect>` sites in `Game1.cs:551-571` and are
@@ -103,7 +100,7 @@ drawn) rather than a separate world-space shadow quad.
   both the original and the port, and the rectangle is present on the very first
   static gameplay frame (e.g. `rect-210-gp.png`), not only during motion.
 
-### 2.2 On-device menu RT isolation (diagnostics modes 40–43)
+### 2.2 On-device menu RT isolation (diagnostics modes 40-43)
 
 Added to reuse the existing harness: **mode 40 = show `refractTarg`, 41 =
 `lenseTarg`, 42 = `rTarg[cur]`, 43 = `mapTarg`** (volume keys). `refractTarg`
@@ -112,7 +109,6 @@ input), while `lenseTarg`/`rTarg` carried the menu art plus the DXT5 dither, i.e
 the red rectangles are the `ink` overlay reading the **dithered DXT5 menu art**.
 This pointed at the texture alpha, not the shaders, before the decoder test.
 
----
 
 ## 3. Root cause
 
@@ -127,26 +123,25 @@ ccols  = _decode_color_block(block, 8, be_endpoints, big_endian_index)  # colour
 The Xbox 360 DXT5 payload is byte-swapped **16-bit words**. The colour endpoints
 were already handled (`be_endpoints=True`), but the 8-byte alpha block was read
 in file order. For the canonical transparent block `00 ff 92 49 49 24 24 92`
-this gives `a0=0, a1=255` and interpolated alpha `{0,51,153}` per pixel — a
+this gives `a0=0, a1=255` and interpolated alpha `{0,51,153}` per pixel: a
 checkerboard. Because the whole cell is drawn (`Character.Draw(... value ...)`
 with `value = new Rectangle(partIcon % 6 * 85, partIcon / 6 * 85, 85, 85)`), the
 checkerboard is composited over the scene as a translucent grunge rectangle.
 
 This was **verified against the authoritative decoder**: the standard BC3
 decode of the same bytes matches the shipped PNG exactly, which is exactly why
-it looks "plausible" — the bug is an endianness bug in the source data, not a
+it looks "plausible": the bug is an endianness bug in the source data, not a
 decoder crash.
 
-Affected assets: **all 77 DXT5** textures — `gfx/sprites`, `gfx/head1..11`,
+Affected assets: **all 77 DXT5** textures: `gfx/sprites`, `gfx/head1..11`,
 `gfx/torso1..15`, `gfx/legs1..12`, `gfx/weapon1..16`, `gfx/items`, `gfx/eckto`,
 `gfx/bubbles`, `gfx/comictext`, `gfx/jtext`, `gfx/maps/maps1..6`. The 45
 `Color` and 3 `Dxt1` textures were already correct.
 
----
 
 ## 4. Fix applied
 
-**`tools/xnb_v2.py`** — `decode_dxt5` now word-swaps the alpha block
+**`tools/xnb_v2.py`**: `decode_dxt5` now word-swaps the alpha block
 (new `be_alpha: bool = True`), matching the colour-endpoint endianness:
 
 ```python
@@ -183,14 +178,13 @@ No shader, `MatrixTransform`, technique/pass name, parameter name/type,
 `targetSdkVersion`, or game logic was touched. The `fx/*.xnb` recompile was
 **not** needed (textures only).
 
----
 
 ## 5. Before / after evidence
 
 | | BEFORE (dithered DXT5 alpha) | AFTER (word-swapped alpha) |
 |---|---|---|
-| café, player | `rect-082-moveR.png` — player boxed in a rectangle, wall/floor tiled noise | `rect-210-gp.png`, `rect-213-moveR.png` — clean silhouette, clean room |
-| SELECT LEVEL menu | `rect-095-lvlsel2.png` — dither + red patches | `rect-204-lvlsel.png` — clean "SELECT LEVEL / DEAD SAMURAI" art |
+| café, player | `rect-082-moveR.png`: player boxed in a rectangle, wall/floor tiled noise | `rect-210-gp.png`, `rect-213-moveR.png`: clean silhouette, clean room |
+| SELECT LEVEL menu | `rect-095-lvlsel2.png`: dither + red patches | `rect-204-lvlsel.png`: clean "SELECT LEVEL / DEAD SAMURAI" art |
 | main menu | `rect-091-main.png` | `rect-201-main.png` |
 | character zoom | `cmp-char-beforeafter.png` (left) | `cmp-char-beforeafter.png` (right) |
 | full band | `cmp-gameplay-beforeafter.png` (top) | `cmp-gameplay-beforeafter.png` (bottom) |
@@ -209,7 +203,6 @@ same art; audio cues keep loading (`logcat` `[audio] loaded 'sfx/wav/...'`);
 `MatrixTransform` and the `fade` fix are untouched; on-device input navigation
 still reaches gameplay.
 
----
 
 ## 6. Build / deploy (verified)
 
@@ -230,7 +223,6 @@ APK contains the corrected atlas: `assets/gfx/head1.png` md5
 `e4374dc854a34d76cdee0292826cc5f9` =
 `Dishwasher/Assets/gfx/head1.png`.
 
----
 
 ## 7. Remaining occurrence / notes
 
@@ -238,7 +230,7 @@ APK contains the corrected atlas: `assets/gfx/head1.png` md5
   gameplay scenes after the fix. The translucent rectangles that remain in the
   menus are the game's **intended option backdrops** (dark boxes behind the
   option text) and the bottom blood/vignette gradient.
-* **Diagnostics scaffolding (additive, revertable):** modes 40–43 were added to
+* **Diagnostics scaffolding (additive, revertable):** modes 40-43 were added to
   `Platform/RenderDiagnostics.cs` + a `TEMP RENDER DIAGNOSTICS` block at the end
   of the menu `case 1` in `Game1.cs`. They are inert at mode 0 and can be deleted
   with the rest of the harness.

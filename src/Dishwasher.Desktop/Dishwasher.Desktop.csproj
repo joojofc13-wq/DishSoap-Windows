@@ -41,6 +41,6 @@
     <Compile Include="$(GameSourceRoot)/**/*.cs" Exclude="$(GameSourceRoot)/**/Program.cs;$(GameSourceRoot)/**/AssemblyInfo.cs;$(GameSourceRoot)/**/obj/**;$(GameSourceRoot)/**/bin/**" Link="GameSource/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
   <Target Name="RequireRealGameSource" BeforeTargets="CoreCompile" Condition="'$(DishwasherBuildGame)' == 'true'">
-    <Error Condition="!Exists('$(GameSourceRoot)/projectDish/Game1.cs')" Text="GameSource real ausente. Execute tools/windows/prepare-game.ps1 com seu game.exe gerenciado. Para compilar SOMENTE o importador: -p:DishwasherBuildGame=false. Veja docs/WINDOWS_BUILD.md." />
+    <Error Condition="!Exists('$(GameSourceRoot)/projectDish/Game1.cs')" Text="Real GameSource is missing. Run tools/windows/prepare-game.ps1 with your managed game.exe. To build ONLY the importer: -p:DishwasherBuildGame=false. See docs/WINDOWS_BUILD.md." />
   </Target>
 </Project>

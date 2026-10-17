@@ -1,86 +1,37 @@
-# Interface, compilador e cores — 2026-10-16
+# Builder progress and texture color fixes
 
-O configurador separado `DishSoap.Configurator.exe` mostra DishSoap com controles
-padrão do Windows; título da janela e do jogo: `dishwasher`. O botão Salvar
-configuração grava as preferências e fecha; não inicia o jogo.
-`Dishwasher.exe` lê `Config/desktop.json` e abre diretamente a partida/menu do jogo.
-Somente Original e Upscaled; saída 1280×720, sem resolução automática ou
-redimensionamento da janela. O supersampling interno 1920×1080 foi preservado.
-Sem controle de volume nem legenda de comandos. O volume já salvo é mantido.
+## Builder progress
 
-O país/região configurado em `HKCU/Control Panel/International/Geo/Name`
-determina português, espanhol ou inglês. Se essa informação não estiver
-disponível, usa o formato regional com inglês como fallback. Não altera a
-configuração do Windows. Os testes de UI permitem sobrescrever o idioma somente
-durante `--launcher-check --ui-culture ...` ou `-UiCheck -UiCulture ...`.
+The destination picker selects a parent directory. Every run creates a separate `Dishwasher-yyyyMMdd-HHmmss-id` child. The UI shows six stages, texture counts and live logs. Progress reaches 100% only after successful completion. These are stage percentages, not a time estimate.
 
-## Compilador
+The worker writes separate per-run progress and result JSON files. Success requires a positive result and an existing executable. It enables the buttons, reports completion and opens the executable's folder. Failure shows the error without presenting a partial build as complete. The game is never started automatically.
 
-O destino escolhido é uma pasta pai, que pode conter arquivos. Cada execução
-cria sua própria subpasta `Dishwasher-yyyyMMdd-HHmmss-id`. A interface acompanha
-as seis etapas e os contadores de texturas, mostra o log e só chega a 100% após
-o resultado de sucesso. Isso representa progresso por etapas, não tempo previsto.
+### Live-log sharing bug
 
-O worker grava um resultado JSON atômico separado por execução. A interface
-não depende de ExitCode potencialmente nulo de Start-Process com redirecionamento.
-Sucesso exige resultado positivo e executável existente: habilita os botões,
-abre a pasta efetiva do executável e exibe um aviso. Falha exibe aviso e detalhes;
-não abre a pasta como se o jogo estivesse pronto. Nunca inicia o jogo sozinho.
+Start-Process holds redirected stdout/stderr files open for writing. File.ReadAllText opens with FileShare.Read, which conflicts with that writer on Windows. The old UI swallowed the error, leaving both the log and progress display empty during a real build.
 
-### Correção do progresso com compilação em andamento
+Read-BuildLog now opens with FileShare.ReadWrite | FileShare.Delete. Stage updates are also written directly to atomic JSON files, independently of stdout buffering. Initial preparation uses an animated bar; downloads show received MB when the transfer file is available; subsequent stages and texture counters update the bar.
 
-`Start-Process` mantém os arquivos de stdout/stderr abertos para escrita.
-`File.ReadAllText` tentava abrir esses arquivos com compartilhamento apenas de
-leitura, gerando erro de arquivo em uso. Como a interface ignorava esse erro,
-o log e a barra ficavam sem atualizações durante a compilação real.
+The regression starts a real child process with redirected output, checks progress before it exits and verifies completion handling. `-UiCheck -Source <game.exe> -Dotnet <dotnet.exe> -Python <python.exe>` also performs actual game and configurator compilation, without importing assets or starting the game. An already open builder window must be reopened to load new script code.
 
-A leitura agora usa `FileShare.ReadWrite | FileShare.Delete`. As etapas também
-são gravadas diretamente num JSON atômico, sem depender do buffer de stdout.
-A preparação inicial mostra uma barra animada; downloads informam MB recebidos
-quando o arquivo está disponível. Depois, a barra acompanha etapas e texturas,
-chegando a 100% somente após a confirmação de sucesso.
+## Purple and cyan artifacts
 
-A regressão executa um processo filho real com redirecionamento de stdout e
-stderr, verifica atualizações antes de ele terminar e testa o aviso de conclusão.
-`-UiCheck -Source <game.exe> -Dotnet <dotnet.exe> -Python <python.exe>` também
-executa a compilação real com a cópia fornecida, sem importar recursos nem
-iniciar o jogo. O teste não tenta atualizar uma janela antiga que já estava aberta.
+The bloom shader tests B > R and uses blue as an emission mask. Slight neural color drift on neutral surfaces activated that mask. Scene themes then tinted the bloom purple or cyan. A one-byte change could create a bright artifact.
 
-## Manchas roxas/azuis
+The new compositor preserves the interpolated original B-R and G-R differences exactly. It applies a common bounded RGB offset derived from neural luminance, avoiding channel clipping. Alpha comes from the original, transparent pixels are zero and original black remains black. Authored blue and purple effects remain available.
 
-O shader bloom original do port testa `B > R` e usa o canal azul como máscara
-de emissão. No pacote neural antigo, pequenas mudanças cromáticas em superfícies
-neutras ativavam essa máscara. O jogo colore o bloom de roxo ou ciano conforme
-o tema. Por isso até a diferença de um byte podia produzir brilho forte.
+PNG reads use Bitmap.Clone to avoid RGB rounding from premultiplication on translucent pixels. New packs use `hd2x-color-safe`, with the older `hd2x` pack available as a fallback. TextureTools can migrate a previous pack into a separate destination without repeating inference:
 
-A receita v2 usa o detalhe de luminância neural com diferenças entre canais
-iguais às da textura original interpolada. Um deslocamento comum aos três
-canais é limitado antes de saturar, preservando exatamente B−R e G−R. Alpha é
-original; pixels transparentes ficam zerados e os pretos permanecem pretos.
-Não há supressão global de roxo/azul nem desativação dos efeitos legítimos.
-Leitura de PNG usa Clone para evitar arredondamentos RGB por premultiplicação
-ao usar DrawImage em pixels translúcidos.
+```text
+TextureTools recolor-pack ORIGINAL_ROOT OLD_PACK NEW_PACK
+```
 
-O novo pacote fica em `hd2x-color-safe`; o anterior `hd2x` e o backup ficam
-preservados. Novas compilações preparam a receita v2 diretamente. O comando
-`TextureTools recolor-pack ORIGINAL_ROOT OLD_PACK NEW_PACK` permite migrar o
-pacote antigo sem executar a rede neural novamente, com destino separado.
+## Evidence and remaining checks
 
-## Evidência e limites
+The pixel audit covered 128 HD sheets and eight background overrides, including translucent pixels. The eight old background sheets had more than 6.6 million opaque pixels that falsely triggered the bloom mask. The corrected pack had zero new activations and zero lost activations relative to the interpolated original baseline.
 
-- 128 folhas normais e oito folhas restauradas: dimensões, alpha e diferenças
-  entre canais verificadas, incluindo pixels parcialmente transparentes.
-- Nas oito folhas de cenários: mais de 6,6 milhões de pixels opacos antes
-  ativavam indevidamente a máscara. Após a correção: **zero ativações novas e
-  zero perdas**, comparado à interpolação da textura original.
-- Regressão na GPU com o shader bloom real: deriva azul de um byte reproduz o
-  defeito; a preservação de cores remove o brilho falso; luz azul original
-  continua emitindo. Carregamento/hash/dimensões de 128 texturas passou.
-- Estados de progresso, sucesso e falha do compilador verificados, incluindo
-  resultado de uma compilação real em pasta pai não vazia; arquivo preexistente
-  preservado. Interfaces renderizadas em português, inglês e espanhol.
+A GPU regression using the actual bloom effect reproduced the one-byte blue drift artifact, verified the corrected color path and checked that original blue emission still worked. All 128 textures passed loading, dimension and hash checks.
 
-Os testes isolam a causa confirmada de brilho falso. A composição de cada fase
-e os blocos de área vazia vistos na captura ainda precisam de confirmação na
-partida pelo usuário; não prometemos que todos os efeitos do port estejam
-visualmente fiéis. Não executamos comandos de gameplay nem fechamos sua partida.
+These checks address the confirmed color-mask cause. Every stage composition and the large empty-area blocks shown in an earlier screenshot still need gameplay review. The tests do not prove every graphical issue in the port is fixed.
+
+The configurator and builder now use English regardless of Windows region. The settings editor remains separate, with fixed 720p output and only Original or Upscaled texture choices.

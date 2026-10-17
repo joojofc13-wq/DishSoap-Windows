@@ -31,14 +31,14 @@ namespace Dishwasher
             try
             {
                 var settings = JsonSerializer.Deserialize<DesktopSettings>(File.ReadAllText(FilePath))
-                    ?? throw new InvalidDataException("Configuração vazia.");
+                    ?? throw new InvalidDataException("Empty settings.");
                 if (settings.Width < 320 || settings.Width > 16384 || settings.Height < 180 || settings.Height > 16384)
-                    throw new InvalidDataException("Resolução fora dos limites.");
-                if (settings.Keys == null) throw new InvalidDataException("Mapeamento de teclas ausente.");
+                    throw new InvalidDataException("Resolution out of bounds.");
+                if (settings.Keys == null) throw new InvalidDataException("Missing key mapping.");
                 if (settings.FrameLimit < 30 || settings.FrameLimit > 360 || settings.Volume < 0 || settings.Volume > 1 ||
-                    settings.TextureQuality is not ("Original" or "HD" or "Enhanced")) throw new InvalidDataException("Opções desktop inválidas.");
+                    settings.TextureQuality is not ("Original" or "HD" or "Enhanced")) throw new InvalidDataException("Invalid desktop options.");
                 foreach (var key in settings.Keys.Values)
-                    if (!Enum.TryParse<Keys>(key, true, out _)) throw new InvalidDataException("Tecla inválida: " + key);
+                    if (!Enum.TryParse<Keys>(key, true, out _)) throw new InvalidDataException("Invalid key: " + key);
                 // Migrate prior monitor/custom resolutions to fixed 720p output.
                 settings.NativeResolution = false; settings.Width = 1280; settings.Height = 720;
                 return settings;
@@ -47,7 +47,7 @@ namespace Dishwasher
             {
                 string backup = FilePath + ".corrupt-" + DateTime.UtcNow.Ticks;
                 File.Copy(FilePath, backup);
-                Log.Exception("Configuração inválida; cópia preservada em " + backup, ex);
+                Log.Exception("Invalid settings; backup preserved at " + backup, ex);
                 return new DesktopSettings();
             }
         }

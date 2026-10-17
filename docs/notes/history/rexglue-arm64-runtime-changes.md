@@ -1,6 +1,6 @@
-# ARM64 Runtime — Concrete Patch Proposals
+# ARM64 Runtime: Concrete Patch Proposals
 
-**Status: PROPOSED — NOT APPLIED.** `<rexglue-sdk>` is owned by another agent
+**Status: PROPOSED: NOT APPLIED.** `<rexglue-sdk>` is owned by another agent
 and is treated as read-only. Nothing here has been written to the SDK.
 **Applies to:** SDK v0.10.0 (`c94f5eb`), target `aarch64-linux-android` min API 26, NDK r28b.
 **Companion audit:** `../notes/arm64-runtime-audit.md`.
@@ -9,15 +9,14 @@ These patches are runtime-specific and complement the build-level set in
 `patches/android-sdk-changes.md`:
 
 - **Patch A here is the concrete implementation of `android-sdk-changes.md` Patch 11**, which was
-  explicitly left as a *sketch* ("not complete — needs validation on-device"). It replaces the
+  explicitly left as a *sketch* ("not complete: needs validation on-device"). It replaces the
   POSIX `ucontext` fiber backend with a hand-written AAPCS64 context switch.
-- Patches B–D are new and were not covered there.
+- Patches B-D are new and were not covered there.
 
 Diffs are `git apply`-style, relative to the SDK root.
 
----
 
-## Patch A — Android/aarch64 `Fiber` backend (closes P0 fiber blocker)
+## Patch A: Android/aarch64 `Fiber` backend (closes P0 fiber blocker)
 
 ### Rationale
 
@@ -26,7 +25,7 @@ provide (see audit §3.2). Android defines `REX_PLATFORM_LINUX=1`
 (`include/rex/platform.h:34-37`), so the POSIX file is compiled and fails. Replace it on Android with
 a minimal callee-saved register switch.
 
-### A1 — `include/rex/thread/fiber.h`
+### A1: `include/rex/thread/fiber.h`
 
 Do not pull in `<ucontext.h>` on Android, and add the aarch64 save-area member.
 
@@ -87,7 +86,7 @@ Do not pull in `<ucontext.h>` on Android, and add the aarch64 save-area member.
  };
 ```
 
-### A2 — `src/core/fiber_posix.cpp`
+### A2: `src/core/fiber_posix.cpp`
 
 Compile the POSIX backend to nothing on Android (Android still defines `REX_PLATFORM_LINUX`).
 
@@ -107,7 +106,7 @@ Compile the POSIX backend to nothing on Android (Android still defines `REX_PLAT
 
 (Leave the trailing `#endif  // REX_PLATFORM_LINUX || REX_PLATFORM_MAC` comment; optionally update it.)
 
-### A3 — new file `src/core/fiber_android.cpp`
+### A3: new file `src/core/fiber_android.cpp`
 
 ```diff
 --- /dev/null
@@ -252,7 +251,7 @@ Compile the POSIX backend to nothing on Android (Android still defines `REX_PLAT
 +#endif  // REX_PLATFORM_ANDROID
 ```
 
-### A4 — `src/core/CMakeLists.txt`
+### A4: `src/core/CMakeLists.txt`
 
 `fiber_android.cpp` is fully `#if REX_PLATFORM_ANDROID`-guarded, so it can simply be added to the
 POSIX source list; on desktop it compiles to an empty TU.
@@ -270,7 +269,7 @@ POSIX source list; on desktop it compiles to an empty TU.
          math_gcc.cpp
 ```
 
-### A5 — verification (no heavy build needed)
+### A5: verification (no heavy build needed)
 
 ```bash
 NDK=$HOME/android-ndk-r28b
@@ -292,9 +291,8 @@ temporary assert), and that a workload using `CreateFiber`/`SwitchToFiber` round
 > add it to the CMake list with the `ASM` language enabled. The naked-function form above avoids
 > touching the project's ASM language settings.
 
----
 
-## Patch B — guard x86-only test compile flags (P1)
+## Patch B: guard x86-only test compile flags (P1)
 
 `tests/ppc/CMakeLists.txt:99` applies `-msse4.1 -mssse3` unconditionally, which breaks any aarch64
 build of the host test suite (cross builds, CI on ARM).
@@ -315,15 +313,14 @@ build of the host test suite (cross builds, CI on ARM).
  include(Catch)
 ```
 
----
 
-## Patch C — Android W^X hardening (P1, defensive)
+## Patch C: Android W^X hardening (P1, defensive)
 
 No live caller requests executable memory (audit §4), so this cannot break normal operation, but it
 prevents an accidental `mprotect(PROT_EXEC)`/`mmap(RWX)` from returning `EACCES` on Android and
 makes the capability query honest.
 
-### C1 — `src/core/memory_posix.cpp`
+### C1: `src/core/memory_posix.cpp`
 
 ```diff
 --- a/src/core/memory_posix.cpp
@@ -345,7 +342,7 @@ makes the capability query honest.
  }
 ```
 
-### C2 — `src/core/memory.cpp`
+### C2: `src/core/memory.cpp`
 
 ```diff
 --- a/src/core/memory.cpp
@@ -366,14 +363,13 @@ Optionally also make `AllocFixed` (`memory_posix.cpp:240`) reject `PageAccess::k
 with a clear log on Android instead of silently returning `nullptr` after `EPERM`. This is not
 required for The Dishwasher because no such allocation is made.
 
----
 
-## Patch D — `m128_*` helpers on ARM64 (P1 hygiene)
+## Patch D: `m128_*` helpers on ARM64 (P1 hygiene)
 
 `include/rex/math.h:193-228` defines `m128_f32/i32/f64/i64` only under `REX_ARCH_AMD64` and has no
 callers today (audit §1.3). Two options:
 
-**D1 — delete the dead block** (smallest change; if nothing calls it, remove it):
+**D1: delete the dead block** (smallest change; if nothing calls it, remove it):
 
 ```diff
 --- a/include/rex/math.h
@@ -398,7 +394,7 @@ callers today (audit §1.3). Two options:
  // Similar to the C++ implementation of XMConvertFloatToHalf ...
 ```
 
-**D2 — keep it and add an ARM64 body** (preferred if future runtime code may want it). Because
+**D2: keep it and add an ARM64 body** (preferred if future runtime code may want it). Because
 `simde__m128` is the portable type on aarch64, the signatures differ:
 
 ```cpp
@@ -423,11 +419,10 @@ inline int32_t m128_i32(simde__m128 v) {
 
 Do **not** reintroduce `<xmmintrin.h>` on ARM64.
 
----
 
 ## Patch ordering / relationship to the other patch set
 
-1. Apply `patches/android-sdk-changes.md` Patches 01–10 first (configure/compile/link/entry).
+1. Apply `patches/android-sdk-changes.md` Patches 01-10 first (configure/compile/link/entry).
 2. Apply **Patch A** here in place of `android-sdk-changes.md` Patch 11 (it is the completed form of
    that sketch). It is required for guest threads and the guest `CreateFiber`/`SwitchToFiber` API to
    run at all.

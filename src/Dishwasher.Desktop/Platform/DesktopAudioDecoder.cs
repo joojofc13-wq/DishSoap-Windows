@@ -29,7 +29,7 @@ namespace Dishwasher.Import
             catch (Exception ex)
             {
                 ProbeError = ex.Message;
-                Log.Exception("[audio] FFmpeg indisponível; PCM ainda pode ser convertido", ex);
+                Log.Exception("[audio] FFmpeg unavailable; PCM can still be converted", ex);
                 return Available = false;
             }
         }
@@ -41,7 +41,7 @@ namespace Dishwasher.Import
                 RedirectStandardOutput = true, RedirectStandardError = true
             };
             foreach (var arg in args) start.ArgumentList.Add(arg);
-            using var process = Process.Start(start) ?? throw new IOException("Não foi possível iniciar FFmpeg.");
+            using var process = Process.Start(start) ?? throw new IOException("Could not start FFmpeg.");
             Task<string> output = process.StandardOutput.ReadToEndAsync();
             Task<string> error = process.StandardError.ReadToEndAsync();
             if (!process.WaitForExit(120000))
@@ -57,7 +57,7 @@ namespace Dishwasher.Import
         private static void Validate(byte[] data, int channels, int rate)
         {
             if (channels < 1 || channels > 2 || rate < 1000 || rate > 192000 || data.Length == 0)
-                throw new InvalidDataException("Formato de áudio inválido ou não suportado (mono/estéreo).");
+                throw new InvalidDataException("Invalid or unsupported audio format (mono/stereo).");
         }
         // RIFF WAVEFORMATEX tag 0x166 with 34-byte XMA2 extradata. Matches the
         // upstream bridge's block geometry, now passed through FFmpeg's WAV demuxer.
@@ -65,7 +65,7 @@ namespace Dishwasher.Import
         {
             Validate(data, channels, rate);
             if (data.Length % 2048 != 0 || samples <= 0 || samples > uint.MaxValue)
-                throw new InvalidDataException("XMA2 inválido: tamanho de pacote/amostras.");
+                throw new InvalidDataException("Invalid XMA2 packet/sample size.");
             const int block = 0x10000;
             int blocks = checked((data.Length + block - 1) / block);
             if (blocks > ushort.MaxValue) throw new InvalidDataException("XMA2 grande demais.");
@@ -95,7 +95,7 @@ namespace Dishwasher.Import
                     "-c:a", codec, "-f", format, temporary);
                 if (!string.IsNullOrWhiteSpace(diagnostic)) Log.Info("[audio] " + diagnostic);
                 if (!File.Exists(temporary) || new FileInfo(temporary).Length <= 44)
-                    throw new InvalidDataException("FFmpeg não produziu áudio.");
+                    throw new InvalidDataException("FFmpeg produced no audio.");
                 File.Move(temporary, outPath, true);
                 return 0;
             }

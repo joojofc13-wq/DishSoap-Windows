@@ -8,7 +8,7 @@ shipped) are listed below.
 The game drives vibration through XNA `GamePad.SetVibration(index, left, right)` (four call
 sites in `projectDish/Game1.cs`, once per frame per live player). MonoGame's Android
 implementation (`GamePad.PlatformSetVibration`) **ignores the motor values** and calls
-`Vibrator.Vibrate(500 ms)` unconditionally — a constant buzz — and only from API ≥ 31.
+`Vibrator.Vibrate(500 ms)` unconditionally: a constant buzz: and only from API ≥ 31.
 
 ## What
 
@@ -39,13 +39,13 @@ GameSource sites are `case 1: CycleVibration(settings);` and
 
 ## Files
 
-- `Platform/AndroidRumble.cs` (new) — engine, sinks, per-player state.
-- `Platform/BluetoothHidRumble.cs` (new) — C# facade + HID report table.
-- `Platform/Java/RumbleHidHost.java` (new) — HID-host reflection + output report.
-- `Platform/VibrationMenu.cs` (new) — options-row UI + cycling.
-- `Platform/AndroidSettings.cs` — `vibration` field, `VERSION = 2`, `SetVibration`, `ClampVib`.
-- `Activity1.cs` — `Initialize` / `StopAll` hooks.
-- `AndroidManifest.xml` — `VIBRATE`, `BLUETOOTH`/`BLUETOOTH_ADMIN` (≤ API 30).
+- `Platform/AndroidRumble.cs` (new): engine, sinks, per-player state.
+- `Platform/BluetoothHidRumble.cs` (new): C# facade + HID report table.
+- `Platform/Java/RumbleHidHost.java` (new): HID-host reflection + output report.
+- `Platform/VibrationMenu.cs` (new): options-row UI + cycling.
+- `Platform/AndroidSettings.cs`: `vibration` field, `VERSION = 2`, `SetVibration`, `ClampVib`.
+- `Activity1.cs`: `Initialize` / `StopAll` hooks.
+- `AndroidManifest.xml`: `VIBRATE`, `BLUETOOTH`/`BLUETOOTH_ADMIN` (≤ API 30).
 
 ## Known limitation
 

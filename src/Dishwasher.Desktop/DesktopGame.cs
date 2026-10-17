@@ -164,7 +164,7 @@ namespace Dishwasher
             projectDish.Globals.deviceLoadFrame = 10f;
             int result = projectDish.Globals.player.Read(coop: false, overwrite: false);
             if (result == 2 || result == 4)
-                throw new InvalidDataException("Save corrompido. Preserve/recupere profile.sav em " + DesktopPaths.Saves);
+                throw new InvalidDataException("Corrupt save. Preserve/recover profile.sav at " + DesktopPaths.Saves);
             projectDish.Globals.settings.Read(projectDish.Globals.player);
             projectDish.Globals.initialRead = true;
             if (result == 3)
@@ -172,7 +172,7 @@ namespace Dishwasher
                 projectDish.Globals.player.Write();
                 projectDish.Globals.settings.Write(projectDish.Globals.player);
             }
-            Log.Info("[profile] Perfil local Player ativo; read=" + result);
+            Log.Info("[profile] Local Player profile active; read=" + result);
         }
     }
 }

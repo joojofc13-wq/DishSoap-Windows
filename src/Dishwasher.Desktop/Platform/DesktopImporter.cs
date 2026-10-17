@@ -18,7 +18,7 @@ namespace Dishwasher
             root = null;
             if (!File.Exists(DesktopPaths.ActiveFile)) return false;
             string id = File.ReadAllText(DesktopPaths.ActiveFile).Trim();
-            if (!Guid.TryParseExact(id, "N", out _)) throw new InvalidDataException("Instalação ativa inválida.");
+            if (!Guid.TryParseExact(id, "N", out _)) throw new InvalidDataException("Invalid active installation.");
             string candidate = DesktopPaths.Under(DesktopPaths.Imports, id);
             if (!File.Exists(Path.Combine(candidate, "import-report.json")) ||
                 BootOutputs.Any(p => !File.Exists(DesktopPaths.Under(candidate, p)))) return false;
@@ -41,12 +41,12 @@ namespace Dishwasher
                 : ContentSourceFactory.FromLocalFile(sourcePath, temp);
             ImportReport report = ContentImporter.Validate(source, manifest, progress);
             Log.Info("[import] " + report.Summary());
-            foreach (var missing in report.MissingFiles) Log.Info("[import] ausente: " + missing);
+            foreach (var missing in report.MissingFiles) Log.Info("[import] missing: " + missing);
             foreach (var differed in report.DifferedFiles) Log.Info("[import] diferente: " + differed);
             if (report.NothingUsable)
-                throw new InvalidDataException("Arquivos indispensáveis ausentes: " +
+                throw new InvalidDataException("Required files are missing: " +
                     string.Join(", ", report.MissingFiles.Where(ContentImporter.IsCore)) +
-                    ". Selecione a raiz que contém data, gfx, Resources e sfx.");
+                    ". Select the root containing data, gfx, Resources, and sfx.");
             var audio = ContentImporter.StageAndDerive(source, manifest, stage, progress);
             DesktopPaths.AtomicWrite(Path.Combine(stage, "import-report.json"), JsonSerializer.Serialize(new {
                 createdUtc = DateTime.UtcNow, matched = report.Matched, differed = report.Differed,
@@ -57,16 +57,16 @@ namespace Dishwasher
             }, new JsonSerializerOptions { WriteIndented = true }));
             var absent = BootOutputs.Where(p => !File.Exists(DesktopPaths.Under(stage, p))).ToArray();
             if (absent.Length != 0)
-                throw new InvalidDataException("Falha ao converter recursos indispensáveis: " + string.Join(", ", absent));
+                throw new InvalidDataException("Could not convert required assets: " + string.Join(", ", absent));
             foreach (string effect in Directory.EnumerateFiles(Path.Combine(AppContext.BaseDirectory, "fx"), "*.xnb"))
             {
                 Directory.CreateDirectory(Path.Combine(stage, "fx"));
                 File.Copy(effect, Path.Combine(stage, "fx", Path.GetFileName(effect)), false);
             }
             DesktopPaths.AtomicWrite(DesktopPaths.ActiveFile, id);
-            Log.Info("[import] Instalação ativada: " + stage);
+            Log.Info("[import] Installation activated: " + stage);
             if (audio.WavesFailed != 0 || audio.StageFailed != 0 || !string.IsNullOrEmpty(audio.Notes))
-                Log.Error("[import] Instalação parcial; veja import-report.json. " + audio.Notes);
+                Log.Error("[import] Partial installation; see import-report.json. " + audio.Notes);
             return stage;
         }
     }

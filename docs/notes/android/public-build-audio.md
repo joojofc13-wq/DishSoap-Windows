@@ -1,11 +1,11 @@
-# Public build — Stage 2: on-device audio (XMA → WAV/OGG)
+# Public build: Stage 2: on-device audio (XMA → WAV/OGG)
 
 **Owner:** Audio-Derivation Specialist (subagent)
 **Date:** 2026-10-03
 **Status:** ✅ Implemented and verified on a Galaxy S9 (Android 10). SFX play in the
 public build; internal build unaffected.
 
-> **Update 2026-10-05 — tolerant import.** The SHA-256 gate described below is now
+> **Update 2026-10-05: tolerant import.** The SHA-256 gate described below is now
 > tolerant: `sfx/*.xwb`/`.xsb` files that differ or are missing are warnings, not
 > blockers. `AudioImporter` derives whatever banks are present and always writes
 > `sfx/cue_map.json` (possibly with 0 cues), so a missing bank is simply silent.
@@ -18,11 +18,10 @@ banks on-device into the exact layout the runtime `Dishwasher.Audio.XactShim`
 already consumes (`sfx/wav/**`, `sfx/ogg/**`, `sfx/cue_map.json`).
 
 > **Music note:** background music does not play in the **internal** build either
-> — tracked as a separate pre-existing issue and out of scope here. The work below
+>: tracked as a separate pre-existing issue and out of scope here. The work below
 > derives valid OGG music files and a 216/216 cue map identical to the internal
 > reference; it does not touch the music trigger path.
 
----
 
 ## 0. TL;DR
 
@@ -38,7 +37,6 @@ already consumes (`sfx/wav/**`, `sfx/ogg/**`, `sfx/cue_map.json`).
 | device | import `458/458`; `[audio] SoundBank ready … -> 216 cues registered`; cues `slash1/sword1/hit/crush/…` load and play; no crash/ANR |
 | internal build | rebuilt and re-verified: extracts 716 files, **216 cues**, unchanged |
 
----
 
 ## 1. Decoder strategy and why
 
@@ -55,7 +53,7 @@ There is no XMA *demuxer* in FFmpeg (only decoders + an XMA2 parser), so:
   FFmpeg's decoder expects from the XWB entry's channels/rate/sample-count, then
   feeds the raw 2048-byte XMA packets to `avcodec_send_packet`/`avcodec_receive_frame`.
   Verified on the host that packet size does not matter (whole stream, 2048, 4096
-  all give identical output), so **libavformat is not needed at all** — the native
+  all give identical output), so **libavformat is not needed at all**: the native
   library stays small.
 
 **Alternatives considered**
@@ -65,7 +63,7 @@ There is no XMA *demuxer* in FFmpeg (only decoders + an XMA2 parser), so:
 | MonoGame's own `WaveBank`/`SoundBank` | ✗ desktop/little-endian layouts; cannot read 360 banks or XMA |
 | `vgmstream` compiled for Android | ✗ much larger; its XMA path is FFmpeg anyway |
 | FFmpeg CLI as a subprocess | ✗ executing bundled binaries on modern Android is fragile; task prefers a P/Invoke `.so` |
-| decode to PCM WAV for everything | ✗ 383 MB of PCM (282 MB is music) — not viable |
+| decode to PCM WAV for everything | ✗ 383 MB of PCM (282 MB is music): not viable |
 | Native Vorbis encoder in FFmpeg | ✗ experimental/poor quality; used real libvorbis instead |
 
 **Output formats.** Short SFX (`waves`, `vox`, `halper` + the 22 already-PCM
@@ -85,7 +83,6 @@ are byte-swapped to little-endian for the WAV.
   `tools/xma-decoder/` (see its README).
 * **libvorbis/libogg** are **BSD-3-Clause** (permissive) and statically linked.
 
----
 
 ## 2. Native artifact
 
@@ -102,12 +99,11 @@ Total ~1.95 MB on disk; the APK grows by ~0.77 MB (compressed). Built by
 `tools/xma-decoder/build-xma-decoder.sh` (idempotent; sources/scripts
 kept, build trees are disposable).
 
-`Platform/Audio/NativeXma.cs` P/Invokes the bridge and is fully guarded —
+`Platform/Audio/NativeXma.cs` P/Invokes the bridge and is fully guarded,
 `Probe()` calls `dw_version()` in a try/catch, and every decode call catches
 `DllNotFoundException`/`EntryPointNotFoundException`, so a missing library
 (desktop harness, other ABI) degrades to "audio not derived" instead of crashing.
 
----
 
 ## 3. C# container parsing and cue mapping
 
@@ -115,18 +111,18 @@ Ported from the validated Python parsers
 (`<dev-notes>/audio/tools/parse_xwb.py`, `parse_xsb.py`) and cross-checked
 against the internal reference.
 
-* **`Platform/Import/XwbReader.cs`** — XWB `DNBW` (byte-swapped `WBND`),
+* **`Platform/Import/XwbReader.cs`**: XWB `DNBW` (byte-swapped `WBND`),
   big-endian, 5 segments. Reads BANK_DATA (name, flags, entry-meta size) and each
   entry: `entryInfo` → `numSamples = (info>>4)&0x0FFFFFFF` (the Python parser's
   older `>>28` field was not used for decode; validated against the 22 PCM
   entries), `format` → codec/channels/rate/block-align, plus the file
   offset/length inside the WAVE_DATA segment. `GetWaveData(i)` returns the raw
   bytes.
-* **`Platform/Import/XsbReader.cs`** — XSB `KBDS` (`SDBK`), big-endian; a faithful
+* **`Platform/Import/XsbReader.cs`**: XSB `KBDS` (`SDBK`), big-endian; a faithful
   port including the two 360-specific deviations the audio agent found:
   5-byte complex clip records and the standalone variation-table header. Produces
   cue names, type, category id and `(waveBankIndex, trackIndex)` refs.
-* **`Platform/Import/AudioImporter.cs`** — for each of the 7 banks decodes every
+* **`Platform/Import/AudioImporter.cs`**: for each of the 7 banks decodes every
   wave (per-wave try/catch; one bad wave never aborts the import), then maps every
   cue to files and writes `sfx/cue_map.json` in the runtime shape
   (`{cue: {bank, wave_bank, type, category_id, files:[{bank,index,file,kind,loop}]}}`).
@@ -140,13 +136,12 @@ derives 222/222 waves, and the resulting `cue_map.json` is compared field-by-fie
 with the internal `Assets/sfx/cue_map.json`:
 **216/216 cues, 0 missing/extra, 0 file-set diffs, 0 type/category diffs.**
 
----
 
 ## 4. Import wiring
 
 `ContentImporter.StageAndDerive` now:
 
-1. skips staging `sfx/**` originals (verified but never copied — they stay in the
+1. skips staging `sfx/**` originals (verified but never copied: they stay in the
    user's own copy), and
 2. runs `AudioImporter.Derive(...)` after the texture/font staging, on the same
    background thread, emitting `ImportProgress {Phase="Audio"}` so the existing
@@ -164,7 +159,6 @@ additionally requires `sfx/cue_map.json`.
 The import screen text was updated from the Stage-1 "runs silently" note to say
 audio is decoded on-device, and the success view reports the wave/cue counts.
 
----
 
 ## 5. Manifest change
 
@@ -183,7 +177,6 @@ python3 tools/gen_import_manifest.py \
 **443 → 458 required originals** (+15: 7 `.xwb` + 7 `.xsb` + 1 `.xgs`). Still
 nothing derived is ever listed.
 
----
 
 ## 6. Verification evidence (device)
 
@@ -224,11 +217,10 @@ afterward with **matching md5** (`profile.sav`, `settings.sav`,
 `android_settings.sav`); the two Microsoft document providers disabled for picker
 automation were re-enabled; the pushed ROM zip and temporary uploads were removed.
 
----
 
 ## 7. Limitations / remaining gaps
 
-* **Music**: does not play in the **internal build either** — a separate
+* **Music**: does not play in the **internal build either**: a separate
   pre-existing issue in the music trigger/playback path, **not** caused by this
   work. The derived OGG files are valid (ffprobe decodes them) and the cue map
   matches the internal reference exactly, so the derivation side is complete.
@@ -242,7 +234,6 @@ automation were re-enabled; the pushed ROM zip and temporary uploads were remove
 * The decoder adds ~0.77 MB to the public APK and ~1.95 MB in memory; the import
   takes ~35 s on an S9 for the audio phase alone.
 
----
 
 ## 8. Files touched
 
@@ -254,13 +245,13 @@ automation were re-enabled; the pushed ROM zip and temporary uploads were remove
 * `android/notes/proof/public-build-audio/*`
 
 **Modified**
-* `Dishwasher/Platform/Import/ContentImporter.cs` — skip staging `sfx/**`; run audio derivation; return `AudioImportResult`
-* `Dishwasher/Platform/Import/ImportController.cs` — updated audio text + success counts
-* `Dishwasher/Platform/PublicBuild.cs` — `ContentReady()` also requires `sfx/cue_map.json`
-* `Dishwasher/Platform/Audio/XactShim.cs` — content open via `PublicBuild.OpenContent`; always-on proof-of-playback/failure logs
-* `Dishwasher/Dishwasher.csproj` — public-only `AndroidNativeLibrary` for the decoder
-* `tools/gen_import_manifest.py` — include original `sfx/**`
-* `Dishwasher/Assets/import-manifest.json` — regenerated (458)
+* `Dishwasher/Platform/Import/ContentImporter.cs`: skip staging `sfx/**`; run audio derivation; return `AudioImportResult`
+* `Dishwasher/Platform/Import/ImportController.cs`: updated audio text + success counts
+* `Dishwasher/Platform/PublicBuild.cs`: `ContentReady()` also requires `sfx/cue_map.json`
+* `Dishwasher/Platform/Audio/XactShim.cs`: content open via `PublicBuild.OpenContent`; always-on proof-of-playback/failure logs
+* `Dishwasher/Dishwasher.csproj`: public-only `AndroidNativeLibrary` for the decoder
+* `tools/gen_import_manifest.py`: include original `sfx/**`
+* `Dishwasher/Assets/import-manifest.json`: regenerated (458)
 
 **Not touched:** game logic, protected fixes, both diagnostic harnesses
 (`Enabled=false`).

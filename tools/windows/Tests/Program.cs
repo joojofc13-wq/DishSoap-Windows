@@ -15,9 +15,9 @@ static void Reject(Action action, string label)
     try { action(); } catch (InvalidDataException) { Console.WriteLine("PASS: " + label); return; }
     throw new Exception("FAIL: " + label);
 }
-if (args.Length != 1) throw new ArgumentException("Forneça uma pasta de teste nova.");
+if (args.Length != 1) throw new ArgumentException("Provide a new test folder.");
 string root = Path.GetFullPath(args[0]);
-if (Directory.Exists(root)) throw new IOException("Preserve testes anteriores; forneça pasta nova.");
+if (Directory.Exists(root)) throw new IOException("Preserve previous tests; provide a new folder.");
 DesktopPaths.Initialize(root); Log.Initialize();
 Reject(() => DesktopPaths.Under(root, "../escape"), "path traversal");
 Reject(() => DesktopPaths.Under(root, "C:/escape"), "absolute path");
@@ -30,15 +30,13 @@ settings.Save(); var loaded = DesktopSettings.Load();
 Check(loaded.Width == 1280 && loaded.Height == 720 && !loaded.NativeResolution && !loaded.VSync && loaded.Volume == .65f,
     "old native/1080p settings migrate to 720p while preserving other choices");
 var regionalCulture = System.Globalization.CultureInfo.CurrentCulture;
-foreach (var example in new[] { ("pt-BR", "pt"), ("pt-PT", "pt"), ("es-MX", "es"), ("en-US", "en"), ("ja-JP", "en") })
+foreach (string culture in new[] { "pt-BR", "pt-PT", "es-MX", "en-US", "ja-JP" })
 {
-    System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo(example.Item1);
-    Check(DesktopLocale.LanguageForRegion(null, System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName) ==
-        (example.Item2 == "en" && example.Item1 == "ja-JP" ? "ja" : example.Item2), "regional fallback language " + example.Item1);
+    System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo(culture);
+    Check(DesktopLocale.LanguageForRegion("BR", "pt") == "en" &&
+        DesktopLocale.Text("legacy-pt", "English", "legacy-es") == "English", "English UI under " + culture);
 }
 System.Globalization.CultureInfo.CurrentCulture = regionalCulture;
-Check(DesktopLocale.LanguageForRegion("BR", "en") == "pt" && DesktopLocale.LanguageForRegion("US", "pt") == "en" &&
-    DesktopLocale.LanguageForRegion("MX", "en") == "es", "Windows country overrides mismatched format language");
 byte[] authored = { 100,100,100,255, 130,100,100,255, 70,90,120,128, 0,0,0,255, 100,40,60,0 };
 byte[] neural = { 160,120,110,255, 0,255,255,255, 255,0,0,255, 10,0,20,255, 255,255,255,255 };
 DesktopTextureColors.Preserve(authored, neural);

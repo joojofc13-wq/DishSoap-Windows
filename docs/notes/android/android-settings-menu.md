@@ -1,4 +1,4 @@
-# ANDROID SETTINGS menu — top-level entry + own screen + own storage
+# ANDROID SETTINGS menu: top-level entry + own screen + own storage
 
 **Author:** UI/Menu Architect (subagent)
 **Date:** 2026-10-02
@@ -11,30 +11,28 @@
 (the game's original Options screen is byte-identical to the decompiled original again),
 and a new top-level **`ANDROID SETTINGS`** main-menu entry opens a dedicated screen with
 **FPS LOCK** (`Unlimited / 30 / 60 / 120`, default Unlimited) backed by its **own**
-`android_settings.sav` — navigable, persistent across a cold restart, and **no frame
+`android_settings.sav`: navigable, persistent across a cold restart, and **no frame
 limiting is added** (value is stored/displayed only).
 
----
 
 ## 0. TL;DR
 
 | item | result |
 |---|---|
-| revert of in-Options FPS LOCK | **done** — `Settings.cs` & `MainText.cs` byte-identical to decompiled; `MainMenu.cs` `case 34` A-press + draw blocks byte-identical to decompiled |
+| revert of in-Options FPS LOCK | **done**: `Settings.cs` & `MainText.cs` byte-identical to decompiled; `MainMenu.cs` `case 34` A-press + draw blocks byte-identical to decompiled |
 | new tree | `Platform/AndroidSettings.cs` (store) + `Platform/AndroidSettingsMenu.cs` (`partial MainMenu` screen) |
 | main-menu entry | `ANDROID SETTINGS`, after `HELP & OPTIONS`, before `RETURN TO GAME LIBRARY`, `num3` trial offset honoured |
 | screen | `FPS LOCK` + `BACK`, same style/nav as the game's menus |
-| storage | `<app-private>/TheDishwasher/android_settings.sav` (XML) — **not** `settings.sav`; separate md5s proven |
+| storage | `<app-private>/TheDishwasher/android_settings.sav` (XML): **not** `settings.sav`; separate md5s proven |
 | persistence | written on change + on `OnPause`/`OnStop` (autosave hook) + read at startup; survives `am force-stop` |
 | build | `Build succeeded. 0 Error(s)` (5 pre-existing warnings) |
 | device | fully verified incl. cold restart; device saves backed up **and restored** (md5 match) |
 | frame limiting | **none** |
 
----
 
 ## 1. New Android-specific tree
 
-### 1.1 `Platform/AndroidSettings.cs` — storage model (namespace `Dishwasher`)
+### 1.1 `Platform/AndroidSettings.cs`: storage model (namespace `Dishwasher`)
 
 A small static, lazily-loaded store. Deliberately independent of
 `projectDish.Settings`.
@@ -63,7 +61,7 @@ Example on-disk content (created on device during verification):
 </Data>
 ```
 
-### 1.2 `Platform/AndroidSettingsMenu.cs` — the screen (namespace `projectDish`)
+### 1.2 `Platform/AndroidSettingsMenu.cs`: the screen (namespace `projectDish`)
 
 `public partial class MainMenu` extension, so the Android-only screen code lives
 **outside** the original `GameSource/projectDish/MainMenu.cs` while reusing the
@@ -88,7 +86,6 @@ state machine).
   `DrawAndroidSettingsScreen`, one `case` in `AndroidSettingsActivate`, and a field in
   `AndroidSettings.Data` (XmlSerializer tolerates the new/missing element).
 
----
 
 ## 2. Minimal, clearly-marked edits to the game's own files
 
@@ -98,17 +95,17 @@ Every hook below is marked `PORT (android settings)`.
 
 | line | hook |
 |---:|---|
-| 12–14 | class declared `public partial class MainMenu` |
-| 1429–1433 | B/back switch: `case 42: AndroidSettingsBack();` → main menu |
+| 12-14 | class declared `public partial class MainMenu` |
+| 1429-1433 | B/back switch: `case 42: AndroidSettingsBack();` → main menu |
 | 1604 | `keyStrong` "view controls" restored: `selOption == 5` → `== 4` (revert) |
-| 1740–1747 | main-menu A-press (`num8` switch): new `case 6` → `transGoal = 42`; `RETURN TO ARCADE` shifted `case 6`→`case 7` |
-| 1761–1764 | A-press switch (`keyJump`): `case 42: AndroidSettingsActivate();` |
+| 1740-1747 | main-menu A-press (`num8` switch): new `case 6` → `transGoal = 42`; `RETURN TO ARCADE` shifted `case 6`→`case 7` |
+| 1761-1764 | A-press switch (`keyJump`): `case 42: AndroidSettingsActivate();` |
 | 2916 / 2943 | SFX/BGM handler restored: guard `(2\|4)`→`(2\|3)`, BGM `==4`→`==3` (revert) |
-| 3296–3299 | `getCurScreen()`: `case 42: return 6;` |
-| 3859–3868 | main-menu draw `case 0`: new row `drawOption(5+num3, GetAndroidSettingsLabel())`; `RETURN TO ARCADE` → `6+num3`; wrap bounds `5+num3`→`6+num3` |
-| 4795–4798 | `DrawButtons`: `case 42: DrawAndroidSettingsScreen(...)` |
+| 3296-3299 | `getCurScreen()`: `case 42: return 6;` |
+| 3859-3868 | main-menu draw `case 0`: new row `drawOption(5+num3, GetAndroidSettingsLabel())`; `RETURN TO ARCADE` → `6+num3`; wrap bounds `5+num3`→`6+num3` |
+| 4795-4798 | `DrawButtons`: `case 42: DrawAndroidSettingsScreen(...)` |
 | 4804/4806 | Options draw wrap bounds restored `8`→`7` (revert) |
-| 5671–5672, 5815–5816 | `hitButton`/`drawOption`: `if (level == 34)` → `if (IsSettingsLikeLayout())` (`level==34 \|\| level==42`) so both screens share the exact layout offset |
+| 5671-5672, 5815-5816 | `hitButton`/`drawOption`: `if (level == 34)` → `if (IsSettingsLikeLayout())` (`level==34 \|\| level==42`) so both screens share the exact layout offset |
 
 The `num8` mapping makes the new row behave identically in normal and trial modes:
 
@@ -118,14 +115,14 @@ The `num8` mapping makes the new row behave identically in normal and trial mode
 | **ANDROID SETTINGS** | `5+num3` | 6 | 6 | **6 (new)** |
 | RETURN TO ARCADE | `6+num3` | 7 | 7 | 7 |
 
-### 2.2 `GameSource/projectDish/Settings.cs` — revert to pristine
+### 2.2 `GameSource/projectDish/Settings.cs`: revert to pristine
 
 Removed the previous agent's `Save.fpsLock`, the `FPS_*`/`FPS_LOCK_STATES`
 constants, the `fpsLock` field, and the `Write`/`Reset`/`Read` lines.
 Verified: `diff` against `managed/decompiled/game/projectDish/Settings.cs` is
 **empty** (byte-identical to the original).
 
-### 2.3 `GameSource/projectDish/MainText.cs` — revert to pristine
+### 2.3 `GameSource/projectDish/MainText.cs`: revert to pristine
 
 Removed the `fpsLockStr` field and its literal initializer. `diff` against the
 decompiled original is **empty** (byte-identical).
@@ -137,9 +134,8 @@ decompiled original is **empty** (byte-identical).
 * `Activity1.cs`: `AndroidSettings.Load()` right after `AndroidContentBootstrap.Prepare()`
   (explicit read at startup).
 
----
 
-## 3. Revert of the old placement — exact evidence
+## 3. Revert of the old placement: exact evidence
 
 Old placement sites (per `fps-lock-menu-item.md §2`) and their state now:
 
@@ -163,14 +159,13 @@ diff <(sed -n '4769,4816p' managed/.../MainMenu.cs) <(sed -n '4769,4816p' <dev-w
 grep -rn "fpsLock\|fpsLockStr\|FPS_LOCK" src/Dishwasher/GameSource/   # NONE
 ```
 
----
 
 ## 4. Old-save compatibility (both `settings.sav` shapes)
 
 `XmlSerializer` ignores unknown elements and defaults missing ones, so the reverted
 `Settings.Save` (rumble/blood/soundVol/bgmVol/flags) loads **both** shapes:
 
-* **Shape A — has `<fpsLock>`** (written by the previous agent; this is the actual
+* **Shape A: has `<fpsLock>`** (written by the previous agent; this is the actual
   pre-test on-device save, md5 `fa33d5210aab72bfe9e53fe18157b356`):
 
   ```xml
@@ -178,7 +173,7 @@ grep -rn "fpsLock\|fpsLockStr\|FPS_LOCK" src/Dishwasher/GameSource/   # NONE
   <bgmVol>10</bgmVol><fpsLock>0</fpsLock><flags>0</flags>
   ```
 
-* **Shape B — no `<fpsLock>`** (pristine shapes before the previous agent).
+* **Shape B: no `<fpsLock>`** (pristine shapes before the previous agent).
 
 Standalone `XmlSerializer` test using the **reverted** struct (source copied to
 `<dev-notes>/proof/android-settings/xmltest/`):
@@ -203,7 +198,6 @@ On-device:
   session setting `fpsLock`, `settings.sav` md5 was unchanged
   (`fa33d521…`) while `android_settings.sav` held `fpsLock=1`.
 
----
 
 ## 5. Build / device verification
 
@@ -240,7 +234,7 @@ settings md5 `fa33…`, profile md5 `00ae…`) and **restored afterwards exactly
 | on disk after each A | `android_settings.sav` `fpsLock` changed 1→2→3 (written **on change**) |
 | `09-back-to-main.png` | B returns to main menu, selector preserved |
 | `10-fps-30-after-cold-restart.png` | `am force-stop` + relaunch → Android settings reads **FPS LOCK: 30** from disk |
-| `13-settings-selected.png`, `14-original-options-screen.png` | original Options screen back to pristine: BLOOD / VIBRATION / SFX / BGM / CONTROLS / SELECT STORAGE DEVICE / RESET TO DEFAULTS / BACK — **no FPS LOCK row** |
+| `13-settings-selected.png`, `14-original-options-screen.png` | original Options screen back to pristine: BLOOD / VIBRATION / SFX / BGM / CONTROLS / SELECT STORAGE DEVICE / RESET TO DEFAULTS / BACK: **no FPS LOCK row** |
 | `15-bgm-left-index3.png` | restored SFX/BGM left-right handler works at original index 3 (BGM → 90%) |
 | `16-pristine-save-loads.png` | Shape B save loads cleanly |
 | logcat | no `FATAL EXCEPTION` / `AndroidRuntime` for the app during any run |
@@ -250,7 +244,6 @@ Autosave hook: `AndroidSettings.Save()` is invoked from the same
 `save-system.md`; the value is written on every change regardless, so a process
 kill (`am force-stop`) still preserves the last changed value.
 
----
 
 ## 6. No frame limiting added (confirmation)
 
@@ -263,7 +256,6 @@ kill (`am force-stop`) still preserves the last changed value.
 * `Platform/InputDiagnostics.cs` and `Platform/RenderDiagnostics.cs` both still have
   `Enabled = false`.
 
----
 
 ## 7. Non-regression
 
@@ -280,7 +272,6 @@ kill (`am force-stop`) still preserves the last changed value.
   * `Platform/SaveAutosave.cs` (one autosave call)
   * `Activity1.cs` (one startup load call)
 
----
 
 ## 8. Revert instructions (this whole feature)
 

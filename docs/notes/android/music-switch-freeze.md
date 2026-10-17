@@ -1,4 +1,4 @@
-# Background-music switch froze the game ~3 s — root cause, design, audit, fix
+# Background-music switch froze the game ~3 s: root cause, design, audit, fix
 
 **Owner:** Audio-Performance Specialist (subagent)
 **Date:** 2026-10-03
@@ -9,26 +9,24 @@
 > the tree but **never verified or documented**. This note records the audit of that
 > untested threaded code, the bugs found and fixed, and the final design.
 
----
 
 ## 0. TL;DR
 
 | thing | result |
 |---|---|
 | symptom | switching background music (e.g. `music1` → `music2`) froze the game ~3 s |
-| cause | `SoundLoader.Get()` decoded long OGGs **synchronously on the render/main thread**, and long tracks were deliberately **not cached** (`OggCacheSampleLimit = 1_000_000`), so every long-music play re-decoded the whole file (~3–6 s; a 45 s track measured ~5.7 s to decode) |
+| cause | `SoundLoader.Get()` decoded long OGGs **synchronously on the render/main thread**, and long tracks were deliberately **not cached** (`OggCacheSampleLimit = 1_000_000`), so every long-music play re-decoded the whole file (~3-6 s; a 45 s track measured ~5.7 s to decode) |
 | fix | decode long OGGs on one **background worker thread**; the main thread only does the cheap OpenAL buffer upload later; a **coalescing queue** prevents per-frame job storms; a **bounded LRU (2)** keeps recent tracks; a **preload policy** warms the two tracks the game reaches first |
 | device main-thread cost | first music start: worker decode **~3.7 s** but render-thread upload only **112 ms** (was a ~3.7 s synchronous stall); the game's own music retry loop covers the off-thread decode window |
 | verification | **confirmed working by the user on-device** (this note does not claim independent reproduction) |
 
----
 
 ## 1. Confirmed cause
 
 `SoundLoader.Get()` → `LoadSynchronous()` ran the full file read + `DecodeOggPcm` + `new SoundEffect(...)`
 on the calling thread, which is the game/render thread (`Cue.Play()` is called from
-`Music.Update`/`Music.Play`). Long music OGGs decode to 40–48 MB of PCM and took
-**~3–6 s**; a 45 s track was measured at ~5.7 s. Long tracks were also intentionally not
+`Music.Update`/`Music.Play`). Long music OGGs decode to 40-48 MB of PCM and took
+**~3-6 s**; a 45 s track was measured at ~5.7 s. Long tracks were also intentionally not
 cached (`ShouldCache` → only OGG ≤ 20 s), so a track change re-decoded the whole file.
 `Music.Play()` disposes and re-fetches its cue, so this could repeat. See
 `android/notes/music-fix.md §6` for the pre-existing synchronous-decode residual gap this
@@ -37,7 +35,6 @@ fix closes.
 The 8 long OGG cues (`soft1`, `music1..4`, `musicboss`, `musicarena`, `death2`) all have a
 single file each, so the async path has no variation ambiguity.
 
----
 
 ## 2. Design
 
@@ -61,7 +58,7 @@ All in `SoundLoader` (`XactShim.cs`):
   guarded by `_gate`. Keeps the current + next track resident; eviction `Dispose()`s the
   least-recently-used track.
 * **Preload policy** (`PreloadDefaultMusic`): when the music bank (`musicsnd`) is created
-  during boot, warm `soft1` (menu) and `music2` (first gameplay theme) — exactly two, so
+  during boot, warm `soft1` (menu) and `music2` (first gameplay theme): exactly two, so
   it matches the LRU. This runs during the ~4 s boot carousel, so it adds no visible stall
   to the load screen.
 * `AsyncOggDecode = false` restores the old synchronous behaviour for diagnostics.
@@ -69,9 +66,8 @@ All in `SoundLoader` (`XactShim.cs`):
 Locking: `_gate` guards the SoundEffect caches/pins, `_workLock` guards the decode
 queue/state. They are never held at the same time, so there is no lock-ordering hazard.
 
----
 
-## 3. Audit of the previous (untested) threaded code — what was wrong and what changed
+## 3. Audit of the previous (untested) threaded code: what was wrong and what changed
 
 The previous author's structure (worker + queue + `_pending` + bounded LRU + preload) was
 sound in shape, but two real correctness bugs remained, both called out in the brief:
@@ -80,10 +76,10 @@ sound in shape, but two real correctness bugs remained, both called out in the b
 
 `InsertLong` evicted the LRU tail unconditionally. A playing track is not touched by
 `Get()` while it loops, so it can age to the tail; during a crossfade (soft + hard both
-playing) a third track request could evict one of the two live tracks — deleting its
+playing) a third track request could evict one of the two live tracks: deleting its
 OpenAL buffer out from under a playing source (audio cut, driver-dependent/unsafe).
 
-**Fix — in-use pinning.** Added a reference-counted `_playing` map guarded by `_gate`:
+**Fix: in-use pinning.** Added a reference-counted `_playing` map guarded by `_gate`:
 
 * `SoundLoader.Pin(path)` / `Unpin(path)` (`XactShim.cs:828`, `:838`).
 * `Cue` stores the path it has bound to a live instance (`_boundPath`, `XactShim.cs:259`)
@@ -124,7 +120,6 @@ flag per cue (`XactShim.cs:258`, `:300-308`).
 * `LongOggCacheLimit = 2` and the `soft1`+`music2` preload are sane: at most current+next
   are needed; preload only enqueues, so the load screen is unaffected. ✅
 
----
 
 ## 4. The fix (summary)
 
@@ -137,7 +132,6 @@ flag per cue (`XactShim.cs:258`, `:300-308`).
 WAV/ADPCM SFX keep the original synchronous (instant) path and `_cache`, so SFX behaviour
 is unchanged.
 
----
 
 ## 5. Verification
 
@@ -147,18 +141,18 @@ Supporting device runs captured while auditing (Galaxy S9 / `<device-serial>`, A
 `showFps=true`, 60 fps lock), artifacts in `android/notes/proof/music-switch-freeze/`:
 
 * `[audio] OGG decode START (worker thread 15): .../music_w007.ogg` → `DONE ... in 3702 ms`
-  — the expensive decode runs on the worker thread.
-* `[audio] OGG upload (main thread 1): .../music_w007.ogg in 112 ms` — the only render-thread
+ : the expensive decode runs on the worker thread.
+* `[audio] OGG upload (main thread 1): .../music_w007.ogg in 112 ms`: the only render-thread
   cost; previously this whole step was a multi-second synchronous freeze.
-* `[audio] cue playing: 'soft1' -> .../music_w007.ogg (loop=True)` — menu music plays.
-* `[audio] cue playing: 'music2' -> .../music_w003.ogg (loop=True)` at gameplay entry — the
+* `[audio] cue playing: 'soft1' -> .../music_w007.ogg (loop=True)`: menu music plays.
+* `[audio] cue playing: 'music2' -> .../music_w003.ogg (loop=True)` at gameplay entry: the
   soft1→music2 switch plays from the preloaded cache (upload was 26 ms).
-* FPS counter screenshots: menu/gameplay/combat at FPS 57–60; many SFX plays
+* FPS counter screenshots: menu/gameplay/combat at FPS 57-60; many SFX plays
   (`slash1`, `sword1`, `throw`, `foot`, `land`, `gitwarp`, `rico`, `brass`); no `FATAL`/ANR
   on this build.
 
 **Residual limitation:** a *cold* switch to a non-preloaded combat/boss track
-(`music1`/`musicboss`) was not separately captured — it needs a boss encounter, which was
+(`music1`/`musicboss`) was not separately captured: it needs a boss encounter, which was
 not reachable without player combat progress; the same worker-decode + main-thread-upload
 path was demonstrated by the cold `soft1`/`music2` boot decodes.
 
@@ -171,7 +165,6 @@ at startup with `ClassNotFoundException: mono.MonoRuntimeProvider`. A full clean
 `obj/Release/net8.0-android` regenerated both classes and the app launches. (Not a source
 issue; the durable APK below is from the clean build.)
 
----
 
 ## 6. Artifacts
 

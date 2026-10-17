@@ -1,4 +1,4 @@
-# Touch controls — The Dishwasher MonoGame/Android port
+# Touch controls: The Dishwasher MonoGame/Android port
 
 > **UPDATE (2026-10-03, supersedes the "MENUS ONLY" scope below):** a later
 > iteration added an **optional gameplay on-screen gamepad** and a
@@ -7,7 +7,7 @@
 > plus comic `SPEED UP` (hold A) / `SKIP` (tap B) buttons. Menu gestures are
 > unchanged. This work is now synced into this repo and is present in the
 > rebuilt public release APK. The "Removed / no gameplay touch code" notes
-> below describe the earlier, superseded iteration — see
+> below describe the earlier, superseded iteration: see
 > `docs/PROJECT_STATE.md` §17 for the current state.
 
 
@@ -25,7 +25,6 @@
 > are additionally **gated to menu context** so they cannot affect active
 > gameplay at all. See §6 "Removed" for file:line.
 
----
 
 ## 1. Gesture map (menus only)
 
@@ -48,7 +47,7 @@ The Android **BACK** button is consumed only while in a menu (see §3).
 `Platform/AndroidInputBridge.cs` (extended; the original gamepad bridge is
 untouched):
 
-* `InitializeTouchPad()` (line 318) — if slot 0 is empty, creates an
+* `InitializeTouchPad()` (line 318): if slot 0 is empty, creates an
   `AndroidGamePad` for a live Android `InputDevice` (prefers the touchscreen,
   `sec_touchscreen` id 4) via the real constructor, falling back to
   `RuntimeHelpers.GetUninitializedObject` if the constructor throws. It sets
@@ -56,7 +55,7 @@ untouched):
   required because MonoGame's `PlatformGetState` calls
   `InputDevice.GetDevice(_deviceId)` and disconnects a pad whose device no
   longer exists.
-* `SetTouchButtons(Buttons)` (line 368) / `PublishTouch()` (line 381) — write
+* `SetTouchButtons(Buttons)` (line 368) / `PublishTouch()` (line 381): write
   `_buttons = hardwareButtons[0] | touchButtons` into slot 0's pad. The game's
   unmodified `GamePad.GetState(0)` call then sees them.
 * `_hwButtons[4]` (line 46) tracks physical controller bits separately, so a
@@ -113,7 +112,7 @@ Build succeeded.
 
 ## 6. Removed vs kept (file:line)
 
-**Removed (gameplay touch — was out of scope):**
+**Removed (gameplay touch: was out of scope):**
 
 | Item | Was at |
 |---|---|
@@ -138,7 +137,7 @@ Build succeeded.
 | `OnBackPressed` fallback | `Activity1.cs:256` |
 | pulse tick hook | `Game1.cs:1078` |
 
-## 7. Verification status (IMPORTANT — read the scope correction)
+## 7. Verification status (IMPORTANT: read the scope correction)
 
 Device verification **was** performed earlier in this session, on the pre-gate,
 pre-stick-removal build, and proved the menu chain by adb-driven touch with no
@@ -158,14 +157,14 @@ Screenshots for those steps are in `<dev-notes>/proof/touch/`
 (`01-title-nocontroller.png` … `12-level-selected.png`).
 
 **However:** the current build (menus-only, with the menu-context gate and the
-virtual stick removed) has **not been re-run on the device** — further device
+virtual stick removed) has **not been re-run on the device**: further device
 work was explicitly stopped. The gesture synthesis the menu chain depends on is
 unchanged by the scope correction, but the honest status is **device
 verification pending for the final build**.
 
 Gameplay status: **no gameplay touch controls** (out of scope, removed).
 
-## 8. Pending device cleanup (NOT run — device work stopped)
+## 8. Pending device cleanup (NOT run: device work stopped)
 
 The session had temporarily disabled Bluetooth (to get a no-controller state)
 and had written an `android_settings.sav` / updated profile while testing.

@@ -1,4 +1,4 @@
-# Load / startup optimization — The Dishwasher (MonoGame/Android)
+# Load / startup optimization: The Dishwasher (MonoGame/Android)
 
 **Owner:** Loading/Startup Optimization Specialist (subagent)
 **Date:** 2026-10-02
@@ -8,7 +8,6 @@
 Read-only trees (`managed/decompiled`, `assets-clean`, `port`, `rexglue-sdk*`,
 `android-app`) were **not** modified.
 
----
 
 ## 0. TL;DR
 
@@ -18,7 +17,7 @@ Read-only trees (`managed/decompiled`, `assets-clean`, `port`, `rexglue-sdk*`,
 | `am start` → menu interactive | **~24.6 s** (3-run mean; prior note ~23.3 s) | **~5.0 s** warm / **~6.5 s** cold first run | **~4.9×** |
 | boot loader phases 0→25 | ~21.7 s | **~1.5 s** | ~14× |
 | PNG decode (91 textures) | 20.5 s (decode 18.4 s + GL upload 2.1 s) | ~1.5 s wall (parallel; decode spread over the pool) | ~13× |
-| bootstrap content extraction | ~1.5 s every launch | ~1.5 s once per install, then **0** | — |
+| bootstrap content extraction | ~1.5 s every launch | ~1.5 s once per install, then **0** |: |
 
 The dominant fix was **not** the intro: it was (a) building **Release+AOT**,
 which appears to include full AOT by default and cut PNG decode 3.6×, (b)
@@ -28,7 +27,6 @@ loading was evaluated and **deliberately not implemented** (see §4.5): the
 loader is no longer the critical path, so it would add risk with no end-to-end
 gain.
 
----
 
 ## 1. Measurement method (exact and repeatable)
 
@@ -65,7 +63,6 @@ Baseline was 3 runs; every retained change was measured with at least one run
 and, where it mattered, repeated. Raw logs are quoted inline; the boot was
 captured with screenshot bursts (`android/notes/load-optimization/`).
 
----
 
 ## 2. Baseline breakdown (Debug, `SkipIntro=false`, before any change)
 
@@ -86,58 +83,56 @@ captured with screenshot bursts (`android/notes/load-optimization/`).
 | 1 | `text`, `skastudios`, `dbp`, `dish`, `release` | 1278 |
 | 2 | `crow`/`ecktos` char defs, `dishlogo` | 156 |
 | 3 | `map.ReadSegs()` + `bubbles`,`controls`,`controlsh`,`howtoplay`,`dishbuy`,`achievement` | **2393** |
-| 4–5 | 19 effects (`fx/*.xnb`) | 82 |
+| 4-5 | 19 effects (`fx/*.xnb`) | 82 |
 | 6 | render targets | 102 |
 | 7 | `sprites`, `jtext`, `arial` | **1634** |
 | 8 | MainText + SpriteManager + level titles | 157 |
 | 9 | pickups + 8 `blood*` | **1166** |
 | 10 | `heart`,`pickups`,`eckto`,`items`,`comictext` | **1357** |
-| 11–15 | char defs + credits | 154 |
+| 11-15 | char defs + credits | 154 |
 | 16 | `gfx/maps/maps1..6` | **6200** |
 | 17 | 11 heads + 15 torsos + arcade strings | **2683** |
 | 18 | 12 legs + 16 weapons | **3535** |
-| 19–21 | `Sound`/`MusicSound`/`VoxSound` + `intro` | 152 |
+| 19-21 | `Sound`/`MusicSound`/`VoxSound` + `intro` | 152 |
 | 22 | `gfx/maps/back1..2` | **520** |
-| 23–24 | `ecktog`,`ecktoa` char defs | 88 |
+| 23-24 | `ecktog`,`ecktoa` char defs | 88 |
 | 25 | `loaded = true` | 0 |
 | | **sum** | **~21 708** |
 
 **PNG accounting (single instrumented run, `split-dbg`):** 91 textures,
 **20 484 ms** total, of which **decode = 18 446 ms (90 %)** and **GL upload =
 2 111 ms (10 %)**. The slowest were the 1024×1024 DXT5 source atlases
-(`maps1..6` ~0.8–1.2 s each, `sprites` ~1.0 s, `dbp` 1280×720 ~0.65 s).
+(`maps1..6` ~0.8-1.2 s each, `sprites` ~1.0 s, `dbp` 1280×720 ~0.65 s).
 
----
 
 ## 3. Hot-spot analysis (measured, not assumed)
 
-* **(a) PNG decode in the content manager — the whole problem.** 91 of the
+* **(a) PNG decode in the content manager: the whole problem.** 91 of the
   ~128 packaged PNGs are decoded at boot; they are **20.5 s of the 21.7 s
   loader (95 %)**. Within that, the CPU StbImageSharp decode is **18.4 s** and
   the UI-thread GL `SetData` is only **2.1 s**. MonoGame 3.8.5.1's
   `Texture2D.FromStream` = `StbImageSharp` decode (pure managed) + a
   `Threading.BlockOnUIThread(SetData)` upload; under Debug the managed decode
   is extremely slow.
-* **(b) `.zdx`/`.dqx`/`.dgx` parsing — negligible.** `map.ReadSegs()` runs in
+* **(b) `.zdx`/`.dqx`/`.dgx` parsing: negligible.** `map.ReadSegs()` runs in
   phase 3 (2.39 s) but phase 3 is dominated by its 6 textures; the raw parse
   itself is a small slice of the ~150 ms of non-PNG time in that phase.
   `LoadChar` (`.dqx` char defs) phases total ~200 ms.
-* **(c) Audio bank work — negligible.** `Sound.Initialize` + `MusicSound` +
-  `VoxSound` = phases 19–21 = **~152 ms** (6 categories, 4 banks, 216 cues).
-* **(d) Managed/JIT startup — small.** Debug first frame ~2.41 s includes the
+* **(c) Audio bank work: negligible.** `Sound.Initialize` + `MusicSound` +
+  `VoxSound` = phases 19-21 = **~152 ms** (6 categories, 4 banks, 216 cues).
+* **(d) Managed/JIT startup: small.** Debug first frame ~2.41 s includes the
   ~1.58 s asset **extraction** on the UI thread, leaving ~0.8 s of MonoGame/
   managed init. Release+AOT reduced that.
-* **(e) Bootstrap extraction — a real, avoidable 1.5 s.** `Prepare()` copied
+* **(e) Bootstrap extraction: a real, avoidable 1.5 s.** `Prepare()` copied
   all 724 assets to `files/content` **on every launch on the UI thread**. The
   PNGs are loaded straight from APK assets (`TitleContainer` →
   `AssetManager.open`); only the raw `.zdx/.dqx/.resources` need the extracted
   copy, and that copy persists in the app files dir.
 
----
 
 ## 4. Optimizations tried, with measured effect
 
-### 4.1 Release build with AOT — **KEPT** (biggest single code-free win)
+### 4.1 Release build with AOT: **KEPT** (biggest single code-free win)
 
 `dotnet build -c Release` with **no extra AOT switch** already AOT-compiles 42
 assemblies (`MonoGame.Framework.dll.so`, `System.*.dll.so`, …); the Release APK
@@ -154,7 +149,7 @@ algorithm change.
 **Kept.** AOT is essential; the managed decode loop was doing most of the
 damage.
 
-### 4.2 Parallel texture decode (prefetch + thread pool) — **KEPT**
+### 4.2 Parallel texture decode (prefetch + thread pool): **KEPT**
 
 `DishwasherContentManager.Prefetch(names)` queues `Task.Run(DecodeTexture)`
 for the startup texture set; `DecodeTexture` is the exact serial path
@@ -167,13 +162,13 @@ caller thread** (never blocks on a worker). Called once from
 
 | | Release serial | Release + parallel | delta |
 |---|---:|---:|---:|
-| loader 0→25 | 5.18–5.29 s | **1.42–1.65 s** | −3.6 s (3.4×) |
+| loader 0→25 | 5.18-5.29 s | **1.42-1.65 s** | −3.6 s (3.4×) |
 | menu interactive (6 s carousel) | 6.73 s | **6.76 s** | gate-bound |
 
 Measured per-PNG CPU total is unchanged (~6.3 s summed across threads) but the
 **wall-clock** loader time collapses because ~8 textures decode concurrently.
 One texture out of 92 (`gfx/dishbuy`) is occasionally decoded twice when the
-loader reaches it before its prefetch task finishes — harmless (the cache
+loader reaches it before its prefetch task finishes: harmless (the cache
 returns one valid texture; both are disposed in `Unload`).
 
 > **A first attempt deadlocked (reverted, then re-done correctly).** The first
@@ -186,7 +181,7 @@ returns one valid texture; both are disposed in `Unload`).
 > the render thread because `BlockOnUIThread` executes immediately when already
 > on the thread that owns `Threading`.
 
-### 4.3 Skip bootstrap re-extraction — **KEPT**
+### 4.3 Skip bootstrap re-extraction: **KEPT**
 
 `AndroidContentBootstrap.Prepare()` now writes a `content.stamp` containing
 `versionCode:LastUpdateTime`; if the extracted tree exists and the stamp
@@ -195,22 +190,22 @@ fresh extraction.
 
 | | before | after (2nd+ launch) | delta |
 |---|---:|---:|---:|
-| bootstrap extract | 1.45–1.82 s | **0** (skipped) | −1.5 s |
-| first frame | ~2.1 s | **~0.55–0.84 s** | −1.3–1.5 s |
+| bootstrap extract | 1.45-1.82 s | **0** (skipped) | −1.5 s |
+| first frame | ~2.1 s | **~0.55-0.84 s** | −1.3-1.5 s |
 | menu interactive (6 s carousel) | 8.31 s | **6.73 s** | −1.6 s |
 
 First launch after install still extracts once (~1.5 s), so that cold run stays
 ~1.5 s slower.
 
-### 4.4 Shorten the boot carousel gate — **KEPT**
+### 4.4 Shorten the boot carousel gate: **KEPT**
 
 The leave condition was `loaded && loadFrame > 20.45f` (`Globals.isX360` is
 `true`, `SkipIntro=false`). Once the loader took 1.5 s, the remaining ~14 s of
 the logo window was pure dead time. Added
 `Globals.LoaderCarouselSeconds` (revertable const) and scaled the carousel
 clock: `loadFrame += frameTime * (20.45f / LoaderCarouselSeconds)`. The whole
-logo sequence (XBLA → Dream Build Play → ska → ESRB/dish) still plays — only
-its clock is compressed — so it never cuts off mid-animation.
+logo sequence (XBLA → Dream Build Play → ska → ESRB/dish) still plays: only
+its clock is compressed: so it never cuts off mid-animation.
 
 | `LoaderCarouselSeconds` | menu interactive (warm) |
 |---|---:|
@@ -221,10 +216,10 @@ its clock is compressed — so it never cuts off mid-animation.
 4.0 s = ~1 s per logo; screenshot bursts show every logo fully drawn and
 fading between, so it reads as an intentional fast publisher reel
 (`load-optimization/carousel-4s.png` vs `carousel-6s.png`). Below ~4 s the
-0.5 s cross-fades start overlapping and it looks like a flash — 4 s is the
+0.5 s cross-fades start overlapping and it looks like a flash: 4 s is the
 sensible floor.
 
-### 4.5 Defer non-essential assets (character/map textures) — **NOT IMPLEMENTED**
+### 4.5 Defer non-essential assets (character/map textures): **NOT IMPLEMENTED**
 
 Evaluated but deliberately skipped. Rationale (measured):
 
@@ -252,7 +247,6 @@ Evaluated but deliberately skipped. Rationale (measured):
   already removed the decode from the critical path.
 * **`.resources`/save reads:** negligible.
 
----
 
 ## 5. Final results
 
@@ -271,7 +265,6 @@ extraction skip:
 * **Cold first launch after install: ~6.5 s** (one-time extraction).
 * First frame: ~0.83 s warm vs ~2.41 s baseline.
 
----
 
 ## 6. Correctness verification (on the final APK)
 
@@ -283,7 +276,7 @@ extraction skip:
   Settings/Return to Game Library), Story Difficulty, Select Level, the
   per-level comic strip and the tutorial room all render with correct art, text
   and HUD (`final-menu-and-comic.png`, `gameplay.png`).
-* **Menus & touch.** Touch **tap-to-select** still works — logcat:
+* **Menus & touch.** Touch **tap-to-select** still works: logcat:
   `[touch] tap -> select row 5 (logical 467,553 physical 700,830)` and the
   **Android Settings** screen opens from the tap
   (`android-settings-tap.png`), i.e. the Android Settings activation fix is
@@ -309,7 +302,6 @@ extraction skip:
   **not** debuggable (a temporary `android:debuggable="true"` used only to
   `run-as`-verify the saves was reverted before the final build).
 
----
 
 ## 7. Final configuration / how to build
 
@@ -333,7 +325,7 @@ adb -s <device-serial> install -r -d \
   bin/Release/net8.0-android/com.recomp.dishwasher-Signed.apk
 ```
 
-> Note: `-p:AndroidPackageFormat=apk` is required — a plain `-c Release` build
+> Note: `-p:AndroidPackageFormat=apk` is required: a plain `-c Release` build
 > defaults to producing an `.aab` and can leave a stale APK in `bin/Release`.
 > `-p:AndroidSupportedAbis=arm64-v8a` is an optimisation for size/build time
 > (the test device is arm64); drop it for a universal APK.
@@ -352,7 +344,6 @@ Artifact: `bin/Release/net8.0-android/com.recomp.dishwasher-Signed.apk`
   `AndroidContentBootstrap.Prepare()` (or simply delete the stamp file / the
   app data) to always re-extract.
 
----
 
 ## 8. Files changed
 
@@ -372,7 +363,7 @@ the four retained optimisations above.
 ## 9. Remaining bottleneck
 
 **The 4.0 s compressed boot-logo carousel.** With content ready in ~1.5 s, the
-menu appears when the carousel gate opens (~4.0 s after the first frame) — the
+menu appears when the carousel gate opens (~4.0 s after the first frame): the
 loader is now fully hidden. Further end-to-end wins would require either a
 shorter/optional splash (below ~4 s the cross-fades overlap and it looks like a
 glitch) or moving to a MonoGame-native DXT `.xnb` content pipeline so load is a

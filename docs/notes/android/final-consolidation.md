@@ -1,4 +1,4 @@
-# Final consolidation — straight-alpha (BUG 2) landed, instrumentation tamed
+# Final consolidation: straight-alpha (BUG 2) landed, instrumentation tamed
 
 **Author:** Final Consolidation Lead (subagent)
 **Date:** 2026-10-02
@@ -7,31 +7,29 @@
 Read-only trees (`managed/decompiled`, `assets-clean`, `port`, `rexglue-sdk*`,
 `android-app`) were **not** modified.
 
-**Result in one line:** XNA 3.0 straight-alpha is now landed end-to-end — PNGs load
+**Result in one line:** XNA 3.0 straight-alpha is now landed end-to-end: PNGs load
 straight **and** all 124 `BlendState.AlphaBlend` sites are `BlendState.NonPremultiplied`
-— the comic "paper" backdrop dropped from **band L 94.6 → 45.2** (reference **34.0**),
+,  the comic "paper" backdrop dropped from **band L 94.6 → 45.2** (reference **34.0**),
 the full-screen red tutorial band is gone, BUG 1 / `fade` / `MatrixTransform` are
 untouched, and the accumulated diagnostics are inert by default.
 
----
 
 ## 0. TL;DR
 
 | item | result |
 |---|---|
-| BUG 1 (DXT5 alpha) | **intact** — `Assets/gfx/head1.png` md5 `e4374dc854a34d76cdee0292826cc5f9`, no dither rectangles in gameplay |
-| BUG 2 (straight alpha) | **landed** — 1 new file, 1 wiring line, 124 blend sites, 0 `BlendState.AlphaBlend` left |
+| BUG 1 (DXT5 alpha) | **intact**: `Assets/gfx/head1.png` md5 `e4374dc854a34d76cdee0292826cc5f9`, no dither rectangles in gameplay |
+| BUG 2 (straight alpha) | **landed**: 1 new file, 1 wiring line, 124 blend sites, 0 `BlendState.AlphaBlend` left |
 | comic backdrop band L | `94.6` (before) → **`45.2`** (after); reference `f_0002` = `34.0`; predicted ~`45` |
 | red tutorial band (gameplay) | full-width hard-red (56 305 hard-red px) → **gone** (2 489 hard-red px = the HUD health bar only) |
 | `fade` fix (`fade.fx`) | untouched (mtime 10:59, pre-session); runtime overlay now uses the straight blend = correct |
-| `MatrixTransform` | untouched — all 21 `Content/fx/*.fx` mtimes predate this session |
+| `MatrixTransform` | untouched: all 21 `Content/fx/*.fx` mtimes predate this session |
 | lense sampler-bind fix | preserved (`IsLenseFix == true` whenever the harness is disabled) |
 | InputDiagnostics log spam | `250` lines / ~2 min → **0**; master switch off |
 | build | `0 Error(s)`; installs and reaches gameplay; no FATAL/exception in logcat |
 
----
 
-## 1. BUG 2 — the straight-alpha patch
+## 1. BUG 2: the straight-alpha patch
 
 Root cause (recap, full analysis in `comic-cutscene.md`): XNA 3.0
 `SpriteBlendMode.AlphaBlend` is **straight** (`SourceBlend=SourceAlpha`,
@@ -41,13 +39,13 @@ fed it **premultiplied** PNGs. For any tint with `a < 1` the source RGB was not 
 by the tint alpha, so low-alpha full-screen quads (comic paper, tutorial band, menu
 "dish" wash, HUD) rendered as hard, over-bright rectangles.
 
-### 1.1 New file — straight-alpha content manager
+### 1.1 New file: straight-alpha content manager
 
 `src/Dishwasher/DishwasherContentManager.cs` (namespace `Dishwasher.Content`,
 `#nullable enable`). It overrides `ContentManager.Load<T>`:
 
 * **`Texture2D`** → `Texture2D.FromStream(gd, <root>/<asset>.png)`. The 2-arg overload
-  uses `DefaultColorProcessors.ZeroTransparentPixels` — i.e. **straight alpha, no
+  uses `DefaultColorProcessors.ZeroTransparentPixels`: i.e. **straight alpha, no
   premultiply** (verified against the decompiled MonoGame 3.8.5.1 Android
   `ContentManager.LoadTexture2DFromImageFile`, which is the only path that passes
   `PremultiplyAlpha`). Only fully-transparent texels get RGB zeroed, which cannot
@@ -59,7 +57,7 @@ by the tint alpha, so low-alpha full-screen quads (comic paper, tutorial band, m
 `OpenContent` avoids a `./` prefix for `RootDirectory == "."` (this port's root) since
 the Android `AssetManager` path is sensitive to it.
 
-### 1.2 Wiring — `Game1.LoadContent()` (`GameSource/projectDish/Game1.cs:874`)
+### 1.2 Wiring: `Game1.LoadContent()` (`GameSource/projectDish/Game1.cs:874`)
 
 ```csharp
 TraceWriteLine("Loading Graphics content");
@@ -73,7 +71,7 @@ Placed before the first `base.Content.Load<Texture2D>` (`gfx/xbla`, `:889`). The
 `ThreadLoader` captured in `Initialize` only loads `CharDef`, so it is unaffected. The
 loader boot log confirms the new path: `[trace] Loaded XBLA texture`.
 
-### 1.3 Blend map — 124 sites
+### 1.3 Blend map: 124 sites
 
 Mechanical replacement `BlendState.AlphaBlend` → `BlendState.NonPremultiplied`
 (case-sensitive, whole-token), 20 files:
@@ -94,14 +92,13 @@ Mechanical replacement `BlendState.AlphaBlend` → `BlendState.NonPremultiplied`
 `grep -r BlendState.AlphaBlend GameSource/` = **0**;
 `grep -r BlendState.NonPremultiplied GameSource/ | grep -v //` = **124**.
 
----
 
 ## 2. Interaction reasoning (why the loader and blend map must ship together)
 
 SpriteBatch multiplies the tint `C` into the sampled texel `T`; the resulting source is
 `src.rgb = T.rgb·C.rgb`, `src.a = T.a·C.a`, then the blend state is applied.
 
-**Straight texture + `NonPremultiplied`** — correct XNA 3.0:
+**Straight texture + `NonPremultiplied`**: correct XNA 3.0:
 `out.rgb = T.rgb·C.rgb·(T.a·C.a) + dst·(1 − T.a·C.a)`
 
 For a tint alpha `a = C.a`:
@@ -118,25 +115,25 @@ too bright, premultiplied textures with the straight blend are too dark. Togethe
 are exactly the original pipeline for **every** alpha. For `a == 1` (opaque sprites) the
 four expressions are identical, so opaque art is pixel-for-pixel unchanged.
 
-### 2.1 Blend-mode audit — what else the game uses
+### 2.1 Blend-mode audit: what else the game uses
 
 `grep` over `GameSource/` finds exactly three MonoGame blend states:
 `NonPremultiplied` (124), `Additive` (19), `Opaque` (22). No custom `BlendState` /
 `Blend` / `BlendFunction` overrides exist.
 
-**`Additive`** — decompiled `BlendState.Additive` is `SourceAlpha / One`
+**`Additive`**: decompiled `BlendState.Additive` is `SourceAlpha / One`
 (`AlphaSourceBlend=SourceAlpha, AlphaDest=One`), which is the same mapping
 `content-integration.md §3` prescribes for XNA `SpriteBlendMode.Additive`. Under
-straight textures the source term becomes `T.rgb·C.rgb·(T.a·C.a)` — the correct XNA
+straight textures the source term becomes `T.rgb·C.rgb·(T.a·C.a)`: the correct XNA
 result. **Before** the fix, premultiplied textures double-multiplied alpha
 (`T.rgb·T.a²·C.a·C.rgb`), so additive glows/particles were too dark. The fix therefore
 **corrects** additive draws; opaque-tinted (`C.a = 1`) additive is unchanged.
 
-**`Opaque`** — `One / Zero`; `out.rgb = T.rgb·C.rgb`. Before, `T.rgb` was premultiplied
+**`Opaque`**: `One / Zero`; `out.rgb = T.rgb·C.rgb`. Before, `T.rgb` was premultiplied
 (`T.rgb·T.a`), so semi-transparent texels drawn opaque were darkened; after they carry
 their true colour, which is what the straight XNA originals did. The 22 `Opaque` sites
 are almost all **full-screen render-target blits** (`rTarg`, `lenseTarg`, `mapTarg`,
-`bloomTarg`) and the menu/level RT present, where the RT alpha is 1 — so they are
+`bloomTarg`) and the menu/level RT present, where the RT alpha is 1: so they are
 unchanged. Visual regression check below confirms no `Opaque`-path breakage.
 
 **Render targets.** RTs are written with the same blend map the original XNA 3.0 game
@@ -148,11 +145,10 @@ gameplay captures.
 **No effect, technique, pass name, `MatrixTransform`, or texture was changed.** The
 DXT5 alpha fix (BUG 1) lives in the exporter/PNG data and is orthogonal to blending.
 
----
 
 ## 3. Measurements
 
-Method: full device screenshots are `1080×2400`; the game band is rows **336–1085**
+Method: full device screenshots are `1080×2400`; the game band is rows **336-1085**
 (749 px). The reference YouTube frames are `640×360` and fill the frame, so the whole
 image is the band. `band L` = `0.299·R̄ + 0.587·Ḡ + 0.114·B̄`.
 
@@ -163,7 +159,7 @@ image is the band. `band L` = `0.299·R̄ + 0.587·Ḡ + 0.114·B̄`.
 | reference `f_0002` (ground truth) | (36.46, 34.93, 23.21) | **34.0** |
 | port **before** (`before-comic-3.png`) | (100.18, 93.34, 86.33) | **94.6** |
 | port **after** (`after-comic-2.png`) | (47.79, 44.86, 39.75) | **45.2** |
-| analytic prediction (`comic-cutscene.md §4.3`) | — | ~44 |
+| analytic prediction (`comic-cutscene.md §4.3`) |: | ~44 |
 
 The before/after comparison, with the reference on top, is
 `<dev-notes>/proof/final/comic-before-after-ref.png`. The "paper" quad
@@ -177,8 +173,8 @@ Counting "hard red" pixels (`R>140, R−G>70, R−B>60`) in the band:
 
 | frame | hard-red pixels (2-px sample) | location | top-left rect mean RGB |
 |---|---:|---|---|
-| before (`before-gameplay-2.png`) | **56 305** | full width x 74–1078, y 336–894 | (124.9, 21.7, 21.7) |
-| after (`after-gameplay-2.png`) | **2 489** | x 74–298, y 392–440 (health bar only) | (91.9, 14.7, 14.7) |
+| before (`before-gameplay-2.png`) | **56 305** | full width x 74-1078, y 336-894 | (124.9, 21.7, 21.7) |
+| after (`after-gameplay-2.png`) | **2 489** | x 74-298, y 392-440 (health bar only) | (91.9, 14.7, 14.7) |
 
 The full-screen bright-red tutorial band is **gone**; the only remaining hard-red area
 is the top-left HUD health bar (also correctly ~26 % darker, i.e. no longer
@@ -195,14 +191,13 @@ The before "dish" full-screen quad (`alpha 0.8`) had lost all highlight detail (
 white blob); the fix restores the underlying ink artwork. Text contrast is equal or
 better. Comparison: `<dev-notes>/proof/final/menu-before-after.png`.
 
----
 
 ## 4. Regression status
 
 * **BUG 1 (DXT5 alpha / rectangles): intact.** The runtime atlas is unchanged:
   `Assets/gfx/head1.png` md5 = `Content/gfx/head1.png` md5 =
   `e4374dc854a34d76cdee0292826cc5f9` (the value recorded in `rectangle-artifact.md`).
-  Gameplay captures (`after-gameplay-2/3.png`) show clean silhouettes and room art —
+  Gameplay captures (`after-gameplay-2/3.png`) show clean silhouettes and room art,
   no checkerboard cell dither. The fix was in the exporter + PNG data, which this task
   did not touch.
 * **`fade` fix: intact.** `Content/fx/fade.fx` (mtime `10:59:05`, before this session)
@@ -219,7 +214,6 @@ better. Comparison: `<dev-notes>/proof/final/menu-before-after.png`.
 * **Build/run:** `Build succeeded. 0 Error(s)`; installs and reaches gameplay; logcat
   has no `FATAL EXCEPTION`, `ContentLoadException`, or `DirectoryNotFound` for the app.
 
----
 
 ## 5. On-device screenshots
 
@@ -235,44 +229,43 @@ All under `<dev-notes>/proof/final/` (kept alongside this note reference):
 | `menu-before-after.png` | PLAY STORY submenu before/after |
 | `before-nav-3/5/7.png`, `after-menu-stable-2/3.png` | menu screens, before/after |
 
----
 
 ## 6. Instrumentation inventory (all inert by default)
 
 Every hook is now gated by a single master switch. Nothing logs or changes rendering
 unless the switch is flipped.
 
-### 6.1 `Platform.InputDiagnostics.cs` — **OFF** (`Enabled = false`)
+### 6.1 `Platform.InputDiagnostics.cs`: **OFF** (`Enabled = false`)
 
 Guards at the top of `AttachView`, `LogAndroidDevices`, `Tick`, `LogKeyEvent`,
 `LogMotionEvent`. `Tick`'s call site in `Game1.Update` is additionally guarded:
 `if (InputDiagnostics.Enabled) InputDiagnostics.Tick(gameTime);`.
 
 *Effect:* the 500 ms `GamePad.GetState`/`Keyboard.GetState` poll and its
-`StringBuilder` allocation no longer run — logcat went `250 → 0` `[input] P0=` lines.
+`StringBuilder` allocation no longer run: logcat went `250 → 0` `[input] P0=` lines.
 *Disable (already done):* leave `Enabled = false`. *Re-enable:* set `Enabled = true`.
 *Remove entirely:* delete `Platform/InputDiagnostics.cs` and its 5 call sites in
 `Activity1.cs` (`AttachView`, 2× `LogAndroidDevices`, `LogKeyEvent`, `LogMotionEvent`)
-plus the guarded `Tick` call in `Game1.cs` — **keep** `AndroidInputBridge` (below).
+plus the guarded `Tick` call in `Game1.cs`: **keep** `AndroidInputBridge` (below).
 
-### 6.2 `AndroidInputBridge.cs` — **NOT diagnostics; keep**
+### 6.2 `AndroidInputBridge.cs`: **NOT diagnostics; keep**
 
 `InitializePads` / `RouteKey` / `RouteMotion` are the working gamepad input fix (how
 `adb shell input keyevent` drives the game). They are not debug logging and must stay.
 
-### 6.3 `Platform.RenderDiagnostics.cs` + `Game1`/`GameRender`/`Activity1` blocks — **OFF** (`Enabled = false`)
+### 6.3 `Platform.RenderDiagnostics.cs` + `Game1`/`GameRender`/`Activity1` blocks: **OFF** (`Enabled = false`)
 
 `Mode` is now a property that reads `0` whenever `Enabled == false`, so every
 `Skip*`/`Bypass*` predicate is false, `IsLenseFix` is true, `Bump()` is a no-op, and the
 volume keys are no longer swallowed. The mode-specific blocks in `Game1` (menu RT
-display modes 40–43; final-composite experiments 1–9, 14–18) therefore never execute.
+display modes 40-43; final-composite experiments 1-9, 14-18) therefore never execute.
 The harness remains fully usable by setting `Enabled = true`.
 
 *Disable (already done):* leave `Enabled = false`. *Re-enable:* set `Enabled = true`,
 then use VOLUME_UP/DOWN (only then are they intercepted in `Activity1.DispatchKeyEvent`).
 *Remove entirely:* delete `Platform/RenderDiagnostics.cs`; replace each
 `!RenderDiagnostics.SkipX` with the true branch; delete the TEMP blocks at
-`Game1.cs:3857–3870` and `:4150–4249`, the `SkipNewBlood` check at `Game1.cs:5171`, the
+`Game1.cs:3857-3870` and `:4150-4249`, the `SkipNewBlood` check at `Game1.cs:5171`, the
 volume-key block in `Activity1.cs`, and the `LastPath` writes in `GameRender.cs:83,93`.
 **Preserve the lense sampler-bind fix** (`GameRender.cs:100` branch) by inlining the
 `IsLenseFix == true` path.
@@ -290,7 +283,6 @@ and the `RenderDiagnostics.Mode` reads (a `bool`-guarded property returning cons
 * `Platform/Shim_EffectCompat.cs` "RENDER DIAGNOSIS FIX" comment: this is a shipped
   effect-compat fix (`Effect.Begin/End` → `Apply()`), not a debug toggle.
 
----
 
 ## 7. Remaining visual issue (out of BUG 2 scope)
 
@@ -304,7 +296,6 @@ a plain bright red rectangle rather than the reference's rounded capsule. Both a
 pre-existing and unrelated to straight alpha; they are the main remaining fidelity gaps
 in the scenes captured here.
 
----
 
 ## 8. Build / deploy (verified this session)
 
@@ -325,15 +316,14 @@ adb -s <device-serial> shell am start -n com.recomp.dishwasher/crc641d1cdd92eb70
 `targetSdkVersion=35` preserved; only the API-34-vs-35 `XA1008` warning and the
 pre-existing `SYSLIB0006` `Thread.Abort` warnings remain.
 
----
 
 ## 9. Files changed this task
 
 * **new** `src/Dishwasher/DishwasherContentManager.cs`
-* `GameSource/projectDish/Game1.cs` — content-manager wiring; 23 blend sites; guarded
+* `GameSource/projectDish/Game1.cs`: content-manager wiring; 23 blend sites; guarded
   `InputDiagnostics.Tick` call.
-* 19 other `GameSource/projectDish/*.cs` — 101 more blend sites (table §1.3).
-* `Platform/InputDiagnostics.cs` — master switch + guards.
-* `Platform/RenderDiagnostics.cs` — master switch; `Mode` property; gated `Bump`.
-* `Activity1.cs` — volume-key harness gated on `RenderDiagnostics.Enabled`.
+* 19 other `GameSource/projectDish/*.cs`: 101 more blend sites (table §1.3).
+* `Platform/InputDiagnostics.cs`: master switch + guards.
+* `Platform/RenderDiagnostics.cs`: master switch; `Mode` property; gated `Bump`.
+* `Activity1.cs`: volume-key harness gated on `RenderDiagnostics.Enabled`.
 * **new** this note + `<dev-notes>/proof/final/**`.

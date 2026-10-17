@@ -1,4 +1,4 @@
-# Widescreen rendering — fill the 2400×1080 panel (The Dishwasher, MonoGame/Android)
+# Widescreen rendering: fill the 2400×1080 panel (The Dishwasher, MonoGame/Android)
 
 **Author:** Widescreen Rendering Specialist (subagent)
 **Date:** 2026-10-02
@@ -9,23 +9,21 @@
 Read-only trees (`managed/decompiled`, `assets-clean`, `port`, `rexglue-sdk*`,
 `android-app`) were **not** modified.
 
----
 
 ## 0. TL;DR
 
 | item | result |
 |---|---|
-| Fill | **full 2400×1080** — SurfaceFlinger layer `pos=(0,0)`, buffer `1600×720`, transform `tr=[1.50,0.00][0.00,1.50]` ⇒ displayed 2400×1080 |
-| Stretch | **none in the world/HUD** — uniform 1.5× (same scale X and Y). Buffer aspect 1600/720 = 2.2222 = panel 2400/1080 |
-| Horizontal world | **+25 %** — camera width `screenSize.X` 1280 → **1600** world units |
-| Vertical world | **unchanged** — camera height stays **720** world units, so character scale / physics feel identical |
+| Fill | **full 2400×1080**: SurfaceFlinger layer `pos=(0,0)`, buffer `1600×720`, transform `tr=[1.50,0.00][0.00,1.50]` ⇒ displayed 2400×1080 |
+| Stretch | **none in the world/HUD**: uniform 1.5× (same scale X and Y). Buffer aspect 1600/720 = 2.2222 = panel 2400/1080 |
+| Horizontal world | **+25 %**: camera width `screenSize.X` 1280 → **1600** world units |
+| Vertical world | **unchanged**: camera height stays **720** world units, so character scale / physics feel identical |
 | HUD | anchored to `screenSize` corners; fully on-screen (health top-left, combo/score top-right, buttons bottom-right) |
 | FPS | **59.3 fps** (127 frames / 2.13 s, median frame 16.6 ms) at the new resolution |
-| Crashes | none — no `FATAL` / `ContentLoadException` in logcat |
+| Crashes | none: no `FATAL` / `ContentLoadException` in logcat |
 | Protected fixes | all intact (shaders/`MatrixTransform`, `fade`, DXT5, straight-alpha blend, `AndroidInputBridge`, lense sampler fix) |
 | Residual | the *menu* still uses its original 1024×600 canvas stretched to `screenSize` (see §7) |
 
----
 
 ## 1. The view map (file:line)
 
@@ -71,7 +69,7 @@ There is **no projection matrix** for the world: sprites are drawn at
 | `GameRender.gZoom` | `Game1.cs:4870` | written but the world is not zoomed by it |
 | effect vertex transform (the real "projection") | `Platform/Shim_EffectCompat.cs:42` + `Content/fx/*.fx` `MatrixTransform` | `CreateOrthographicOffCenter(0, vp.W, vp.H, 0, 0, -1)` |
 
-**So the visible world width is exactly `Globals.screenSize.X`** — widening
+**So the visible world width is exactly `Globals.screenSize.X`**: widening
 `screenSize.X` shows more level horizontally; keeping `screenSize.Y = 720`
 keeps the vertical framing identical.
 
@@ -103,13 +101,12 @@ Confirmed: the HUD lays itself out from `Globals.screenSize` corners.
 | shop text centred | `HUD.cs:523,573` `screenSize.X/2`, `screenSize.Y/2` |
 | pickups centred | `Pickups.cs:149-171` |
 | overlay border clamp | `Overlay.cs:188-205` |
-| menu buttons | `MainMenu.cs` (fixed 800/1024×600 canvas — see §7) |
+| menu buttons | `MainMenu.cs` (fixed 800/1024×600 canvas: see §7) |
 
 Because `screenSize` is the logical 1600×720 and the whole backbuffer is scaled
 uniformly, the HUD stays on the logical corners and therefore on the physical
 corners.
 
----
 
 ## 2. Approach chosen, and why
 
@@ -144,11 +141,10 @@ panel.**
   the compositor with **zero** game-draw changes and zero risk to the protected
   shader/blend fixes.
 
----
 
 ## 3. Exact changes
 
-### 3.1 new file — `src/Dishwasher/Platform/WidescreenConfig.cs`
+### 3.1 new file: `src/Dishwasher/Platform/WidescreenConfig.cs`
 
 Static handshake between the Activity and the game:
 `Enabled`, `LogicalWidth` (1600), `LogicalHeight` (720), `Scale` (1.5).
@@ -157,7 +153,7 @@ Additive / revertable.
 ### 3.2 `src/Dishwasher/Activity1.cs`
 
 * `using Android.Widget;` (added).
-* **Cutout:** `Activity1.cs:31-46` — API 28+ sets
+* **Cutout:** `Activity1.cs:31-46`: API 28+ sets
   `Window.Attributes.LayoutInDisplayCutoutMode = ShortEdges` so the window
   covers the full 2400 px (verified: window frame went `[88,0]-[2400,1080]` →
   `[0,0]-[2400,1080]`).
@@ -177,10 +173,10 @@ Additive / revertable.
 
 ### 3.3 `src/Dishwasher/GameSource/projectDish/Game1.cs`
 
-* `Game1.cs:358-372` — when `WidescreenConfig.Enabled`, override
+* `Game1.cs:358-372`: when `WidescreenConfig.Enabled`, override
   `Globals.screenSize = (LogicalWidth, 720)`, `wideScreen = true`,
   `border = 0`.
-* `Game1.cs:378-397` — after `ApplyChanges()`, pin
+* `Game1.cs:378-397`: after `ApplyChanges()`, pin
   `PresentationParameters.BackBufferWidth/Height` and `GraphicsDevice.Viewport`
   to the logical size (defends against `ResetClientBounds` seeing a stale
   pre-layout view size), and log the resolved state.
@@ -188,7 +184,6 @@ Additive / revertable.
 **Nothing else changed.** No `.fx`, no `GameRender.cs`, no `HUD.cs`, no blend
 site, no content manager.
 
----
 
 ## 4. Runtime evidence (device)
 
@@ -213,7 +208,6 @@ Layer (SurfaceView[...]@0(BLAST)): pos=(0,0)
 `1600×1.5 = 2400`, `720×1.5 = 1080`, and the transform is diagonal-equal ⇒
 **the panel is filled exactly with a single uniform scale (no distortion).**
 
----
 
 ## 5. Verification & measurements
 
@@ -229,13 +223,13 @@ Layer (SurfaceView[...]@0(BLAST)): pos=(0,0)
 
 The strongest fill evidence is, in order: (a) `ws-final-shop.png` measured
 `bbox=(0,0,2399,1079)` = **the whole frame**; and (b) the compositor geometry in
-§4 — the game surface is a 1600×720 buffer at `pos=(0,0)` scaled by exactly 1.5
+§4: the game surface is a 1600×720 buffer at `pos=(0,0)` scaled by exactly 1.5
 ⇒ 2400×1080. The occasional dark edge pixels on some frames are game art, not a
 letterbox (the pre-change build had black game-art edges too).
 
 ### 5.2 No distortion (aspect)
 
-* SurfaceFlinger transform `tr=[1.50,0.00][0.00,1.50]` — X and Y scale equal.
+* SurfaceFlinger transform `tr=[1.50,0.00][0.00,1.50]`: X and Y scale equal.
 * Buffer aspect `1600/720 = 2.2222` = panel aspect `2400/1080 = 2.2222`.
 * Measured HUD health-bar capsule (fixed-size sprite, full health):
 
@@ -244,7 +238,7 @@ letterbox (the pre-change build had black game-art edges too).
 | BEFORE `baseline-current.png` | (162,54,387,107) | 226 | 54 | **4.185** |
 | AFTER `ws-play-1.png` | (112,82,448,160) | 337 | 79 | **4.266** |
 
-  Width ×1.49, height ×1.46 — i.e. **one uniform ~1.5×**, aspect held to
+  Width ×1.49, height ×1.46: i.e. **one uniform ~1.5×**, aspect held to
   within ≈2 % (anti-aliased edge threshold). No horizontal-only stretch.
 
 ### 5.3 HUD anchored / fully visible
@@ -279,7 +273,7 @@ grep -iE 'FATAL|AndroidRuntime|ContentLoadException|Unhandled|DirectoryNotFound'
 Dishwasher: [trace] [boot] content loaded; entering main menu
 ```
 
-### 5.7 Protected systems — regressed? **No**
+### 5.7 Protected systems: regressed? **No**
 
 * `Content/fx/*.fx` mtimes all predate this session; `MatrixTransform` present in
   19/19 gameplay effects.
@@ -291,7 +285,6 @@ Dishwasher: [trace] [boot] content loaded; entering main menu
 * Only 3 source files changed today: `Activity1.cs`, `Game1.cs`,
   `Platform/WidescreenConfig.cs` (plus this note / screenshots).
 
----
 
 ## 6. Build / deploy
 
@@ -309,7 +302,6 @@ adb -s <device-serial> shell am start -n com.recomp.dishwasher/crc641d1cdd92eb70
 # drive: keyevent 96 (A) x4 -> level select; 22 (RIGHT) then 96 (A) -> gameplay
 ```
 
----
 
 ## 7. Residual limitations / compromises
 
@@ -335,7 +327,6 @@ adb -s <device-serial> shell am start -n com.recomp.dishwasher/crc641d1cdd92eb70
    62-119` (restore `SetContentView(_view)` and the original `screenSize`
    lookup), rebuild. All original code is intact behind the switch.
 
----
 
 ## 8. Files / artifacts
 
@@ -347,12 +338,12 @@ adb -s <device-serial> shell am start -n com.recomp.dishwasher/crc641d1cdd92eb70
 
 **Screenshots** (`android/notes/widescreen/`, copies in
 `<dev-notes>/proof/ws/`)
-* `baseline-current.png` — BEFORE: fixed 1280×720 box top-left
-* `ws-final-shop.png` — AFTER: in-game shop, measured `bbox=(0,0,2399,1079)` ⇒ fills the whole frame
-* `ws-2-menu.png` — AFTER: title/menu fills 2400×1080
-* `ws-play-1.png`, `ws-play-2.png`, `ws-nav-1.png` — AFTER: gameplay (HUD top
+* `baseline-current.png`: BEFORE: fixed 1280×720 box top-left
+* `ws-final-shop.png`: AFTER: in-game shop, measured `bbox=(0,0,2399,1079)` ⇒ fills the whole frame
+* `ws-2-menu.png`: AFTER: title/menu fills 2400×1080
+* `ws-play-1.png`, `ws-play-2.png`, `ws-nav-1.png`: AFTER: gameplay (HUD top
   corners, wider world)
-* `ws-tut-4.png` — AFTER: Select-Level menu
-* `ws-before-after.png` — stacked BEFORE / AFTER comparison
+* `ws-tut-4.png`: AFTER: Select-Level menu
+* `ws-before-after.png`: stacked BEFORE / AFTER comparison
 
 **Helper** `tools/scripts/ws_analyze.py` (bbox / corner / rectangle mean).

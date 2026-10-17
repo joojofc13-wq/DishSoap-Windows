@@ -1,133 +1,108 @@
-# DishSoap Windows — build e execução
+# Windows build and execution
 
-Requisitos: Windows x64, SDK .NET 8, Python 3, sua cópia legítima do jogo.
-O Android SDK/JDK/NDK não é necessário. MonoGame DesktopGL 3.8.5.1 e NVorbis
-0.10.5 são restaurados por NuGet. O executável publicado inclui o runtime .NET.
+The automated path is `DishSoap.Builder.exe` from the release, or `Build-My-Game.bat` from a source checkout. Both run the own-copy build pipeline. Manual commands below require Windows x64, .NET 8 SDK, Python 3 and your legitimate game copy. No Android SDK, JDK or NDK is needed.
 
-## Preparar o jogo localmente
+## Prepare local source
 
 ```powershell
-./tools/windows/prepare-game.ps1 -Source 'C:\copia\pacote-XBLA'
-# Também aceita ZIP, pasta extraída, ou PE gerenciado game.exe com dependências ao lado.
+./tools/windows/prepare-game.ps1 -Source 'C:\MyCopy\XBLA-package'
 ```
 
-O script restaura ILSpy 9.1.0.7988, extrai os assemblies XEX2 BASIC/LZX, descompila
-com as referências XNA/CF originais e prepara GameSource separado para desktop.
-Preserva os originais e recusa sobrescrever uma árvore GameSource existente.
-O relatório port-report.json registra hashes e arquivos transformados.
-Mudanças em revisões diferentes devem ser compiladas e examinadas; não há uma
-promessa de transformação universal para qualquer decompile.
+Supported inputs include an STFS/LIVE package, ZIP, extracted folder, or managed `game.exe` with its original dependencies. ILSpy 9.1.0.7988 decompiles the assemblies extracted from XEX2 BASIC/LZX containers. Preparation creates a separate desktop `GameSource` and refuses to overwrite an existing source tree. `port-report.json` records hashes and source transformations. Other game revisions may need additional adaptation.
 
 ```powershell
 ./tools/windows/build-windows.ps1
-# Equivalente:
+# Equivalent game publication:
 dotnet publish src/Dishwasher.Desktop/Dishwasher.Desktop.csproj -c Release -r win-x64 --self-contained true -p:PublishDir=../../dist/DishSoap-Windows-x64/
 ```
 
-Saída: `dist/DishSoap-Windows-x64/Dishwasher.exe`. A build local contém lógica
-recompilada da cópia do proprietário. Não redistribua o jogo recompilado sem os
-direitos necessários. Nenhum original, GameSource ou recurso é copiado ao dist.
+The script also publishes `DishSoap.Configurator.exe`. MonoGame DesktopGL 3.8.5.1 and NVorbis 0.10.5 are restored through NuGet. The game output includes the .NET runtime and recompiled logic from your copy. Original resources and private source are kept outside the executable folder.
 
-Para compilar somente nosso importador/diagnóstico, sem GameSource:
+To build only the importer and diagnostics, without game logic:
 
 ```powershell
 ./tools/windows/build-windows.ps1 -SetupOnly
 ```
 
-Esse modo produz `DishSoap.Setup.exe`, não substitui o jogo por um demo.
+This creates `DishSoap.Setup.exe`; it is not a playable game.
 
-## Importar recursos e configurar áudio
+## Import content
 
-No primeiro lançamento, selecione um pacote STFS/LIVE, ZIP de recursos extraídos
-ou a pasta raiz contendo `data`, `gfx`, `Resources`, `sfx`. A pasta externa que
-contém apenas subpastas numéricas do Xbox precisa ser aberta até chegar ao pacote.
-O arquivo sem extensão dentro de `58410902\000D0000` é uma entrada válida.
+The importer accepts the game package, a content ZIP or an extracted root containing `data`, `gfx`, `Resources` and `sfx`. For an Xbox directory hierarchy, select the actual package inside `58410902\000D0000`, not a parent containing only numbered folders.
 
-Para XMA, instale separadamente FFmpeg x64 com decoder xma2 e encoder libvorbis.
-Informe seu caminho na variável `DISHWASHER_FFMPEG` ou use `--ffmpeg` na CLI.
-O FFmpeg não é baixado ou incluído automaticamente no aplicativo. Uma build
-do fornecedor Gyan foi usada nos testes locais; origem e licença estão em
-THIRD-PARTY-NOTICES.md. PCM BE é convertido em C#; XMA é decodificado durante
-a importação, não durante a partida. Reprodução usa XactShim + NVorbis/OpenAL.
+The automated builder obtains FFmpeg when needed. For a manual import, provide an executable with XMA2 decoding and Vorbis encoding:
 
 ```powershell
-$env:DISHWASHER_FFMPEG = 'C:\ffmpeg\bin\ffmpeg.exe'
-./dist/DishSoap-Windows-x64/Dishwasher.exe --import 'C:\copia\pacote'
+$env:DISHWASHER_FFMPEG = 'C:\FFmpeg\bin\ffmpeg.exe'
+./dist/DishSoap-Windows-x64/Dishwasher.exe --import 'C:\MyCopy\XBLA-package'
 ./dist/DishSoap-Windows-x64/Dishwasher.exe
 ```
 
-Dados em `%LOCALAPPDATA%\DishSoapWindows`:
+XMA conversion occurs during import. PCM big-endian conversion is handled in C#. Playback uses XactShim, NVorbis and the desktop audio backend. The separately downloaded Gyan FFmpeg build is GPLv3; its notices stay with the tool.
 
-| Pasta | Uso |
-|---|---|
-| Imports | Uma instalação nova por importação, sem misturar revisões |
-| Saves | XML original do jogo, profile.sav/settings.sav e backups atômicos |
-| Config | desktop.json e ponteiro da instalação ativa |
-| Cache | Arquivos temporários de conversão |
-| Logs | Inicialização, importação, áudio e falhas |
+Data lives under `%LOCALAPPDATA%\DishSoapWindows`:
 
-Uma tentativa com erro preserva a instalação anterior. Um import parcial apresenta
-avisos em import-report.json e no log. Recursos indispensáveis devem ser convertidos
-antes da ativação. Não apague Imports enquanto o jogo estiver aberto.
+| Directory | Contents |
+| --- | --- |
+| Imports | A separate content installation for each import |
+| Saves | Game XML saves, profile/settings files and recovery backups |
+| Config | `desktop.json` and the active-content pointer |
+| Cache | Temporary conversion data |
+| Logs | Startup, import, audio and error logs |
 
-## Controles e imagem
+A failed import preserves the previous active installation. Read `import-report.json` and the log for warnings. Do not remove active imported files while playing.
 
-O perfil local Player entra automaticamente; não requer Xbox LIVE.
-No modo normal, teclado e gamepads SDL/MonoGame são consultados continuamente.
+## Input and settings
 
-| Tecla | Botão de controle / função padrão |
-|---|---|
-| WASD ou setas | Movimento / menus |
-| Enter | Confirmar / Start |
-| Escape | Voltar / pausa |
-| J | A (pulo / confirmar) |
-| K | X (ataque) |
-| L | B (agarrar / voltar) |
-| I | Y (ataque forte) |
+The local Player profile signs in automatically. There is no Xbox LIVE sign-in service. Keyboard and SDL/MonoGame controller input are polled during play.
+
+| Key | Default action/button |
+| --- | --- |
+| WASD or arrow keys | Movement and menus |
+| Enter | Confirm / Start |
+| Escape | Back / pause |
+| J | A / jump / confirm |
+| K | X / attack |
+| L | B / grab / back |
+| I | Y / heavy attack |
 | Q / E | LB / RB |
 | U / O | LT / RT |
-| Alt+Enter | Alternar tela cheia |
+| Alt+Enter | Toggle fullscreen |
 
-O mouse não aciona as opções originais. Os ícones A/B na interface são os
-botões originais; use Enter/J para A e Escape/L para B. Mapeamentos podem ser
-alterados em Config/desktop.json com o jogo fechado.
+The original game menus use controller-style prompts. The mouse does not activate them. Bindings can be edited in `Config/desktop.json` with the game closed.
 
-O executável abre um iniciador com FPS, VSync, resolução de saída, janela/tela
-cheia, volume, contador na tela, interpolação e qualidade Original / HD 2× /
-HD 2× com cenários restaurados. Esse pedido substitui a qualidade fixa anterior.
-Alt+Enter continua alternando tela cheia durante a partida. Para iniciar direto
-com as preferências salvas, use `--play`.
+`Dishwasher.exe` starts directly with saved preferences. `DishSoap.Configurator.exe` edits settings separately; `Dishwasher.exe --configure` opens the same editor. Output is fixed at 720p, with Original or Upscaled textures, fullscreen, FPS limit, VSync, Show FPS and Smooth Motion. There is no resolution selector, volume slider or controls legend. Windows interfaces use English.
 
-Canvas interno 1920×1080; simulação original a 60 Hz, com render independente
-e interpolação visual de personagens/câmera. 180 FPS é um limite selecionável;
-VSync e desempenho podem limitar o resultado. O contador mostra FPS reais e
-Hz da lógica, inclusive em tela cheia. Não há garantia de 180 estáveis em toda
-a campanha. Ver [HD_LAUNCHER.md](HD_LAUNCHER.md) para arquitetura e validação.
+The internal canvas is 1920 x 1080; game coordinates remain 1280 x 720. Original logic runs at 60 Hz independently of rendering. A selectable 180 FPS cap does not guarantee that performance in every scene. See [rendering details](HD_LAUNCHER.md).
 
-Para compilar sua cópia com o pacote HD, abra Compilar-meu-jogo.cmd.
-O fluxo completo corrige a ordem dos índices DXT, amplia 128 texturas em 2× e
-restaura mais oito folhas de cenários. Fontes preservam suas métricas e os
-sprites mantêm recortes/pivôs. O processamento é anterior à partida, com modelos
-obtidos separadamente, e exige GPU Vulkan. O kit não contém imagens do jogo.
-Veja [o guia do compilador](../LEIA-ME-COMPILADOR.md).
+## Prepare AI textures manually
 
-## Diagnóstico e testes
+```powershell
+./tools/windows/upscale-game.ps1 -ContentRoot 'C:\LocalData\Imports\import-id'
+```
+
+The script processes 128 sheets at 2x and adds eight restored background sheets. It requires a supported Vulkan GPU and refuses an old import with the incorrect DXT index ordering. Reimport using the updated game before upscaling such content.
+
+## Diagnostics
 
 ```powershell
 Dishwasher.exe --diagnose
 Dishwasher.exe --graphics-check
-Dishwasher.exe --graphics-check --render-benchmark --data-root C:\diagnostico
-dotnet run --project tools/windows/Tests -c Release -p:DishwasherBuildGame=false
+Dishwasher.exe --graphics-check --render-benchmark --data-root C:\Diagnostics
+dotnet run --project tools/windows/Tests -c Release -- C:\NewTestFolder
+powershell -STA -File tools/windows/owner-builder.ps1 -UiCheck
 ```
 
-`--graphics-check` abre uma pequena janela de diagnóstico e testa os 22 shaders
-por carregamento/desenho/readback, além de alpha, recortes HD e fontes.
-`--render-benchmark` mede por três segundos após aquecimento uma cena técnica
-1080p a 180 FPS, sem iniciar uma partida. Isso não prova
-fidelidade de toda a composição do jogo. Redhaze usa variante desktop sem branch
-booleana problemática; recompilar com tools/windows/build-shaders.ps1.
+Graphics diagnostics load, draw and read back the rewritten effects and check HD atlas coordinates, transparency and fonts. The benchmark measures a short synthetic 1080p scene; it does not establish campaign performance or visual fidelity.
 
-Flags de diagnóstico de tempo/captura: --smoke-seconds N e --capture-dir PASTA.
-Não são necessárias para jogar. O suporte a --input-script e à substituição
-sintética de gamepad foi removido; builds novas só leem os controles reais.
-Capturas derivadas do jogo devem permanecer locais e fora dos commits públicos.
+`--smoke-seconds N` and `--capture-dir PATH` are diagnostic options. Scripted gamepad input support was removed. Diagnostics do not supply gameplay input. Keep captures and all derived game data out of public commits.
+
+## Package the compiled builder
+
+From a clean committed checkout:
+
+```powershell
+./tools/windows/package-builder-release.ps1 -Version 0.1.0 -Dotnet dotnet
+```
+
+This publishes a self-contained Windows x64 builder and combines it with a committed source allowlist. It verifies binary origins, rejects private content and writes SHA256 manifests. `package-builder.ps1` produces a source-only kit.

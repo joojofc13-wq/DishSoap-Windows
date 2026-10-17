@@ -1,15 +1,14 @@
-# Multiplayer / LAN (System Link) co-op — implementation & verification
+# Multiplayer / LAN (System Link) co-op: implementation & verification
 
 **Author:** Multiplayer/Networking Specialist (subagent)
 **Date:** 2026-10-03
 **Scope:** edits confined to `src/Dishwasher/` and `android/notes/` + `<dev-notes>/proof/mp/`.
 Read-only trees (`managed/decompiled`, `assets-clean`, `port`, `rexglue-sdk*`) were **not** modified.
-**Result in one line:** the shim's `NetworkSession` is now a real UDP LAN implementation —
+**Result in one line:** the shim's `NetworkSession` is now a real UDP LAN implementation,
 **two phones on the same WiFi discover each other, join, hold a stable lobby, and play the
 "GET YOUR FEET WET" co-op level together** (verified with screenshots); the dead **Xbox LIVE co-op**
 entry is removed from the multiplayer menu.
 
----
 
 ## 0. TL;DR
 
@@ -20,17 +19,16 @@ entry is removed from the multiplayer menu.
 | `NetworkSession.Create/Find/Join` | implemented over **UDP port 27315** (plain `System.Net.Sockets`) |
 | discovery | broadcast + subnet-directed broadcast + **/24 unicast scan fallback** |
 | keep-alive | PING/PONG every 1 s, 6 s timeout (no hang on packet loss) |
-| two-phone test | ✅ A52 host + S9 client on <lan-ip>/24 — found, joined, **played co-op** |
+| two-phone test | ✅ A52 host + S9 client on <lan-ip>/24: found, joined, **played co-op** |
 | build | Release+AOT, **0 Error(s)**; APK `bin/Release/net8.0-android/com.recomp.dishwasher-Signed.apk` |
-| System Link hidden? | **No** — it works, so it stays |
+| System Link hidden? | **No**: it works, so it stays |
 
 **Why the user's "Local Co-op" test failed:** in the multiplayer menu the three rows are
-**LOCAL CO-OP** (`twoPlayStr`, one-device split-screen — never touches the network), **SYSTEM LINK**
+**LOCAL CO-OP** (`twoPlayStr`, one-device split-screen: never touches the network), **SYSTEM LINK**
 (`NetworkSessionType.SystemLink` = LAN), and (before this task) **XBOX LIVE CO-OP**
-(`NetworkSessionType.PlayerMatch`). The user selected *Local co-op* — the same-device mode — and
+(`NetworkSessionType.PlayerMatch`). The user selected *Local co-op*: the same-device mode: and
 expected the other phone. The correct cross-device mode is **System Link**; the menu now says so.
 
----
 
 ## 1. What was hidden (Xbox LIVE) and where
 
@@ -42,7 +40,7 @@ co-op entries were removed; System Link and Local co-op were left intact.
 | `MainMenu.cs:3971` (port) DrawButtons `case 32` | 4 rows: `twoPlay`, `systemLink`, **`liveCoopStr`**, `_back` | 3 rows: `twoPlay`, `systemLink`, `_back` (Back re-indexed 3→2) |
 | `MainMenu.cs:1884-1967` (port) input `case 32` | `case 2` = LIVE create menu (`transGoal 24`), `case 3` = Back | LIVE block removed; Back = `case 2` |
 | bounds/wrap `case 32` | `selOption` clamp 0..3 | clamp 0..2 (`selOption<0 → 2`) |
-| `MainMenu.cs:3971` (port) label | `Globals.maintext.systemLinkStr` | `new StringContainer("system link  - 2 phones on same wifi", true)` — the menu now tells the user which mode is cross-device |
+| `MainMenu.cs:3971` (port) label | `Globals.maintext.systemLinkStr` | `new StringContainer("system link  - 2 phones on same wifi", true)`: the menu now tells the user which mode is cross-device |
 | `MainMenu.cs` dead `case 16` (arcade-mode menu) | LIVE `drawOption(4, liveCoopStr)` + input `case 4` | removed; Back re-indexed 5→4; System Link decoupled from `signedIntoLive` |
 
 All edits are tagged `// PORT (mp)`. `Globals.signedIntoLive` is still set from the shimmed
@@ -51,16 +49,15 @@ and the System Link row is gated only by `Globals.trial` (off), so hiding LIVE c
 multiplayer menu unreachable. (`liveCoopStr` now remains only as an unused declaration/init in
 `MainText.cs:414,3707`.)
 
-`case 16` is **dead code** in this title — nothing assigns `transGoal = 16` or calls
+`case 16` is **dead code** in this title: nothing assigns `transGoal = 16` or calls
 `setLevel(16)` (checked in `MainMenu.cs`/`Game1.cs`). It was cleaned anyway to satisfy
 "any LIVE-gated paths".
 
----
 
 ## 2. Netcode map (`src/Dishwasher/GameSource/projectDish/`, port line numbers;
 the read-only original `managed/decompiled/game/projectDish/Netplay.cs` matches within a few lines)
 
-### 2.1 Session lifecycle — what the shim is driven by
+### 2.1 Session lifecycle: what the shim is driven by
 
 | concern | site |
 |---|---|
@@ -101,9 +98,8 @@ the read-only original `managed/decompiled/game/projectDish/Netplay.cs` matches 
    calls `StartGame()` on the host).
 6. Events `GamerJoined`, `GamerLeft`, `SessionEnded`, `GameStarted`, `GameEnded`.
 7. `GamerTag` / `GamerProfile` access (profiles are shimmed to null).
-No LIVE-only semantics are required — **the System Link path is fully implementable.**
+No LIVE-only semantics are required: **the System Link path is fully implementable.**
 
----
 
 ## 3. Implementation
 
@@ -111,7 +107,7 @@ No LIVE-only semantics are required — **the System Link path is fully implemen
 
 | file | change |
 |---|---|
-| `src/Dishwasher/Platform/Shim_Net.cs` | **rewritten (1454 LOC)** — real LAN `NetworkSession`, `NetworkGamer`, `LocalNetworkGamer`, `AvailableNetworkSession`, plus the UDP transport. `PacketReader`/`PacketWriter`/enums/leaderboard stubs kept (added `PacketReader.Load`). |
+| `src/Dishwasher/Platform/Shim_Net.cs` | **rewritten (1454 LOC)**: real LAN `NetworkSession`, `NetworkGamer`, `LocalNetworkGamer`, `AvailableNetworkSession`, plus the UDP transport. `PacketReader`/`PacketWriter`/enums/leaderboard stubs kept (added `PacketReader.Load`). |
 | `src/Dishwasher/GameSource/projectDish/MainMenu.cs` | LIVE entries removed; System Link label/clarification; level-16 cleanup. |
 | `src/Dishwasher/AndroidManifest.xml` | **`INTERNET`** (required for sockets on Android) + `ACCESS_NETWORK_STATE`. |
 
@@ -120,7 +116,7 @@ Key shim symbols: `LanNet` (protocol constants, `Shim_Net.cs:248`), `NetworkGame
 `PumpSocket` `:1045`, `Heartbeat` `:1256`, `SendLocal` `:1323`, `OpenUdp` `:1443`.
 
 `NetworkSessionType.Local` (same-device split-screen / `Leader.cs` local leaderboard session) is a
-**pure in-process session with no sockets** — it only needs `LocalGamers` with matching gamertags, so
+**pure in-process session with no sockets**: it only needs `LocalGamers` with matching gamertags, so
 split-screen co-op and the leaderboard helper are untouched.
 
 ### 3.2 LAN protocol (UDP, fixed port **27315**)
@@ -129,15 +125,15 @@ Every datagram: `"DWMP"` (4 bytes) + proto `1` (1) + type (1) + payload.
 
 | type | direction | payload |
 |---|---|---|
-| `TDiscover` (1) | client → broadcast/scan | — |
+| `TDiscover` (1) | client → broadcast/scan |: |
 | `TOffer` (2) | host → client | sessionId:int32, gamerCount:u8, maxGamers:u8, tagLen:u8, hostTag:utf8 |
 | `TJoin` (3) | client → host | tagLen:u8, clientTag:utf8 |
 | `TAccept` (4) | host → client | sessionId:int32, hostId:u8, assignedId:u8, tagLen:u8, maxGamers:u8, hostTag:utf8 |
-| `TReject` (5) | host → client | — |
+| `TReject` (5) | host → client |: |
 | `TData` (6) | both | senderId:u8, game payload bytes |
 | `TBye` (7) | both | gamerId:u8 |
 | `TPing`/`TPong` (8/9) | both | ticks:int64 (RTT) |
-| `TStart`/`TEnd` (10/11) | host → clients | — |
+| `TStart`/`TEnd` (10/11) | host → clients |: |
 
 **Discovery (`NetworkSession.Find`).** 1300 ms window. The client sends `TDiscover` to
 `255.255.255.255:27315`, **every subnet-directed broadcast** computed from each IPv4 interface's
@@ -166,13 +162,12 @@ session; the one background thread is the initial `Find` probe window (`EndFind`
 `IsCompleted`), and a short background thread for `Join` (`UpdateJoin` polls `IsCompleted`). Nothing
 blocks the render loop for more than the existing menu transition.
 
----
 
 ## 4. Verification (two physical phones, same WiFi)
 
 > The originally attached **Galaxy S24 (`<device-serial>`)** was screen-locked (secure keyguard; swipe /
 > `wm dismiss-keyguard` could not unlock it) and was then **unplugged mid-session** and replaced by the
-> primary port device **Galaxy A52**. Verification was therefore performed with **A52 + S9** — two
+> primary port device **Galaxy A52**. Verification was therefore performed with **A52 + S9**: two
 > devices on the same subnet, which is the required two-phone test.
 
 | device | model | Android | wlan0 |
@@ -184,7 +179,7 @@ blocks the render loop for more than the existing menu transition.
 `<dev-notes>/proof/mp/`):
 
 1. Both boot to title → main menu (`01-*`, `21-*`, `22-*`).
-2. Both → **MULTIPLAYER GAME**: menu shows only **LOCAL CO-OP / SYSTEM LINK / BACK** — no LIVE entry
+2. Both → **MULTIPLAYER GAME**: menu shows only **LOCAL CO-OP / SYSTEM LINK / BACK**: no LIVE entry
    (`03-a52-mp-menu.png`, `23-a52-mp.png`), and the final label reads
    **"SYSTEM LINK - 2 PHONES ON SAME WIFI"** (`40-a52-final-mp-menu.png`).
 3. A52 → SYSTEM LINK → **CREATE GAME**. Logcat:
@@ -222,7 +217,6 @@ After testing the files were pushed back into
 `files/Documents/TheDishwasher/` and **md5-verified** on-device against the backups. Both apps are
 left force-stopped.
 
----
 
 ## 5. Limitations / honest assessment
 
@@ -235,7 +229,7 @@ left force-stopped.
 * **One host per LAN.** The host binds fixed port 27315 with `SO_REUSEADDR`; two simultaneous hosts on
   the same subnet can contend for it.
 * **No multicast.** Discovery relies on broadcast + the /24 unicast scan. A WiFi AP with **client
-  isolation** blocks device-to-device traffic entirely — no LAN mode can work then.
+  isolation** blocks device-to-device traffic entirely: no LAN mode can work then.
 * **Discovery window is 1.3 s** and `GetSessions` retries only for LIVE (not System Link), so the host
   must be hosting before the client taps Join Game (normal flow: host creates first).
 * **LIVE paths remain as dead code** (`PlayerMatch` create/find yield an inert local session; invites
@@ -245,9 +239,8 @@ left force-stopped.
 * `GamerProfile`/gamer pictures are shimmed to null, so the lobby shows gamertags only.
 
 **Feasibility verdict: the game's System Link netcode is fully drivable by a plain LAN UDP
-implementation. System Link was NOT hidden — it works.**
+implementation. System Link was NOT hidden: it works.**
 
----
 
 ## 6. Build / deploy (verified)
 
@@ -267,8 +260,8 @@ manifest is **non-debuggable**.
 
 ## 7. Files changed this task
 
-* `Platform/Shim_Net.cs` — real LAN implementation (rewrite).
-* `GameSource/projectDish/MainMenu.cs` — LIVE removed / System Link clarified (`// PORT (mp)`).
-* `AndroidManifest.xml` — `INTERNET`, `ACCESS_NETWORK_STATE`.
+* `Platform/Shim_Net.cs`: real LAN implementation (rewrite).
+* `GameSource/projectDish/MainMenu.cs`: LIVE removed / System Link clarified (`// PORT (mp)`).
+* `AndroidManifest.xml`: `INTERNET`, `ACCESS_NETWORK_STATE`.
 * **new** `android/notes/multiplayer-lan.md` (this file) + `<dev-notes>/proof/mp/**`.
 * Saved backups: `tools/device-save-backups/pre-mp/**`.

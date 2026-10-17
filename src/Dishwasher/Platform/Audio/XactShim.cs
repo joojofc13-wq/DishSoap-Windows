@@ -217,7 +217,7 @@ namespace Dishwasher.Audio
                 // PORT FIX (music): a cache hit that has ALREADY been disposed must
                 // not be handed back. The game's Music.Play()/Music.setMusic()
                 // dispose a Cue and then immediately re-fetch it by name to
-                // (re)start it — XNA's SoundBank.GetCue returns a fresh, playable
+                // (re)start it: XNA's SoundBank.GetCue returns a fresh, playable
                 // Cue for that. The old shim returned the same dead cached object,
                 // so every music Play was a silent no-op (SFX were unaffected
                 // because they never dispose).

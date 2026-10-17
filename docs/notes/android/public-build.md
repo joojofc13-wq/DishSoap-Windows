@@ -2,14 +2,14 @@
 
 **Owner:** Distribution/Compliance Architect (subagent)
 **Date:** 2026-10-03
-**Status:** ✅ Implemented and verified on a Galaxy S9 (Android 10). Stage 2 (audio) is also complete — see `public-build-audio.md`.
+**Status:** ✅ Implemented and verified on a Galaxy S9 (Android 10). Stage 2 (audio) is also complete: see `public-build-audio.md`.
 
 This document covers the **second, "public" build variant** of the port: an APK that
 contains **no game content**, asks the owner to supply their own copy on first run,
 **checks it against the SHA-256 manifest**, and **derives the textures and fonts
 on-device**. The existing build is unchanged and stays the "internal" build.
 
-> **Update 2026-10-05 — tolerant import (policy change).** The check no longer
+> **Update 2026-10-05: tolerant import (policy change).** The check no longer
 > blocks on an asset that differs (a different game revision) or is missing: both
 > are **warnings** and the import continues with whatever is present. The import
 > is only refused when there is **nothing usable** (no usable file, or a missing
@@ -17,7 +17,6 @@ on-device**. The existing build is unchanged and stays the "internal" build.
 > with `-p:DishwasherStrictContent=true`. The sections below marked "rejected"
 > describe the original (strict) behaviour and are kept for history.
 
----
 
 ## 0. TL;DR
 
@@ -34,7 +33,6 @@ on-device**. The existing build is unchanged and stays the "internal" build.
 | audio (Stage 2, done) | 360 XMA decoded on-device: **222/222 waves (208 WAV + 14 OGG), 216 cues**; see `public-build-audio.md` |
 | device test | import success (`458/458`), rejection (`443 missing`), game boots with derived textures + audio (216 cues) |
 
----
 
 ## 1. Build switch
 
@@ -80,7 +78,7 @@ and the import screen is not reachable there.
 The Android SDK stages `@(AndroidAsset)` into `obj/.../assets` and only updates it
 incrementally (`_GenerateAndroidAssetsDir`, with `RemoveUnknownFiles`). Switching
 **internal → public** leaves the previously copied game assets behind because the
-public item set is a strict subset and the target is considered up to date — the
+public item set is a strict subset and the target is considered up to date: the
 first public build still contained `data/gfx/sfx/Resources`. Fixed with a
 public-only target that deletes the staging dir first:
 
@@ -96,7 +94,6 @@ public-only target that deletes the staging dir first:
 Verified in both directions (public→internal restores all assets; internal→public
 drops them). See `proof/public-build/asset-listings.txt`.
 
----
 
 ## 2. What is excluded and why
 
@@ -104,11 +101,11 @@ Measured from `src/Dishwasher/Assets/`:
 
 | tree | size / files | kind | public build |
 |---|---|---|---|
-| `data/` | 7.3 MB / 303 | **ORIGINAL** `.zdx`/`.dqx`/`.dgx` from the package | excluded — user supplies |
-| `Resources/` | 656 KB / 11 | **ORIGINAL** `.resources` strings | excluded — user supplies |
-| `gfx/` | 19 MB / 132 | **DERIVED** 125 PNGs + 3 font atlases + `.spritefont.json` | excluded — must never ship |
-| `sfx/` | 48 MB / 223 | **DERIVED** 222 OGG/WAV + `cue_map.json` | excluded — must never ship (Stage 2) |
-| `fx/` | 180 KB / 21 | **OURS** — 19 effects re-authored from Xenos microcode + 2 sketches, compiled by MGCB | **kept** |
+| `data/` | 7.3 MB / 303 | **ORIGINAL** `.zdx`/`.dqx`/`.dgx` from the package | excluded: user supplies |
+| `Resources/` | 656 KB / 11 | **ORIGINAL** `.resources` strings | excluded: user supplies |
+| `gfx/` | 19 MB / 132 | **DERIVED** 125 PNGs + 3 font atlases + `.spritefont.json` | excluded: must never ship |
+| `sfx/` | 48 MB / 223 | **DERIVED** 222 OGG/WAV + `cue_map.json` | excluded: must never ship (Stage 2) |
+| `fx/` | 180 KB / 21 | **OURS**: 19 effects re-authored from Xenos microcode + 2 sketches, compiled by MGCB | **kept** |
 
 `Assets/fx` and the compiled `Content/fx`→`assets/Content/fx` are our own artifacts
 (re-authored HLSL → MonoGame `.xnb`), not Xbox content, so they ship. The
@@ -123,7 +120,6 @@ assets/Content/fx/*.xnb   (21)   assets/fx/*.xnb (21)   assets/import-manifest.j
 
 Proof: `android/notes/proof/public-build/asset-listings.txt`.
 
----
 
 ## 3. First-run import + validation UX
 
@@ -148,7 +144,7 @@ shows the **import screen** instead of booting; the internal build always procee
 
 All work runs on a background `Thread`; progress is marshalled to the UI with
 `RunOnUiThread`. No ANR: the UI thread only paints. The report is reachable by
-scrolling (verified — the first revision cut it off at 720p landscape; fixed).
+scrolling (verified: the first revision cut it off at 720p landscape; fixed).
 
 ### 3.3 Sources accepted
 
@@ -173,7 +169,7 @@ starts the GL loop never runs (observed: black screen, no `Initialize` traces). 
 a successful import, **START GAME calls `Activity.Recreate()`** so the game boots
 through the normal `OnCreate → OnResume` lifecycle. Verified on device.
 
-### 3.5 Tolerant validation (2026-10-05) — the current shipped behaviour
+### 3.5 Tolerant validation (2026-10-05): the current shipped behaviour
 
 `ContentImporter.Validate` still hashes every manifest entry, but the result is used
 tolerantly (`ImportReport`):
@@ -186,7 +182,7 @@ tolerantly (`ImportReport`):
 | **nothing usable** | no usable file, **or** any core boot file absent | **block** |
 
 **"Nothing usable" rule.** The import is refused only when `Usable == 0`, or when
-any of the four **core boot files** — the ones the game needs to reach its menu —
+any of the four **core boot files**: the ones the game needs to reach its menu,
 is absent (matched *or* differed counts as present):
 
 ```
@@ -217,7 +213,6 @@ when audio banks are absent). The **full 458-line per-file detail goes to the lo
 its own try/catch, so a single bad/mismatched asset is logged and skipped and can never
 abort the whole import. `AudioImporter` was already per-wave tolerant.
 
----
 
 ## 4. Checksum manifest
 
@@ -236,10 +231,10 @@ the bootstrap, never user-editable):
 
 Required set = only what the public build consumes:
 
-* `data/**` (303) — original scripts / character data / solo data;
-* `gfx/**/*.xnb` (128) — original XNB v2 textures + SpriteFonts (derived on device);
-* `gfx/maps/maps.zdx` (1) — original map-segment script read with `File.Open`;
-* `Resources/**` (11) — original `.resources` strings.
+* `data/**` (303): original scripts / character data / solo data;
+* `gfx/**/*.xnb` (128): original XNB v2 textures + SpriteFonts (derived on device);
+* `gfx/maps/maps.zdx` (1): original map-segment script read with `File.Open`;
+* `Resources/**` (11): original `.resources` strings.
 
 **Nothing derived is ever listed** (no PNG, OGG, WAV, `cue_map.json`,
 `.spritefont.json`, or our compiled fx). Hashes are **SHA-256 of the raw file bytes**
@@ -254,7 +249,7 @@ python3 tools/gen_import_manifest.py \
 # required total: 443  counts: {'data':303,'gfx_xnb':128,'gfx_zdx':1,'resources':11}
 ```
 
-Validation result handling (current tolerant policy — see §3.5):
+Validation result handling (current tolerant policy: see §3.5):
 
 * a mismatched file → **warning, imported as-is**;
 * a missing file → **warning, skipped**;
@@ -275,7 +270,6 @@ struct), the 170-blocks-per-level-0-hash-table layout, and the level-0 hash tabl
 chain for file blocks. It reproduces `assets-clean` **byte-for-byte** (560/560 files,
 with one stray `sfx/solo_crux.xwb.wav` that only exists in `assets-clean`).
 
----
 
 ## 5. On-device derivation
 
@@ -294,12 +288,12 @@ files use exactly the layout the existing loader already expects (`asset + ".png
 
 Two supporting pieces:
 
-* **`Platform/Import/XnbV2.cs`** — faithful C# port of `tools/xnb_v2.py`:
+* **`Platform/Import/XnbV2.cs`**: faithful C# port of `tools/xnb_v2.py`:
   XNB v2 header (magic + platform + Int16 version + Int32 size, no flags byte),
   reader table, `Texture2D` formats 1 (raw A,R,G,B) / 28 (DXT1) / 32 (DXT5) with
   **big-endian RGB565 endpoints** and the **word-swapped DXT5 alpha block**, and the
   GS3.0 `SpriteFontReader` (`List<char>` UTF-8, no `defaultCharacter`).
-* **`Platform/Import/PngWriter.cs`** — dependency-free RGBA8888 → PNG encoder
+* **`Platform/Import/PngWriter.cs`**: dependency-free RGBA8888 → PNG encoder
   (filter 0, colour type 6, zlib via `DeflateStream` + Adler32 + CRC32).
 
 `PublicBuild.OpenContent` resolves content **app-private files first, then APK
@@ -313,11 +307,10 @@ reference `src/Dishwasher/Content/gfx/`: **128/128 PNGs pixel-identical, 0
 dimension mismatches, 3/3 `.spritefont.json` field-identical.** On device the same
 code produced a bootable `files/content/gfx` tree.
 
----
 
 ## 6. Audio story (Stage 2 complete)
 
-On-device XMA decoding is implemented and verified — see
+On-device XMA decoding is implemented and verified: see
 **`public-build-audio.md`** for the decoder strategy/licensing, the C# container
 parsing and cue mapping, the import wiring, the manifest change and the device
 evidence. In short: the public build now decodes the owner's `sfx/*.xwb` banks
@@ -329,10 +322,9 @@ The earlier Stage-1 behaviour (0 cues registered, silent, no crash) is supersede
 `SoundLoader.Get` still returns `null` on a missing file, so a missing/failed
 derivation can never crash the game.
 
-> Background **music** does not play in the internal build either — that is a
+> Background **music** does not play in the internal build either: that is a
 > separate pre-existing issue, out of scope for this work.
 
----
 
 ## 7. Verification evidence
 
@@ -342,7 +334,7 @@ All under `android/notes/proof/public-build/`:
 |---|---|
 | `01-import-screen.png` | first-run import screen (touch UI, audio note) |
 | `09-picker-open.png`, `27-picker-grid2.png` | SAF document picker |
-| `13-after-providers.png`, `20-search-result.png` | progress state (`Importing 428/443 …`) — no ANR |
+| `13-after-providers.png`, `20-search-result.png` | progress state (`Importing 428/443 …`): no ANR |
 | `15-import-success-details.png` | `✓ Import complete: All 443 required original files verified (size + SHA-256)` + START |
 | `30-failure-details.png` | rejection report: file list, `… and 418 more`, `Mismatched: (none)` |
 | `25-recreate-boot.png` | game booted after import→START with derived textures |
@@ -374,7 +366,7 @@ Desktop matrix (all 443 verified + derived):
 | ROM `.zip` (STFS inside) | 443/443 | yes |
 | zip of extracted files | 443/443 | yes |
 | folder of extracted files | 443/443 | yes |
-| corrupt/incomplete | 442 missing, 1 mismatched → rejected | — |
+| corrupt/incomplete | 442 missing, 1 mismatched → rejected |: |
 
 Device notes: tested on `<device-serial>` (Galaxy S9, Android 10). Saves were backed
 up first (`tools/device-save-backups/<device-serial>-20261003-135430/`, md5
@@ -384,11 +376,10 @@ boots with the restored saves. Two Samsung cloud DocumentsProviders
 during automation; they were disabled for the test and **re-enabled afterwards**.
 The staged test zips were removed from `/sdcard/Download`.
 
----
 
 ## 8. Remaining work (Stage 2 done)
 
-Stage 2 (audio) is complete — see `public-build-audio.md`. Items 1–3 below are
+Stage 2 (audio) is complete: see `public-build-audio.md`. Items 1-3 below are
 implemented; item 4 (atomic temp-dir derivation, free-space check, replace-content
 button) remains optional polish.
 
@@ -403,13 +394,12 @@ button) remains optional polish.
 Non-goals (still true): no gameplay changes, no content is ever shipped in the
 public APK, and audio never crashes.
 
----
 
 ## 9. Files touched
 
 **Added** (under `src/Dishwasher/`, all marked `// PORT`):
 
-* `Platform/PublicBuild.cs` — switch, readiness, content-open fallback, marker.
+* `Platform/PublicBuild.cs`: switch, readiness, content-open fallback, marker.
 * `Platform/Import/XnbV2.cs`, `PngWriter.cs`, `StfsReader.cs`,
   `GameContentSource.cs`, `ContentSourceFactory.cs`, `AndroidContentSource.cs`,
   `ImportManifest.cs`, `ContentImporter.cs`, `ImportController.cs`.
@@ -417,10 +407,10 @@ public APK, and audio never crashes.
 
 **Added tooling** (`tools/`):
 
-* `stfs_extract.py` — validated STFS/LIVE reference extractor.
-* `gen_import_manifest.py` — manifest generator.
-* `csharp/importer-test/` — desktop harness linking the importer sources.
-* `xma-decoder/` — Stage 2: native XMA decoder source/build script + licences.
+* `stfs_extract.py`: validated STFS/LIVE reference extractor.
+* `gen_import_manifest.py`: manifest generator.
+* `csharp/importer-test/`: desktop harness linking the importer sources.
+* `xma-decoder/`: Stage 2: native XMA decoder source/build script + licences.
 
 **Stage 2 (audio) additions/changes** are listed in full in
 `public-build-audio.md` §8: `Platform/Import/{XwbReader,XsbReader,AudioImporter}.cs`,
@@ -430,10 +420,10 @@ edits, and the regenerated 458-entry `import-manifest.json`.
 
 **Modified:**
 
-* `Dishwasher.csproj` — public switch, asset exclusions, staging-clear target.
-* `Activity1.cs` — public gate, `StartGame()`, `RestartForGame()` (`Recreate`),
+* `Dishwasher.csproj`: public switch, asset exclusions, staging-clear target.
+* `Activity1.cs`: public gate, `StartGame()`, `RestartForGame()` (`Recreate`),
   `OnActivityResult`, import-aware `OnBackPressed`.
-* `DishwasherContentManager.cs` — `OpenContent` now goes through
+* `DishwasherContentManager.cs`: `OpenContent` now goes through
   `PublicBuild.OpenContent` (files-first, then APK) instead of `TitleContainer`.
 
 **Not touched:** `GameSource/**` (game logic), the 19 `Content/fx` re-authored

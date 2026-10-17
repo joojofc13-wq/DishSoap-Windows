@@ -1,4 +1,4 @@
-# Intro restored — boot logo carousel covers the content load
+# Intro restored: boot logo carousel covers the content load
 
 **Author:** Boot/UX Specialist (subagent, follow-up)
 **Date:** 2026-10-02
@@ -8,27 +8,25 @@
 Read-only trees (`managed/decompiled`, `assets-clean`, `port`, `rexglue-sdk*`,
 `android-app`) were **not** modified.
 
----
 
 ## 0. TL;DR
 
 | item | result |
 |---|---|
 | `Globals.SkipIntro` final value | **`false`** (`GameSource/projectDish/Globals.cs:28`) |
-| Boot logo carousel | **restored** — XBLA → Dream Build Play → Ska → ESRB/dish drawn during load |
-| `gameMode` 3 `Intro` sequence | **same as original** — original decompiled code sets `gameMode = 3; gameMode = 1;` back-to-back, so it never actually plays (see §4) |
-| Per-level comic strip (`strip.playing`) | **restored** — plays on level start (screenshots `comic-05`, `comic-06`) |
+| Boot logo carousel | **restored**: XBLA → Dream Build Play → Ska → ESRB/dish drawn during load |
+| `gameMode` 3 `Intro` sequence | **same as original**: original decompiled code sets `gameMode = 3; gameMode = 1;` back-to-back, so it never actually plays (see §4) |
+| Per-level comic strip (`strip.playing`) | **restored**: plays on level start (screenshots `comic-05`, `comic-06`) |
 | Launch → first frame | **2.31 s** (`am start -W TotalTime`, COLD) |
-| Launch → first logo (XBLA visible) | **≈ 2.9–3.0 s** (screencap `logo-01-xbla.png`) |
+| Launch → first logo (XBLA visible) | **≈ 2.9-3.0 s** (screencap `logo-01-xbla.png`) |
 | Launch → main menu/title | **≈ 23.3 s** (`[boot] content loaded; entering main menu`) |
 | Content decode window | `+2.64 s` (`Load Content complete`) → `+23.26 s` = **≈ 20.6 s**, fully covered by the carousel |
-| Widescreen fill | **unchanged** — menu content bbox `(4,5)-(2396,1076)` = **2392/2400 px (99.7 %) × 1071/1080 (99.2 %)** |
+| Widescreen fill | **unchanged**: menu content bbox `(4,5)-(2396,1076)` = **2392/2400 px (99.7 %) × 1071/1080 (99.2 %)** |
 | `FATAL` / `ContentLoadException` | **none** |
 | Audio | initialises: 6 categories, 216 cues, 4 sound banks (`SoundBank ready`) |
 | Protected fixes | untouched (`MatrixTransform`, `fade`, DXT5 alpha, straight-alpha/`NonPremultiplied`, `AndroidInputBridge`, lense sampler, landscape lock, immersive fullscreen, widescreen) |
 | Diagnostic harnesses | `RenderDiagnostics.Enabled = false`, `InputDiagnostics.Enabled = false` |
 
----
 
 ## 1. The change
 
@@ -42,13 +40,13 @@ public const bool SkipIntro = false;   // was true
 No other code change. `Game1.cs` mtime is unchanged (12:57); only `Globals.cs`
 was touched (13:11).
 
-### 1.1 Six sites — verified to fall through to original branches
+### 1.1 Six sites: verified to fall through to original branches
 
 | # | site | `Game1.cs` line | with `SkipIntro=false` |
 |---|---|---:|---|
-| 1 | `UpdateLoader` leave condition | 2438 | `if (loaded && (loadFrame > 20.45f || !Globals.isX360))` — waits for the 20.45 s logo window again |
+| 1 | `UpdateLoader` leave condition | 2438 | `if (loaded && (loadFrame > 20.45f || !Globals.isX360))`: waits for the 20.45 s logo window again |
 | 2 | `UpdateLoader` `loadTrans` frame branch | 2472-2481 | falls to `else if (loadTrans[loadDrawPhase] < 1f) loadTrans[...] += frameTime * 2f` (original ramp) |
-| 3 | enter `Intro` mode | 2457-2462 | `gameMode = 3; gameMode = 1;` — **identical to decompiled original** (see §4) |
+| 3 | enter `Intro` mode | 2457-2462 | `gameMode = 3; gameMode = 1;`: **identical to decompiled original** (see §4) |
 | 4 | `case 3:` Intro update | 1435-1448 | `intro.Update(character[0]); if (intro.allDone) gameMode = 1;` (original) |
 | 5 | comic-strip trigger | 1986-2003 | `map.comicTransFrame = 0; strip.path = comicSwitch; strip.Read(); strip.Reset(); strip.playing = true;` (original) |
 | 6 | `DrawLoader` logo carousel | 3432-3488 | all `!Globals.SkipIntro` guards pass → XBLA / Dream Build Play / Ska / release / dish draws run |
@@ -57,7 +55,6 @@ All six `// PORT: …SkipIntro…` comments mark only these sites; there are no 
 non-flag-guarded edits from the cut agent (grep `// PORT` in `Game1.cs` = 6 hits,
 all at the sites above).
 
----
 
 ## 2. Device verification
 
@@ -77,7 +74,7 @@ adb shell am start -W -n com.recomp.dishwasher/crc641d1cdd92eb70a339.Activity1
 | `ActivityTaskManager: START` | 13:13:27.700 | 0.00 s |
 | `Displayed … +2s312ms` (first frame) | 13:13:30.001 | **+2.30 s** |
 | `[trace] Load Content complete` | 13:13:30.342 | +2.64 s |
-| `[audio] SoundBank ready` ×4 / AudioEngine | 13:13:50.196–50.352 | +22.50 s |
+| `[audio] SoundBank ready` ×4 / AudioEngine | 13:13:50.196-50.352 | +22.50 s |
 | `[trace] [boot] content loaded; entering main menu` | 13:13:50.964 | **+23.26 s** |
 
 `am start -W TotalTime = 2312 ms`.
@@ -93,7 +90,6 @@ to the menu). The intro is visible **during** the load, not after it.
 `logo-01-xbla.png` (t ≈ +3.0 s) shows the XBOX LIVE arcade logo; the previous
 `SkipIntro=true` build's first frames were pure black (`after-landscape-first-frame.png`).
 
----
 
 ## 3. Proof screenshots (`<dev-notes>/proof/boot/`)
 
@@ -103,14 +99,13 @@ to the menu). The intro is visible **during** the load, not after it.
 | `logo-02-dreambuildplay.png` | DREAM BUILD PLAY / XNA Game Studio (t ≈ +8.0 s) |
 | `logo-03-ska.png` | ska studios video games (t ≈ +15.0 s) |
 | `logo-04-esrb.png` | "ONLINE INTERACTIONS NOT RATED BY THE ESRB" / dish (t ≈ +20.0 s) |
-| `logo-05-title-menu.png` | title/menu "The Dishwasher Dead Samurai — PRESS A TO START!" (t ≈ +48 s, status ≈ +23.3 s) |
+| `logo-05-title-menu.png` | title/menu "The Dishwasher Dead Samurai: PRESS A TO START!" (t ≈ +48 s, status ≈ +23.3 s) |
 | `frame-03s.png` … `frame-36s.png` | full 1 s-interval sequence |
 | `comic-05-comic1.png`, `comic-06-later.png` | per-level comic strip playing ("HOW DID I END UP BACK HERE?" …) |
 | `comic-00-menu.png` … `comic-04-play.png` | title → Single Player → Story Difficulty → Select Level → PLAY |
 | `run2-amstart.txt`, `run2-logcat.txt` | raw `am start -W` output and logcat |
 | `menu.png` | title screen used for the widescreen bbox check |
 
----
 
 ## 4. Note on the `gameMode` 3 `Intro` ("comic intro")
 
@@ -135,12 +130,11 @@ the **per-level comic** (site 5) plays when a level starts. Reverting the flag
 restores both; it does **not** resurrect the `gameMode` 3 sequence because the
 original never entered it either. Restoring that sequence would require a
 non-original change (dropping the trailing `gameMode = 1;`) and would add its
-~44 s runtime before the menu — deliberately **not** done, to stay faithful to
+~44 s runtime before the menu: deliberately **not** done, to stay faithful to
 the original and to the "revert the skip" brief.
 
----
 
-## 5. Widescreen — no regression
+## 5. Widescreen: no regression
 
 `Platform/WidescreenConfig.cs` (mtime 12:56) and its two marked blocks were not
 touched. Logcat at boot:
@@ -156,10 +150,9 @@ Screencap bounding-box check (`menu.png`, 2400×1080, threshold >10):
 content bbox = (4,5)-(2396,1076)  ->  w=2392 / 2400 = 99.7 %   h=1071 / 1080 = 99.2 %
 ```
 
-The thin 4–5 px black edge is the game's own `Globals.border`; the image fills
+The thin 4-5 px black edge is the game's own `Globals.border`; the image fills
 the panel.
 
----
 
 ## 6. Clean build / final state
 

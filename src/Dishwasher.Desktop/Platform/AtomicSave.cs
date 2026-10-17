@@ -13,12 +13,12 @@ namespace Dishwasher
             bool Valid(string candidate)
             {
                 try { using var stream = File.OpenRead(candidate); serializer.Deserialize(stream); return true; }
-                catch (InvalidOperationException ex) { Log.Exception("[save] XML inválido " + candidate, ex); return false; }
+                catch (InvalidOperationException ex) { Log.Exception("[save] Invalid XML " + candidate, ex); return false; }
             }
             if (Valid(path)) return;
             string backup = path + ".bak";
             if (!File.Exists(backup) || !Valid(backup))
-                throw new InvalidDataException("Save corrompido sem backup válido: " + path);
+                throw new InvalidDataException("Corrupt save with no valid backup: " + path);
             string corrupt = path + ".corrupt-" + DateTime.UtcNow.Ticks;
             string temporary = path + ".recover-" + Guid.NewGuid().ToString("N");
             File.Copy(path, corrupt);
@@ -26,7 +26,7 @@ namespace Dishwasher
             {
                 File.Copy(backup, temporary);
                 File.Replace(temporary, path, null);
-                Log.Info("[save] Backup restaurado; original preservado: " + corrupt);
+                Log.Info("[save] Backup restored; original preserved: " + corrupt);
             }
             finally { if (File.Exists(temporary)) File.Delete(temporary); }
         }
