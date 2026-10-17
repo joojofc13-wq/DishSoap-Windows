@@ -50,6 +50,7 @@ namespace Dishwasher
             _lastUpdateTime = now;
             _simulation.Advance(elapsed, () => {
                 DesktopInput.MenuContext = gameMode != 0 || projectDish.Globals.paused;
+                DesktopInput.BeginFrame();
                 CapturePreviousState();
                 base.Update(new GameTime(TimeSpan.FromSeconds(_simulation.Ticks * FixedSimulationClock.StepSeconds),
                     TimeSpan.FromSeconds(FixedSimulationClock.StepSeconds)));

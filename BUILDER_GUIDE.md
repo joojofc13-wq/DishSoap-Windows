@@ -41,6 +41,10 @@ Click **Verify installed files** and choose a game built with version 0.3.0 or l
 
 New builds and successful update preparation record a SHA-256 baseline of the derived content. Older imports are first checked using the original manifest, texture manifests and decoded file formats; their first baseline cannot prove that an already altered derived file matches its original import. Verification reports this distinction. Damaged content is reported rather than silently accepted. Use **Build my game** with your original copy to regenerate broken assets.
 
+## Controller assignment
+
+Single-player input is the default. The keyboard and the primary physical controller both control player one, including when Windows reconnects that controller in another device slot. Additional controller slots cannot join while **Local co-op (additional controllers)** is disabled. Enable that option before launching the game when using multiple controllers for local play. Capabilities and vibration follow the same logical player mapping.
+
 ## Play and configure
 
 Open `DishSoap.Configurator.exe`, choose your preferences and save. It does not start the game. Open `Dishwasher.exe` to play with the saved configuration.

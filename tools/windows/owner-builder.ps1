@@ -238,7 +238,7 @@ if ($Worker) {
         }
         Report-BuildStage 6 ('6/6 Complete. The game will not start automatically.')
         Write-Host ("Executable: $gameExe")
-        @{ Executable = $gameExe; GameSource = $generatedSource; Source = [IO.Path]::GetFullPath($Source); Imported = (!$SkipImport -or [bool]$UpdateExisting); Version = '0.3.0'; DataRoot = $DataRoot; LetteringRevision = 1 } |
+        @{ Executable = $gameExe; GameSource = $generatedSource; Source = [IO.Path]::GetFullPath($Source); Imported = (!$SkipImport -or [bool]$UpdateExisting); Version = '0.4.0'; DataRoot = $DataRoot; LetteringRevision = 1 } |
             ConvertTo-Json | Set-Content -LiteralPath (Join-Path $Destination 'local-build.json') -Encoding UTF8
         $workerExit = 0
     }

@@ -1,18 +1,13 @@
-In-place updates, selectable game language and targeted lettering fixes.
-
-## Added
-
-- **Game language** selector in the configurator, with English selected by default, optional Windows automatic selection and the supported bundled translations. The configurator interface stays in English.
-- **Download game update** in the builder. Downloads the latest stable builder from GitHub, verifies its SHA-256 digest and rebuilds an existing installation in place.
-- Existing imports, AI-upscaled textures, saves and player settings are preserved during updates. Replaced runtime files are backed up; failed replacements are rolled back.
-- **Verify installed files** checks runtime checksums, original content, upscaled texture checksums and audio decoding. New builds also record checksums for derived content.
+Fix unintended second-player input when playing with one controller.
 
 ## Fixed
 
-- Guitar solos prepare both audio stems before the countdown starts, preventing silent notes and keeping the guitar and backing track aligned.
-- Reviewed lettering overlays improve the HERBERT machine label and the CYBORG ASSIMILATION MOVEMENT neon sign. Changes stay inside the labels and preserve transparency and the shader bloom classification.
-- Updates apply these overlays to existing upscaled packs without rerunning the AI upscale.
-- Not all illegible text has been replaced. Other scene and story-panel lettering still needs to be checked and reviewed.
-- The builder displays verification progress and reports completion for builds and updates.
+- Route the primary physical controller to player one even when Windows assigns it a different device slot after reconnecting.
+- Keyboard and primary controller input stay with player one. Additional controller slots cannot join in the default single-player configuration.
+- Controller capabilities and vibration use the same player mapping as button and stick input.
 
-Extract `DishSoap-Builder-v0.3.0-win-x64.zip` and open `DishSoap.Builder.exe`. To update a compiled game, select **Download game update** and choose its folder.
+## Added
+
+- **Local co-op (additional controllers)** in the configurator. Disabled by default; enable it before launching the game to allow additional controllers to join.
+
+Download and extract `DishSoap-Builder-v0.4.0-win-x64.zip`, open `DishSoap.Builder.exe` and select **Download game update** to update an existing compiled installation.

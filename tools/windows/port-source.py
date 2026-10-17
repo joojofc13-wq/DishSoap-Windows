@@ -66,6 +66,8 @@ def port(text):
     text = text.replace('BlendState.AlphaBlend', 'BlendState.NonPremultiplied')
     text = text.replace('using Microsoft.Xna.Framework.Audio;', 'using Dishwasher.Audio;')
     text = text.replace('GamePad.GetState(', 'Dishwasher.DesktopInput.GetState(')
+    text = text.replace('GamePad.GetCapabilities(', 'Dishwasher.DesktopInput.GetCapabilities(')
+    text = text.replace('GamePad.SetVibration(', 'Dishwasher.DesktopInput.SetVibration(')
     text = re.sub(r'([\w.]+)\.SetRenderTarget\((?:\(RenderTarget2D\))?null\)', r'Dishwasher.DesktopPresentation.Bind(\1)', text)
     text = re.sub(r'([\w.]+)\.Abort\(\);', r'Dishwasher.DesktopThreads.RequestStop(\1);', text)
     text = text.replace('while (!loaded)', 'while (!loaded && !Dishwasher.DesktopThreads.StopRequested)')

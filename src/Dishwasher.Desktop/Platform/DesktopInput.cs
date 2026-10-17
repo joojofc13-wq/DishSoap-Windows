@@ -10,11 +10,37 @@ namespace Dishwasher
         public static DesktopSettings Settings { get; set; } = new DesktopSettings();
         public static bool Focused { get; set; } = true;
         public static bool MenuContext { get; set; } = true;
+        private static readonly DesktopControllerRouting Routing=new();
+        private static readonly bool[] Connected=new bool[4];
+        private static bool _routingReady;
+        public static void BeginFrame()
+        {
+            for(int i=0;i<4;i++) Connected[i]=GamePad.GetState((PlayerIndex)i).IsConnected;
+            Routing.Update(Connected,Settings.LocalCoop);
+            _routingReady=true;
+        }
+        private static int Physical(PlayerIndex index)
+        {
+            if(!_routingReady) BeginFrame();
+            return Routing.Resolve((int)index);
+        }
+        public static GamePadCapabilities GetCapabilities(PlayerIndex index)
+        {
+            int physical=Physical(index);
+            return physical<0?default:GamePad.GetCapabilities((PlayerIndex)physical);
+        }
+        public static bool SetVibration(PlayerIndex index,float leftMotor,float rightMotor)
+        {
+            int physical=Physical(index);
+            return physical>=0&&GamePad.SetVibration((PlayerIndex)physical,leftMotor,rightMotor);
+        }
         public static GamePadState GetState(PlayerIndex index) => GetState(index, GamePadDeadZone.IndependentAxes);
         public static GamePadState GetState(PlayerIndex index, GamePadDeadZone deadZone)
         {
             if (!Focused) return default;
-            var pad = GamePad.GetState(index, deadZone);
+            int physical=Physical(index);
+            var pad = physical<0?default:GamePad.GetState((PlayerIndex)physical, deadZone);
+            if(index!=PlayerIndex.One && physical<0) return default;
             return index == PlayerIndex.One ? Merge(pad, Keyboard.GetState(), Settings, MenuContext) : pad;
         }
         public static GamePadState Merge(GamePadState pad, KeyboardState keyboard, DesktopSettings settings, bool menu = true)

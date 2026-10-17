@@ -6,7 +6,7 @@ Windows x64 port of The Dishwasher: Dead Samurai. Build the game from your own c
 
 ## Get started
 
-1. Download `DishSoap-Builder-v0.3.0-win-x64.zip` from [Releases](https://github.com/joojofc13-wq/DishSoap-Windows/releases).
+1. Download `DishSoap-Builder-v0.4.0-win-x64.zip` from [Releases](https://github.com/joojofc13-wq/DishSoap-Windows/releases).
 2. Extract the entire ZIP to a writable folder.
 3. Open `DishSoap.Builder.exe`.
 4. Select your legitimate game copy and a destination folder. The builder creates a new game subfolder inside it.
@@ -25,6 +25,8 @@ You need Windows x64, internet access for initial tool setup, your own game copy
 The builder can download the latest stable update and rebuild an existing game folder while preserving imported assets, AI-upscaled textures, saves and settings. It keeps backups of replaced runtime files. Use **Download game update** or **Verify installed files**; see the [builder guide](BUILDER_GUIDE.md#update-an-existing-installation).
 
 ## Features
+
+- Keyboard and the first connected controller share player one. Enable **Local co-op (additional controllers)** in the configurator to allow other controllers to join.
 
 - Select the game language in the configurator. English is the default; Automatic optionally follows Windows. The bundled Portuguese translation is European Portuguese.
 

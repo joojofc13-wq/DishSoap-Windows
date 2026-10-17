@@ -117,6 +117,7 @@ using (var recovered = File.OpenRead(savePath))
         Directory.GetFiles(DesktopPaths.Saves, "*.corrupt-*").Length == 1, "corrupt save restored and preserved");
 ContentVerificationChecks.Run(root);
 GameLanguageChecks.Run(root);
+ControllerRoutingChecks.Run();
 await DiscordPresenceChecks.Run();
 Console.WriteLine("All platform checks passed. These are not campaign tests.");
 

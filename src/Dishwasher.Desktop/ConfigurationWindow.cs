@@ -10,14 +10,14 @@ namespace Dishwasher
     {
         private readonly DesktopSettings _settings = DesktopSettings.Load();
         private readonly ComboBox _fps = new(), _quality = new(), _language=new();
-        private readonly CheckBox _fullscreen = new(), _vsync = new(), _showFps = new(), _smooth = new(), _discord = new();
+        private readonly CheckBox _fullscreen = new(), _vsync = new(), _showFps = new(), _smooth = new(), _discord = new(), _localCoop=new();
         private readonly Button _save = new(), _cancel = new(), _openSaves = new();
         private bool _previewing;
         protected override bool ShowWithoutActivation => _previewing;
 
         public ConfigurationWindow()
         {
-            Text = "dishwasher"; ClientSize = new Size(450, 417);
+            Text = "dishwasher"; ClientSize = new Size(450, 450);
             FormBorderStyle = FormBorderStyle.FixedDialog; MaximizeBox = false;
             StartPosition = FormStartPosition.CenterScreen; Font = new Font("Segoe UI", 9);
             AddLabel("Image:", 20, 24);
@@ -42,7 +42,9 @@ namespace Dishwasher
             Place(_smooth, "Smooth motion", 240, 239, _settings.SmoothMotion);
             Place(_discord, "Discord Rich Presence", 20, 272, _settings.DiscordRichPresence);
             _discord.Width = 300;
-            _openSaves.Text = "Open saves folder"; _openSaves.SetBounds(20, 318, 178, 34);
+            Place(_localCoop,"Local co-op (additional controllers)",20,305,_settings.LocalCoop);
+            _localCoop.Width=400;
+            _openSaves.Text = "Open saves folder"; _openSaves.SetBounds(20, 351, 178, 34);
             _openSaves.Click += (_, _) => {
                 try
                 {
@@ -51,8 +53,8 @@ namespace Dishwasher
                 }
                 catch (Exception ex) { MessageBox.Show(this, ex.Message, "dishwasher", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             };
-            _save.Text = "Save settings"; _save.SetBounds(231, 361, 199, 34);
-            _cancel.Text = "Cancel"; _cancel.SetBounds(119, 361, 100, 34); _cancel.DialogResult = DialogResult.Cancel;
+            _save.Text = "Save settings"; _save.SetBounds(231, 394, 199, 34);
+            _cancel.Text = "Cancel"; _cancel.SetBounds(119, 394, 100, 34); _cancel.DialogResult = DialogResult.Cancel;
             Controls.AddRange(new Control[] { _openSaves, _save, _cancel }); AcceptButton = _save; CancelButton = _cancel;
             _save.Click += (_, _) => {
                 try
@@ -74,6 +76,7 @@ namespace Dishwasher
             _settings.FrameLimit = (int)_fps.SelectedItem; _settings.Fullscreen = _fullscreen.Checked;
             _settings.VSync = _vsync.Checked; _settings.ShowFps = _showFps.Checked; _settings.SmoothMotion = _smooth.Checked;
             _settings.DiscordRichPresence = _discord.Checked;
+            _settings.LocalCoop=_localCoop.Checked;
             _settings.TextureQuality = _quality.SelectedIndex == 0 ? "Original" : "Enhanced";
             _settings.GameLanguage=((DesktopGameLanguage.Choice)_language.SelectedItem).Code;
             _settings.Save();
@@ -81,7 +84,7 @@ namespace Dishwasher
         internal bool CheckControls() => _fps.Items.Contains(180) && _quality.Items.Count == 2 &&
             _quality.Items[0].ToString() == "Original" && _quality.Items[1].ToString() == "Upscaled" &&
             Text == "dishwasher" && _save.Text == "Save settings" && _openSaves.Text == "Open saves folder" &&
-            Controls.Contains(_discord) && _discord.Text == "Discord Rich Presence" && _language.Items.Count==DesktopGameLanguage.Choices.Length && _language.SelectedIndex>=0;
+            Controls.Contains(_discord) && Controls.Contains(_localCoop) && _discord.Text == "Discord Rich Presence" && _language.Items.Count==DesktopGameLanguage.Choices.Length && _language.SelectedIndex>=0;
         internal void SavePreview(string path)
         {
             _previewing = true; ShowInTaskbar = false; StartPosition = FormStartPosition.Manual;
