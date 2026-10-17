@@ -1,6 +1,6 @@
 # DishSoap Windows
 
-The Upscaled option uses Real-ESRGAN AI and is enabled by default. Keeping it selected is recommended.
+The assets Upscaled by AI option is enabled by default. Keeping it selected is recommended.
 
 Windows x64 port of The Dishwasher: Dead Samurai. Build the game from your own copy, then run it with original or upscaled textures.
 
