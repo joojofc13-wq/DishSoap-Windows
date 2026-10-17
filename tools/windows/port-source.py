@@ -76,6 +76,22 @@ def port(text):
 
 
 def integrate(relative, text):
+    if relative.as_posix() == 'projectDish/Map.cs':
+        if text.count('if (exitPush < 1f)') != 2: raise ValueError('Review left/right room-exit hold checks')
+        text = text.replace('if (exitPush < 1f)', 'if (Dishwasher.DesktopQol.NeedsExitHold(exitPush))')
+        # Move the unchanged exit validation block into a callable method so
+        # transition regressions can be checked without loading a whole level.
+        marker = 'if (transGoal == "" && transFrame <= 0f && endFrame <= 0f && Globals.grabFrame <= 0f)'
+        if text.count(marker) != 1: raise ValueError('Review room-exit validation boundary')
+        start = text.index(marker); brace = text.index('{', start); end = brace + 1; depth = 1
+        while depth:
+            if text[end] == '{': depth += 1
+            elif text[end] == '}': depth -= 1
+            end += 1
+        block = text[start:end]
+        text = text[:start] + 'PortCheckRoomExits(c);' + text[end:]
+        last = text.rfind('}')
+        text = text[:last] + '\n\tinternal void PortCheckRoomExits(Character[] c)\n\t{\n\t\t' + block + '\n\t}\n' + text[last:]
     # Hook health-loss operations, not HP assignments used by initialization,
     # weapon changes, healing or scripted cleanup. Fail if the owned revision
     # has different call sites rather than silently shipping incomplete cheats.
@@ -133,6 +149,23 @@ def integrate(relative, text):
                       r'\1\n\t\t\tDishwasher.AtomicSave.Write(path, xmlSerializer, save); // PORT: atomic, same XML', text)
         text = re.sub(r'catch \(Exception\)\n(\s*)\{', r'catch (Exception portError)\n\1{\n\1\tDishwasher.Log.Exception("save/read", portError);', text)
     if relative.as_posix() == 'projectDish/Game1.cs':
+        marker = 'private void Pause()'
+        if text.count(marker) != 1: raise ValueError('Review focus-loss pause hook')
+        text = text.replace(marker, '''protected void PortPauseOnFocusLoss()
+    {
+        if (gameMode != 0 || !Dishwasher.DesktopInput.Settings.PauseOnFocusLoss || Dishwasher.DesktopInput.Focused || Globals.paused) return;
+        bool blocked = map == null || spriteMan == null || strip == null || Globals.pickups == null ||
+            map.getTransOut() || map.getTransVal() > 0f || map.endFrame > 0f || map.comicSwitch != "" ||
+            Globals.pickups.getBusy() || Globals.tutShow >= 0 || Globals.guitarFrame > 0f || strip.playing ||
+            Globals.netPlay.hosting || Globals.netPlay.joined;
+        if (Dishwasher.DesktopQol.ShouldPause(true, false, Globals.paused, blocked)) Pause();
+    }
+
+    ''' + marker)
+        if text.count('private Vector2 sScroll;') != 1: raise ValueError('Review stable camera anchor')
+        text = text.replace('private Vector2 sScroll;', 'protected Vector2 sScroll;')
+        if text.count('Color.White, mapRot,') != 2: raise ValueError('Review camera rotation draw hooks')
+        text = text.replace('Color.White, mapRot,', 'Color.White, mapRot * Dishwasher.DesktopQol.CameraShakeScale,')
         text = text.replace('private Character[] character;', 'protected Character[] character;')
         text = text.replace('private Vector2 scroll;', 'protected Vector2 scroll;')
         text = text.replace('Globals.needsRender--;', 'if (Dishwasher.DesktopRenderContext.NewSimulationFrame) Globals.needsRender--;')

@@ -6,6 +6,8 @@ Output is fixed at 1280 x 720. The options are Original or Upscaled textures, fu
 
 ## Internal canvas
 
+The **Quality of life** tab includes quick room exits, focus-loss pausing and reduced camera shake. Quick exits remove only the input hold delay. Reduced shake scales rendered camera offsets and rotation to one quarter without changing simulation state, random calls or vibration. The focus option uses the game's pause menu and waits through transitions and unpausable sequences. QoL changes apply on the next launch.
+
 Render targets use a 1920 x 1080 canvas, then downsample to 720p. Original game coordinates stay at 1280 x 720. Desktop SpriteBatch adapters transform target coordinates, source rectangles, scale and origin/pivot values. Collision, maps, attack reach and movement speed keep their original coordinates.
 
 ## DXT corrections

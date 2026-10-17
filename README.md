@@ -6,7 +6,7 @@ Windows x64 port of The Dishwasher: Dead Samurai. Build the game from your own c
 
 ## Get started
 
-1. Download `DishSoap-Builder-v0.4.0-win-x64.zip` from [Releases](https://github.com/joojofc13-wq/DishSoap-Windows/releases).
+1. Download `DishSoap-Builder-v0.5.0-win-x64.zip` from [Releases](https://github.com/joojofc13-wq/DishSoap-Windows/releases).
 2. Extract the entire ZIP to a writable folder.
 3. Open `DishSoap.Builder.exe`.
 4. Select your legitimate game copy and a destination folder. The builder creates a new game subfolder inside it.
@@ -34,6 +34,7 @@ The builder can download the latest stable update and rebuild an existing game f
 - Original or Upscaled textures, including a separate pass for backgrounds.
 - Windowed or fullscreen display, VSync and an optional FPS counter.
 - Optional controller vibration. Uncheck **Controller vibration** in the configurator's **Game** tab, save and restart the game to disable both motors.
+- A **Quality of life** tab with quick room exits, optional automatic pause when switching windows and reduced camera shake.
 - FPS limits of 60, 90, 120, 144, 165, 180, 240 and 360.
 - Original game simulation at 60 Hz, with optional visual motion interpolation.
 - Keyboard and controller input, a local player profile and save backup recovery.
@@ -42,6 +43,12 @@ The builder can download the latest stable update and rebuild an existing game f
 - A **Cheats** tab with damage protection, resource locks and numeric modifiers for damage, movement and earned orbs. Disabled by default, with manual and automatic save backups.
 
 Settings are stored in `%LOCALAPPDATA%\DishSoapWindows\Config\desktop.json`. Saves are stored in `%LOCALAPPDATA%\DishSoapWindows\Saves`.
+
+## Quality of life
+
+**Quick room exits** is enabled by default. At an open side exit, point toward it to leave without holding the stick or key. Exit selection, wall checks, blocked paths, scripted events, fades and loading remain in place. Disable the option to restore the original hold delay.
+
+**Pause when switching windows** optionally pauses normal gameplay when the window loses focus. It waits until transitions and other unpausable sequences finish, and leaves the game paused when you return. **Reduced camera shake** lowers rendered camera displacement and rotation to 25% while keeping simulation state and controller vibration separate. Both options start disabled. Save and restart the game to apply QoL settings.
 
 ## Cheats
 

@@ -9,7 +9,7 @@
     <LangVersion>12</LangVersion>
     <AssemblyName>Dishwasher</AssemblyName>
     <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
-    <Version>0.4.0</Version>
+    <Version>0.5.0</Version>
     <DishwasherBuildGame Condition="'$(DishwasherBuildGame)' == ''">true</DishwasherBuildGame>
     <!-- Independent copy: preparing desktop sources cannot alter the Android tree. -->
     <GameSourceRoot Condition="'$(GameSourceRoot)' == ''">$(MSBuildThisFileDirectory)GameSource</GameSourceRoot>

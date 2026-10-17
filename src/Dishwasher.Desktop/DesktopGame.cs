@@ -28,6 +28,7 @@ namespace Dishwasher
         private Vector2[] _beforePositions = Array.Empty<Vector2>(), _drawPositions = Array.Empty<Vector2>();
         private bool[] _changed = Array.Empty<bool>();
         private Vector2 _beforeScroll, _beforeGlobalScroll;
+        private Vector2 _beforeStableScroll;
         private bool _haveSnapshot;
         protected override void Initialize()
         {
@@ -52,6 +53,7 @@ namespace Dishwasher
             _simulation.Advance(elapsed, () => {
                 DesktopInput.MenuContext = gameMode != 0 || projectDish.Globals.paused;
                 DesktopInput.BeginFrame();
+                PortPauseOnFocusLoss();
                 CapturePreviousState();
                 base.Update(new GameTime(TimeSpan.FromSeconds(_simulation.Ticks * FixedSimulationClock.StepSeconds),
                     TimeSpan.FromSeconds(FixedSimulationClock.StepSeconds)));
@@ -84,6 +86,7 @@ namespace Dishwasher
             DesktopRenderContext.Begin(_simulation.Ticks);
             bool interpolate = _haveSnapshot && gameMode == 0 && !projectDish.Globals.paused &&
                 DesktopInput.Settings.SmoothMotion && DesktopInput.Settings.FrameLimit > 60;
+            bool reduceShake = gameMode == 0 && DesktopInput.Settings.ReducedCameraShake;
             try
             {
                 projectDish.Globals.frameTime = (float)drawDelta;
@@ -103,13 +106,21 @@ namespace Dishwasher
                     if (Vector2.DistanceSquared(_beforeGlobalScroll, projectDish.Globals.gScroll) < 256 * 256)
                         projectDish.Globals.gScroll = Vector2.Lerp(_beforeGlobalScroll, projectDish.Globals.gScroll, alpha);
                 }
+                if (reduceShake)
+                {
+                    Vector2 anchor = sScroll;
+                    if (interpolate && Vector2.DistanceSquared(_beforeStableScroll, anchor) < 256 * 256)
+                        anchor = Vector2.Lerp(_beforeStableScroll, anchor, (float)_simulation.Alpha);
+                    scroll = DesktopQol.CameraPosition(anchor, scroll);
+                    projectDish.Globals.gScroll = DesktopQol.CameraPosition(anchor, projectDish.Globals.gScroll);
+                }
                 base.Draw(new GameTime(TimeSpan.FromSeconds(_simulation.Ticks * FixedSimulationClock.StepSeconds), TimeSpan.FromSeconds(drawDelta)));
             }
             finally
             {
                 if (interpolate)
                     for (int i = 0; i < _snapshotCharacters.Length; i++) if (_changed[i]) _snapshotCharacters[i].PortVisualLocation = _drawPositions[i];
-                if (interpolate) { scroll = originalScroll; projectDish.Globals.gScroll = originalGlobal; }
+                if (interpolate || reduceShake) { scroll = originalScroll; projectDish.Globals.gScroll = originalGlobal; }
                 projectDish.Globals.frameTime = originalFrameTime; DesktopRenderContext.End();
             }
             DesktopPresentation.Present(GraphicsDevice);
@@ -151,6 +162,7 @@ namespace Dishwasher
             for (int i = 0; i < character.Length; i++)
             { _snapshotCharacters[i] = character[i]; _beforePositions[i] = character[i]?.PortVisualLocation ?? Vector2.Zero; _changed[i] = false; }
             _beforeScroll = scroll; _beforeGlobalScroll = projectDish.Globals.gScroll;
+            _beforeStableScroll = sScroll;
         }
     }
     internal static class DesktopProfile

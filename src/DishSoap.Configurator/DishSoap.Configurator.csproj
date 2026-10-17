@@ -4,12 +4,13 @@
     <UseWindowsForms>true</UseWindowsForms><ImplicitUsings>disable</ImplicitUsings><Nullable>disable</Nullable>
     <AssemblyName>DishSoap.Configurator</AssemblyName>
     <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
-    <Version>0.4.0</Version>
+    <Version>0.5.0</Version>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.5.1" />
     <Compile Include="../Dishwasher.Desktop/ConfigurationWindow.cs" Link="ConfigurationWindow.cs" />
     <Compile Include="../Dishwasher.Desktop/CheatConfigurationPanel.cs" Link="CheatConfigurationPanel.cs" />
+    <Compile Include="../Dishwasher.Desktop/QolConfigurationPanel.cs" Link="QolConfigurationPanel.cs" />
     <Compile Include="../Dishwasher.Desktop/Platform/DesktopSettings.cs" Link="DesktopSettings.cs" />
     <Compile Include="../Dishwasher.Desktop/Platform/DesktopCheatSettings.cs" Link="DesktopCheatSettings.cs" />
     <Compile Include="../Dishwasher.Desktop/Platform/DesktopSaveBackup.cs" Link="DesktopSaveBackup.cs" />

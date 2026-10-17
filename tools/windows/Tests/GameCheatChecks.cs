@@ -97,5 +97,15 @@ internal static class GameCheatChecks
         vibration.Checked=false;windowType.GetMethod("SaveChoices",All).Invoke(window,null);
         using var desktop=System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(root,"Config","desktop.json")));
         Check(!desktop.RootElement.GetProperty("ControllerVibration").GetBoolean(),"actual configurator saves the vibration opt-out");
+        var qol=windowType.GetField("_qol",All).GetValue(window); var qolType=qol.GetType();
+        var quick=(System.Windows.Forms.CheckBox)qolType.GetField("_quickExits",All).GetValue(qol);
+        Check(quick.Checked,"new QoL tab enables quick exits by default");
+        quick.Checked=false;
+        ((System.Windows.Forms.CheckBox)qolType.GetField("_pause",All).GetValue(qol)).Checked=true;
+        ((System.Windows.Forms.CheckBox)qolType.GetField("_shake",All).GetValue(qol)).Checked=true;
+        windowType.GetMethod("SaveChoices",All).Invoke(window,null);
+        using var qolJson=System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(root,"Config","desktop.json")));
+        Check(!qolJson.RootElement.GetProperty("QuickRoomExits").GetBoolean()&&qolJson.RootElement.GetProperty("PauseOnFocusLoss").GetBoolean()&&qolJson.RootElement.GetProperty("ReducedCameraShake").GetBoolean(),
+            "QoL controls save all three independent preferences");
     }
 }

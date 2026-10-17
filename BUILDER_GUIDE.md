@@ -53,6 +53,12 @@ Output is fixed at 1280 x 720. Settings include Original or Upscaled textures, f
 
 **Controller vibration** is in the **Game** tab. Uncheck it, save and restart the game to disable both vibration motors. It is enabled by default to preserve the original behavior.
 
+## Quality of life
+
+The **Quality of life** tab has three independent settings. **Quick room exits** removes the directional hold delay at open side exits and is enabled by default. Wall checks, locked exits, fades and actual loading are preserved. Uncheck it to restore the original delay.
+
+**Pause when switching windows** pauses normal gameplay on focus loss and requires manual resuming. During a transition or another sequence that blocks pausing, it waits for a valid pause point. **Reduced camera shake** reduces visual camera offsets and rotation to 25%; game simulation and controller vibration are unaffected. These two settings start disabled. Save and restart the game after changing QoL settings.
+
 ## Cheats and save backups
 
 The configurator has separate **Game** and **Cheats** tabs. Cheats start disabled. **Cheats can permanently change your save; back up saves before making any changes.** Use **Back up saves** for a manual copy. Saving changed cheats while enabled creates a backup first under `%LOCALAPPDATA%\DishSoapWindows\SaveBackups`; if copying fails, the changes are not saved. Close the game before restoring files from a backup into the Saves folder.

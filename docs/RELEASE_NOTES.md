@@ -1,20 +1,9 @@
-Fix controller routing and rendering, and add configurable cheats with save backups.
-
-## Fixed
-
-- Restore the refraction silhouette of cloaked enemies. Their original low-health reveal behavior is preserved.
-- Smooth the bloom transition that produced bright purple blocks in the theatre spotlight. Strong blue light effects remain enabled.
-- Route the primary physical controller to player one even when Windows assigns it a different device slot after reconnecting.
-- An active controller can claim player one ahead of an idle virtual device, then keeps its ownership until disconnecting.
-- Keyboard and primary controller input stay with player one. Additional controller slots cannot join in the default single-player configuration.
-- Controller capabilities and vibration use the same player mapping as button and stick input.
+Add a Quality of life tab to the configurator.
 
 ## Added
 
-- **Controller vibration** toggle in the configurator's **Game** tab. Uncheck it, save and restart the game to disable both motors.
-- **Local co-op (additional controllers)** in the configurator. Disabled by default; enable it before launching the game to allow additional controllers to join.
-- A **Cheats** tab, disabled by default: health damage protection, editable ammunition and magic skull locks, infinite movement energy, and multipliers for player damage taken, enemy damage taken, movement speed and newly earned orbs.
-- Cheat changes apply to a running game within one second after saving. Resource locks restore underlying counters when disabled; earned orbs and progress remain saved.
-- Manual save backups and automatic backups before saving changed cheats while enabled. **Cheats can permanently change your save. Back up saves before making any changes.**
+- **Quick room exits**, enabled by default. Point toward an open side exit to leave without holding the stick or key. Wall checks, locked exits, scripted events, fades and loading are preserved. Uncheck it to restore the original hold delay.
+- **Pause when switching windows**, optional. Pauses normal gameplay on focus loss, waits through unpausable sequences and requires manual resuming.
+- **Reduced camera shake**, optional. Reduces rendered camera displacement and rotation to 25% without changing simulation state or controller vibration.
 
-Download and extract `DishSoap-Builder-v0.4.0-win-x64.zip`, open `DishSoap.Builder.exe` and select **Download game update** to update an existing compiled installation.
+Save and restart the game to apply QoL settings. Use **Download game update** in the builder to update an existing installation while keeping its saves, settings and prepared assets.
