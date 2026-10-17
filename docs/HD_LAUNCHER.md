@@ -1,6 +1,6 @@
 # Desktop settings and rendering
 
-`Dishwasher.exe` runs the game directly. `DishSoap.Configurator.exe` is a separate Windows settings editor with DishSoap branding and the window title `dishwasher`. Save configuration writes preferences and closes the editor.
+`Dishwasher.exe` runs the game directly. `DishSoap.Configurator.exe` is a separate Windows settings editor with the window title `dishwasher`. Save configuration writes preferences and closes the editor. Open saves folder opens `%LOCALAPPDATA%\DishSoapWindows\Saves` in File Explorer.
 
 Output is fixed at 1280 x 720. The options are Original or Upscaled textures, fullscreen, FPS limit, VSync, Show FPS and Smooth Motion. FPS caps are 60, 90, 120, 144, 165, 180, 240 and 360. The editor uses English on every region. Old resolution settings are migrated to 720p. Existing saved volume is retained, but no volume control or controls legend appears in the editor.
 

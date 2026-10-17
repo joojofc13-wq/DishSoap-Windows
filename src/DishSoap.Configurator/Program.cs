@@ -32,7 +32,7 @@ namespace Dishwasher
                 }
                 Application.Run(new ConfigurationWindow()); return 0;
             }
-            catch (Exception ex) { MessageBox.Show(ex.Message, "DishSoap", MessageBoxButtons.OK, MessageBoxIcon.Error); return 1; }
+            catch (Exception ex) { MessageBox.Show(ex.Message, "dishwasher", MessageBoxButtons.OK, MessageBoxIcon.Error); return 1; }
         }
     }
 }

@@ -16,6 +16,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(DishwasherBuildGame)' == 'true'">
     <DefineConstants>$(DefineConstants);DISHWASHER_GAME</DefineConstants>
+    <ApplicationIcon>Assets/Dishwasher.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup Condition="'$(DishwasherBuildGame)' != 'true'">
     <AssemblyName>DishSoap.Setup</AssemblyName>
