@@ -103,9 +103,11 @@ internal static class GameCheatChecks
         quick.Checked=false;
         ((System.Windows.Forms.CheckBox)qolType.GetField("_pause",All).GetValue(qol)).Checked=true;
         ((System.Windows.Forms.CheckBox)qolType.GetField("_shake",All).GetValue(qol)).Checked=true;
+        ((System.Windows.Forms.CheckBox)qolType.GetField("_safeReconnect",All).GetValue(qol)).Checked=true;
         windowType.GetMethod("SaveChoices",All).Invoke(window,null);
         using var qolJson=System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(root,"Config","desktop.json")));
         Check(!qolJson.RootElement.GetProperty("QuickRoomExits").GetBoolean()&&qolJson.RootElement.GetProperty("PauseOnFocusLoss").GetBoolean()&&qolJson.RootElement.GetProperty("ReducedCameraShake").GetBoolean(),
             "QoL controls save all three independent preferences");
+        Check(qolJson.RootElement.GetProperty("SafeControllerReconnect").GetBoolean(), "safe reconnect preference saves through the actual configurator");
     }
 }

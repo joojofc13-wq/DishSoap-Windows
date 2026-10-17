@@ -16,11 +16,13 @@ namespace Dishwasher
         private static readonly Buttons[] AllButtons=Enum.GetValues<Buttons>();
         private static readonly Buttons[] DigitalButtons={Buttons.A,Buttons.B,Buttons.X,Buttons.Y,Buttons.Start,Buttons.Back,Buttons.LeftShoulder,Buttons.RightShoulder,Buttons.LeftStick,Buttons.RightStick,Buttons.DPadUp,Buttons.DPadDown,Buttons.DPadLeft,Buttons.DPadRight};
         private static bool _routingReady;
+        private static readonly DesktopXInput SafePads = new();
         public static void BeginFrame()
         {
+            if (Settings.SafeControllerReconnect) SafePads.Poll((double)System.Diagnostics.Stopwatch.GetTimestamp() / System.Diagnostics.Stopwatch.Frequency);
             for(int i=0;i<4;i++)
             {
-                var pad=GamePad.GetState((PlayerIndex)i);
+                var pad=Settings.SafeControllerReconnect ? SafePads.GetState(i) : GamePad.GetState((PlayerIndex)i);
                 Connected[i]=pad.IsConnected;
                 Active[i]=pad.IsConnected&&HasActivity(pad);
             }
@@ -42,12 +44,12 @@ namespace Dishwasher
         public static GamePadCapabilities GetCapabilities(PlayerIndex index)
         {
             int physical=Physical(index);
-            return physical<0?default:GamePad.GetCapabilities((PlayerIndex)physical);
+            return physical<0?default:Settings.SafeControllerReconnect?SafePads.GetCapabilities(physical):GamePad.GetCapabilities((PlayerIndex)physical);
         }
         public static bool SetVibration(PlayerIndex index,float leftMotor,float rightMotor)
         {
             int physical=Physical(index);
-            return SendVibration(physical,leftMotor,rightMotor,GamePad.SetVibration);
+            return Settings.SafeControllerReconnect ? SendVibration(physical,leftMotor,rightMotor,SafePads.SetVibration) : SendVibration(physical,leftMotor,rightMotor,GamePad.SetVibration);
         }
         internal static bool SendVibration(int physical,float leftMotor,float rightMotor,Func<PlayerIndex,float,float,bool> send)
         {
@@ -61,7 +63,7 @@ namespace Dishwasher
         {
             if (!Focused) return default;
             int physical=Physical(index);
-            var pad = physical<0?default:GamePad.GetState((PlayerIndex)physical, deadZone);
+            var pad = physical<0?default:Settings.SafeControllerReconnect?SafePads.GetState(physical,deadZone):GamePad.GetState((PlayerIndex)physical, deadZone);
             if(index!=PlayerIndex.One && physical<0) return default;
             return index == PlayerIndex.One ? Merge(pad, Keyboard.GetState(), Settings, MenuContext) : pad;
         }

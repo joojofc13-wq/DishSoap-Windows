@@ -50,6 +50,8 @@ Settings are stored in `%LOCALAPPDATA%\DishSoapWindows\Config\desktop.json`. Sav
 
 **Pause when switching windows** optionally pauses normal gameplay when the window loses focus. It waits until transitions and other unpausable sequences finish, and leaves the game paused when you return. **Reduced camera shake** lowers rendered camera displacement and rotation to 25% while keeping simulation state and controller vibration separate. Both options start disabled. Save and restart the game to apply QoL settings.
 
+**Safe controller reconnects (XInput)** is an opt-in workaround for repeated USB reconnects crashing the native SDL event loop. It uses Windows XInput for Xbox-compatible controllers and DS4Windows with Xbox 360 output, and leaves SDL controller subsystems uninitialized. Input is cleared on disconnect and accepted again after 250 ms of stable connection. Keyboard input and the existing local co-op mapping remain available. Leave it disabled for direct PlayStation or generic SDL controllers; save and restart after changing the mode. This does not repair a faulty cable.
+
 ## Cheats
 
 **Cheats can permanently change your save. Back up your saves before making any changes.** Use **Back up saves** in the configurator's **Cheats** tab. Backups are stored in `%LOCALAPPDATA%\DishSoapWindows\SaveBackups`. Changed settings with cheats enabled also create a backup automatically before they are saved; a failed backup prevents applying the changes.

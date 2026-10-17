@@ -18,6 +18,7 @@ static void Reject(Action action, string label)
 if (args.Length == 3 && args[0] == "--game-cheats") { GameCheatChecks.Run(args[1], args[2]); return; }
 if (args.Length == 3 && args[0] == "--configurator-cheats") { GameCheatChecks.Configurator(args[1], args[2]); return; }
 if (args.Length == 2 && args[0] == "--game-qol") { GameQolChecks.Run(args[1]); return; }
+if (args.Length == 2 && args[0] == "--safe-input-native") { ControllerReconnectChecks.Native(args[1]); return; }
 if (args.Length != 1) throw new ArgumentException("Provide a new test folder.");
 string root = Path.GetFullPath(args[0]);
 if (Directory.Exists(root)) throw new IOException("Preserve previous tests; provide a new folder.");
@@ -122,6 +123,7 @@ ContentVerificationChecks.Run(root);
 GameLanguageChecks.Run(root);
 ControllerRoutingChecks.Run();
 QolChecks.Run();
+ControllerReconnectChecks.Run();
 CheatChecks.Run();
 await DiscordPresenceChecks.Run();
 Console.WriteLine("All platform checks passed. These are not campaign tests.");

@@ -59,6 +59,8 @@ The **Quality of life** tab has three independent settings. **Quick room exits**
 
 **Pause when switching windows** pauses normal gameplay on focus loss and requires manual resuming. During a transition or another sequence that blocks pausing, it waits for a valid pause point. **Reduced camera shake** reduces visual camera offsets and rotation to 25%; game simulation and controller vibration are unaffected. These two settings start disabled. Save and restart the game after changing QoL settings.
 
+For repeated USB reconnect crashes, enable **Safe controller reconnects (XInput)** in **Quality of life**, save and restart the game. Use an Xbox-compatible controller or DS4Windows with Xbox 360 output. The option starts disabled to preserve direct SDL controller support. Safe mode clears input on removal and waits for a 250 ms stable connection before enabling input and vibration again; keyboard controls and logical co-op slots are retained.
+
 ## Cheats and save backups
 
 The configurator has separate **Game** and **Cheats** tabs. Cheats start disabled. **Cheats can permanently change your save; back up saves before making any changes.** Use **Back up saves** for a manual copy. Saving changed cheats while enabled creates a backup first under `%LOCALAPPDATA%\DishSoapWindows\SaveBackups`; if copying fails, the changes are not saved. Close the game before restoring files from a backup into the Saves folder.

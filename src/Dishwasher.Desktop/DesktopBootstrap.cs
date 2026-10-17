@@ -17,12 +17,14 @@ namespace Dishwasher
             DesktopGameLanguage.Apply(settings.GameLanguage);
             DesktopHdTextures.Initialize(root, settings.TextureQuality);
             DesktopInput.Settings = settings;
+            DesktopControllerNative.Configure(settings.SafeControllerReconnect);
             // Every physical pad may select its own local slot without LIVE.
             var gamers = Microsoft.Xna.Framework.GamerServices.Gamer.SignedInGamers;
             for (int i = 1; i < 4; i++)
                 if (gamers[(PlayerIndex)i] == null)
                     gamers.Add(new Microsoft.Xna.Framework.GamerServices.SignedInGamer { PlayerIndex = (PlayerIndex)i, Gamertag = "Player " + (i + 1) });
             using var game = new DesktopGame();
+            DesktopControllerNative.Verify();
             using var presence = new DesktopDiscordPresence(settings.DiscordRichPresence);
             game.DiscordPresence = presence;
             settings.NativeResolution = false; settings.Width = 1280; settings.Height = 720;

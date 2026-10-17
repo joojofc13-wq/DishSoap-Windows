@@ -5,7 +5,7 @@ namespace Dishwasher
 {
     internal sealed class QolConfigurationPanel : UserControl
     {
-        private readonly CheckBox _quickExits = new(), _pause = new(), _shake = new();
+        private readonly CheckBox _quickExits = new(), _pause = new(), _shake = new(), _safeReconnect = new();
         internal QolConfigurationPanel(DesktopSettings settings)
         {
             Dock = DockStyle.Fill;
@@ -15,12 +15,14 @@ namespace Dishwasher
             Note("Automatically pauses normal gameplay when the game loses focus.\nResume manually after returning. Waits for transitions to finish.", 155);
             Add(_shake, "Reduced camera shake", 226, settings.ReducedCameraShake);
             Note("Reduces camera shake and rotation to 25% of normal.\nController vibration has its own setting in the Game tab.", 258);
-            Note("Save settings and restart the game to apply these options.\nQuick room exits is enabled by default. Uncheck it for the original hold delay.", 352);
+            Add(_safeReconnect, "Safe controller reconnects (XInput)", 329, settings.SafeControllerReconnect);
+            Note("For Xbox controllers or DS4Windows with Xbox 360 output.\nAvoids SDL controller hotplug; waits 250 ms for a stable connection.", 361);
+            Note("Save settings and restart the game to apply these options.\nUncheck Quick room exits for the original hold delay.", 437);
         }
         private void Add(CheckBox box, string text, int y, bool value)
         { box.Text = text; box.SetBounds(16, y, 430, 27); box.Checked = value; Controls.Add(box); }
         private void Note(string text, int y) => Controls.Add(new Label { Text = text, Location = new Point(18, y), Size = new Size(430, 60) });
         internal void SaveChoices(DesktopSettings settings)
-        { settings.QuickRoomExits = _quickExits.Checked; settings.PauseOnFocusLoss = _pause.Checked; settings.ReducedCameraShake = _shake.Checked; }
+        { settings.QuickRoomExits = _quickExits.Checked; settings.PauseOnFocusLoss = _pause.Checked; settings.ReducedCameraShake = _shake.Checked; settings.SafeControllerReconnect = _safeReconnect.Checked; }
     }
 }
