@@ -7,6 +7,8 @@ internal static class ControllerRoutingChecks
     public static void Run()
     {
         Check(!new DesktopSettings().LocalCoop,"single-player input is the default");
+        Check(!DesktopInput.HasActivity(default),"idle controller state does not claim ownership");
+        Check(DesktopInput.HasActivity(new Microsoft.Xna.Framework.Input.GamePadState(Microsoft.Xna.Framework.Vector2.Zero,Microsoft.Xna.Framework.Vector2.Zero,0,0,Microsoft.Xna.Framework.Input.Buttons.A)),"a real button press claims controller ownership");
         for(int slot=0;slot<4;slot++)
         {
             var route=new DesktopControllerRouting();var connected=new bool[4];connected[slot]=true;
@@ -29,5 +31,18 @@ internal static class ControllerRoutingChecks
         router.Update(new[]{true,false,true,true},false);
         Check(router.Resolve(0)==0&&router.Resolve(1)==-1&&router.Resolve(2)==-1,"disabling co-op disconnects additional logical players");
         Check(router.Resolve(-1)==-1&&router.Resolve(4)==-1,"invalid player indices do not address a controller");
+        var idle=new DesktopControllerRouting();
+        idle.Update(new[]{true,true,false,false},false,new[]{false,false,false,false});
+        idle.Update(new[]{true,true,false,false},false,new[]{false,true,false,false});
+        Check(idle.Resolve(0)==1&&idle.Resolve(1)==-1,"the active controller claims player one ahead of an idle virtual device");
+        idle.Update(new[]{true,true,false,false},false,new[]{true,false,false,false});
+        Check(idle.Resolve(0)==1,"later input on another slot cannot steal the established primary controller");
+        idle.Update(new[]{true,false,false,false},false,new[]{false,false,false,false});
+        idle.Update(new[]{true,false,false,true},false,new[]{false,false,false,true});
+        Check(idle.Resolve(0)==3,"reconnected active controller reclaims player one after its old slot disconnects");
+        var coop=new DesktopControllerRouting();
+        coop.Update(new[]{true,false,true,false},true,new[]{true,false,false,false});
+        coop.Update(new[]{false,false,true,false},true,new[]{false,false,true,false});
+        Check(coop.Resolve(0)==-1&&coop.Resolve(1)==2,"active player two is not stolen after an established primary disconnects");
     }
 }

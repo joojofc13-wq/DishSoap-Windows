@@ -12,12 +12,27 @@ namespace Dishwasher
         public static bool MenuContext { get; set; } = true;
         private static readonly DesktopControllerRouting Routing=new();
         private static readonly bool[] Connected=new bool[4];
+        private static readonly bool[] Active=new bool[4];
+        private static readonly Buttons[] AllButtons=Enum.GetValues<Buttons>();
+        private static readonly Buttons[] DigitalButtons={Buttons.A,Buttons.B,Buttons.X,Buttons.Y,Buttons.Start,Buttons.Back,Buttons.LeftShoulder,Buttons.RightShoulder,Buttons.LeftStick,Buttons.RightStick,Buttons.DPadUp,Buttons.DPadDown,Buttons.DPadLeft,Buttons.DPadRight};
         private static bool _routingReady;
         public static void BeginFrame()
         {
-            for(int i=0;i<4;i++) Connected[i]=GamePad.GetState((PlayerIndex)i).IsConnected;
-            Routing.Update(Connected,Settings.LocalCoop);
+            for(int i=0;i<4;i++)
+            {
+                var pad=GamePad.GetState((PlayerIndex)i);
+                Connected[i]=pad.IsConnected;
+                Active[i]=pad.IsConnected&&HasActivity(pad);
+            }
+            Routing.Update(Connected,Settings.LocalCoop,Active);
             _routingReady=true;
+        }
+        internal static bool HasActivity(GamePadState pad)
+        {
+            if(pad.ThumbSticks.Left.LengthSquared()>.09f||pad.ThumbSticks.Right.LengthSquared()>.09f||pad.Triggers.Left>.2f||pad.Triggers.Right>.2f) return true;
+            foreach(Buttons button in DigitalButtons)
+                if(pad.IsButtonDown(button)) return true;
+            return false;
         }
         private static int Physical(PlayerIndex index)
         {
@@ -46,7 +61,7 @@ namespace Dishwasher
         public static GamePadState Merge(GamePadState pad, KeyboardState keyboard, DesktopSettings settings, bool menu = true)
         {
             var down = new List<Buttons>();
-            foreach (Buttons button in Enum.GetValues<Buttons>())
+            foreach (Buttons button in AllButtons)
                 if (button != 0 && ((int)button & ((int)button - 1)) == 0 && pad.IsButtonDown(button)) down.Add(button);
             float x = 0, y = 0;
             if (keyboard.IsKeyDown(Keys.A) || keyboard.IsKeyDown(Keys.Left)) x--;

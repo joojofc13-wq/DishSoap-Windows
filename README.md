@@ -26,7 +26,7 @@ The builder can download the latest stable update and rebuild an existing game f
 
 ## Features
 
-- Keyboard and the first connected controller share player one. Enable **Local co-op (additional controllers)** in the configurator to allow other controllers to join.
+- Keyboard and the primary active controller share player one. Enable **Local co-op (additional controllers)** in the configurator to allow other controllers to join.
 
 - Select the game language in the configurator. English is the default; Automatic optionally follows Windows. The bundled Portuguese translation is European Portuguese.
 
